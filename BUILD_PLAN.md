@@ -48,15 +48,32 @@ Goal: a live `.pages.dev` URL showing the design tokens, so every later slice sh
 ### Slice 2 ⚠: Export spike on real devices (1.0h) *(UI_PLAN S0)*
 Goal: learn now whether canvas export, Web Share and the fallbacks work where your audience is.
 
-- [ ] **T2.1 Build the spike page** (0.5h)
+- [x] **T2.1 Build the spike page** (0.5h)
   - Build: a throwaway `/spike` route. Hard-coded `ReceiptView`; canvas draws the danfo band, a few POS lines and amounts at 1080×1920; waits for the fonts before drawing; shows the PNG inline; two buttons: "Share now" (pre-rendered blob, `canShare` then `share` inside the click, no `await` of rendering) and "Download".
   - Done when: it works on desktop Chrome and renders the right fonts (not fallback), including ₦.
   - Depends on: T1.3.
-- [ ] **T2.2 Run the device matrix and record decisions** (0.5h)
+- [x] **T2.2 Run the device matrix and record decisions** (0.5h)
   - Test on: real iPhone Safari, mid-range Android Chrome, and inside WhatsApp, Instagram, TikTok and X in-app browsers.
   - Record per device: renders correctly? Web Share with file works? download works? press-and-hold on the inline image works? Pre-rendered blob → immediate share works?
   - Done when: the matrix is filled in below and the **primary path plus fallbacks are decided** (e.g. "in-app browsers use inline image only").
   - Depends on: T2.1.
+  - Matrix (tested 21 Nov 2026 on the live `/spike`; Android was Android 10, Chrome 157). The spike always pre-renders the blob, so "Share ok" also means the pre-rendered blob shares immediately.
+
+    | Environment | Renders OK | Share w/ file | Download | Press-hold save | Notes |
+    |---|---|---|---|---|---|
+    | iPhone Safari | ok | ok | ok | ok | download prompt appears |
+    | Android Chrome | ok | ok | ok | not tested | first run failed on fonts, see decision 5 |
+    | WhatsApp in-app | n/a | n/a | n/a | n/a | no in-app browser; links open in the default browser |
+    | Instagram in-app | ok | ok | partial | ok | download opens the full image, no save prompt |
+    | TikTok in-app | ok | ok | partial | ok | same as Instagram |
+    | X in-app | ok | ok | partial | ok | same as Instagram |
+
+  - Decisions:
+    1. Primary path: Share with the file, using the pre-rendered blob (worked in every environment tested).
+    2. Fallback 1: download link (`<a download>`). It saves on iPhone Safari and Android Chrome. In Instagram, TikTok and X it only opens the full image with no save prompt, so the inline image is the fallback there.
+    3. Last fallback: the inline image with "press and hold to save" (worked on iPhone Safari, Instagram, TikTok and X).
+    4. No in-app browser detection is needed: Share works in all three, and the Download behaviour is covered by decision 3.
+    5. Fonts: load and draw using only the first family of `--font-bungee` and `--font-space-mono`. The fallback face `next/font` appends made `document.fonts.load()` reject with NetworkError on Android (likely because it points at a system font Android lacks), even though the real fonts were fine. Whether the in-page Retry recovers from a failed font load is untested.
 
 **Spike results (fill in):**
 
@@ -137,7 +154,7 @@ Goal: every number editable, every mode switchable, safely.
   - Done when: unit tests cover custom rates note, auth code stability (same input, same code), formatted amounts equal the on-screen values.
   - Depends on: T3.1, T5.2.
 - [ ] **T7.2 Canvas renderer** (1.0h)
-  - Build: `lib/receipt` drawing the bands from DESIGN.md §7, auto-fit for large amounts, fonts loaded first, colours from `--receipt-*` resolved once. Start from the spike code.
+  - Build: `lib/receipt` drawing the bands from DESIGN.md §7, auto-fit for large amounts, fonts loaded first, colours from `--receipt-*` resolved once. Start from the spike code. Load fonts by the first family only (see the T2.2 decisions).
   - Done when: `max-values` fixture has no clipped digits; all essential text at least 30px; ₦ renders; output matches the on-screen receipt's numbers.
   - Depends on: T7.1, T2.2 (decisions).
 - [ ] **T7.3 Ink-stamp texture and pre-render cache** (0.75h)
