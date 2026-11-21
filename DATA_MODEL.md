@@ -1,0 +1,375 @@
+# DATA_MODEL.md: Detty December 2026 Survival & Group Splitter
+
+> Prompt 3 output, adapted. This project has **no database, no accounts and no access policies**, so there is no SQL, RLS or migrations. The "data layer" is: the in-browser state schema, the share-link format, the static data files, and the validation rules that make an untrusted URL safe.
+> Inputs: REQUIREMENTS.md, ARCHITECTURE.md. Type blocks below are schema definitions, not application code.
+
+---
+
+## 0. Decisions made here that change other docs
+
+| # | Decision | Why | Doc to update |
+|---|---|---|---|
+| 1 | **Add a global `groupSize`** (the number of people on the trip) beside each shared bucket's own headcount. | REQUIREMENTS D2 gave only per-bucket headcounts, but "group total", the "apply group size to all" shortcut and per-person buckets all need to know how many people there are. | REQUIREMENTS M3, S1 |
+| 2 | **Group total = per-person total × `groupSize`.** | The only definition that is never ambiguous when a shared headcount differs from the group size. It equals the real money spent when every shared headcount equals `groupSize`. Label it "group total" and keep the per-person figure as the headline. | REQUIREMENTS M3 |
+| 3 | **Rounding rule:** round each line at display precision, and the displayed grand total is the **sum of the displayed lines**, so the receipt always adds up. The tier uses the exact (unrounded) ₦ total. | A receipt that doesn't add up looks broken and gets screenshotted for the wrong reason. | ARCHITECTURE §3.3 |
+| 4 | **Share link format v1** is a positional, hyphen-separated hash (§4). Not JSON, not compressed. | Short (about 130 characters max), safe in WhatsApp, trivial to validate strictly. | ARCHITECTURE §3.4 |
+| 5 | **No default exchange rates are invented here.** Defaults live in `config/` with an "as of" date you set from a real source before launch. | Any rate I wrote would be a guess and would go stale. | REQUIREMENTS A1 |
+
+---
+
+## 1. Entities
+
+| Entity | What it is | Where it lives |
+|---|---|---|
+| **AppState** | The whole calculation: preset, currency, rates, group size, 5 buckets | In memory (React reducer) |
+| **Bucket** | One of 5 fixed cost lines: unit price × quantity, shared or per-person, headcount | Inside AppState |
+| **Rates** | ₦ per $1 and ₦ per £1 (editable) | Inside AppState; defaults in Config |
+| **Preset** | A named starting point that fills AppState | Static data file |
+| **Tier** | A spend band with badge and tagline, chosen from the per-person ₦ total | Static data file |
+| **ShareLink** | A string encoding of AppState in the URL hash | Browser URL, clipboard |
+| **LastSnapshot** | The same string stored locally so a returning user resumes (S3) | `localStorage` |
+| **ReceiptView** | A derived, display-ready object for the receipt renderer | Computed, never stored |
+| **Config** | Site URL, CTA flag and URL, default rates and date, analytics ID | Build-time constants |
+| **AnalyticsEvent** | A named event with tiny, non-identifying properties | Sent to the analytics tool |
+
+```mermaid
+erDiagram
+  APPSTATE ||--|{ BUCKET : "has exactly 5"
+  APPSTATE ||--|| RATES : has
+  APPSTATE }o--|| PRESET : "last picked"
+  PRESET ||--|{ BUCKET : "defines starting values for"
+  APPSTATE ||--|| SHARELINK : "encodes to / decodes from"
+  APPSTATE ||--o| LASTSNAPSHOT : "optionally saved as"
+  APPSTATE }o--|| TIER : "per-person NGN total selects"
+  APPSTATE ||--|| RECEIPTVIEW : "derives"
+  TIER ||--o{ RECEIPTVIEW : "badge and tagline"
+  CONFIG ||--|| RATES : "supplies default"
+```
+
+---
+
+## 2. State schema
+
+### 2.1 Shape
+
+```ts
+type BucketId = 'stay' | 'events' | 'tables' | 'transport' | 'food'   // fixed order
+type Mode = 'shared' | 'perPerson'
+type CurrencyCode = 'NGN' | 'USD' | 'GBP'
+type PresetId = 'budget' | 'soft' | 'baller'
+
+interface Bucket {
+  id: BucketId
+  unitPriceNgn: number   // whole naira, price of ONE unit
+  quantity: number       // number of units (nights, events, table nights, days)
+  mode: Mode
+  headcount: number      // people sharing this item; ignored when mode = 'perPerson'
+}
+
+interface AppState {
+  presetId: PresetId     // last preset picked (used by "Reset to preset")
+  currency: CurrencyCode // display only
+  groupSize: number      // people on the trip
+  rates: { ngnPerUsd: number; ngnPerGbp: number }
+  buckets: [Bucket, Bucket, Bucket, Bucket, Bucket]  // order = BucketId order above
+}
+```
+
+### 2.2 Valid ranges (enforced in the reducer, and again when decoding a link)
+
+| Field | Type | Range | Notes |
+|---|---|---|---|
+| `unitPriceNgn` | integer | 0 to 50,000,000 | Clamp. ₦ only; entered in ₦, shown in the chosen currency |
+| `quantity` | integer | 0 to 999 | Clamp. 0 is allowed (bucket contributes ₦0) |
+| `mode` | enum | `shared` / `perPerson` | Anything else is rejected |
+| `headcount` | integer | 1 to 100 | Clamp up to 1, never 0 (prevents divide-by-zero) |
+| `groupSize` | integer | 1 to 100 | Clamp |
+| `currency` | enum | `NGN` / `USD` / `GBP` | Display only |
+| `rates.ngnPerUsd`, `ngnPerGbp` | number, at most 2 decimals | 50 to 100,000 | Clamp. Never 0 or negative (prevents divide-by-zero) |
+| `presetId` | enum | `budget` / `soft` / `baller` | |
+
+Input-field rules: users may type commas or spaces; strip them, then parse. Empty or non-numeric input keeps the previous value rather than writing `NaN`.
+
+### 2.3 Bucket semantics
+
+| Bucket | Unit label | Default mode |
+|---|---|---|
+| `stay` Short-lets / accommodation | per night | shared |
+| `events` Concerts & raves | per event | per person |
+| `tables` Club tables | per table night | shared |
+| `transport` Transport / SUV / security | per day | shared |
+| `food` Daily food & drinks | per day | per person |
+
+Meaning of **mode**:
+- **shared:** `lineTotal = unitPrice × quantity` is one bill split across `headcount` people. Your share = `lineTotal / headcount`.
+- **perPerson:** `unitPrice × quantity` is what **each person** pays. Your share = `unitPrice × quantity`. `headcount` is stored but unused.
+
+### 2.4 Derived values (never stored)
+
+```
+lineTotal(b)      = unitPriceNgn × quantity
+yourShareNgn(b)   = mode = shared ? lineTotal / headcount : lineTotal
+perPersonNgn      = Σ yourShareNgn(b)          // exact, unrounded; drives the tier
+groupTotalNgn     = perPersonNgn × groupSize
+displayAmount(x)  = x / rate(currency)         // rate(NGN) = 1
+```
+
+**Rounding (decision 3):**
+1. Convert each line's `yourShareNgn` to the display currency.
+2. Round each line: NGN to the nearest whole ₦ (round **up** so shares never undercount a shared bill), USD/GBP to the nearest cent.
+3. Displayed per-person total = sum of the displayed (rounded) lines.
+4. Displayed group total = displayed per-person total × `groupSize`.
+5. Tier is chosen from the **exact** `perPersonNgn`, so changing currency can never change the tier (A12).
+
+### 2.5 Worked example (golden test)
+
+Illustrative numbers only: not real Lagos prices, and the rate is not a real rate. Group size 4, every shared headcount 4, rate ₦1,500 per $1.
+
+| Bucket | Price × qty | Mode | Line total | Your share (₦) |
+|---|---|---|---|---|
+| Stay | ₦150,000 × 7 | shared ÷ 4 | 1,050,000 | 262,500 |
+| Events | ₦100,000 × 3 | per person | 300,000 | 300,000 |
+| Tables | ₦800,000 × 2 | shared ÷ 4 | 1,600,000 | 400,000 |
+| Transport | ₦60,000 × 7 | shared ÷ 4 | 420,000 | 105,000 |
+| Food | ₦40,000 × 7 | per person | 280,000 | 280,000 |
+
+- Per person: ₦1,347,500. Group total: ₦5,390,000 (equals 1,050,000 + 1,200,000 + 1,600,000 + 420,000 + 1,120,000, i.e. real money, since all headcounts equal the group size).
+- Tier (placeholder thresholds in §3.2): ₦750k to 1.5M, so **Tier 3**.
+- In USD: lines are 175.00, 200.00, 266.67, 70.00, 186.67, so the displayed per-person total is **$898.34** (the exact value is $898.33; the one-cent gap is the documented rounding rule). Group total shown: $898.34 × 4 = **$3,593.36**.
+- Switching to NGN or GBP must not change the tier.
+
+---
+
+## 3. Static data files (`data/`)
+
+### 3.1 Presets
+
+```ts
+interface Preset {
+  id: PresetId
+  label: string        // 'Outside on a Budget' | 'Soft Life Standard' | 'Full IJGB / Baller Mode'
+  blurb: string        // one line of vibe copy
+  groupSize: number
+  buckets: Omit<Bucket, 'id'>[]   // exactly 5, in BucketId order
+}
+```
+
+Rules:
+- Exactly 3 presets, all with 5 buckets in the fixed order.
+- All prices are whole naira, rounded to a "round number" feel (D1).
+- **Values are blank until your price research (O1/Risk 1) is done.** Do not ship a placeholder that looks like a real quote. Show the "estimates, tap any number to edit" label everywhere.
+- Default scenario on first load: `soft`, group size 4, 7 units where it applies (A11).
+- "Reset to preset" restores the last-picked preset's values into AppState, including `groupSize`, but keeps the user's `currency` and `rates`.
+
+### 3.2 Tiers
+
+```ts
+interface Tier {
+  id: 1 | 2 | 3 | 4 | 5
+  minPerPersonNgn: number   // inclusive lower bound
+  badge: string
+  tagline: string
+  balanceLine: string       // the "AVAIL BAL" joke line on the receipt
+}
+```
+
+Rules:
+- Thresholds strictly ascending; tier 1 `minPerPersonNgn = 0`.
+- Selection: the highest tier whose `minPerPersonNgn <= perPersonNgn` (exact value).
+- Placeholder bounds from REQUIREMENTS §7: 0, 300,000, 750,000, 1,500,000, 3,000,000. Tune after price research (O1).
+- Badge and tagline copy lives only in this file.
+
+### 3.3 Config (`config/`, the only place env vars are read)
+
+| Key | Source | Rules |
+|---|---|---|
+| `SITE_URL` | constant | Used for the receipt watermark and metadata. One-line swap for a custom domain |
+| `CTA_ENABLED` | `NEXT_PUBLIC_CTA_ENABLED` | On only if the value is exactly the string `true`. Anything else is off |
+| `CTA_URL` | `NEXT_PUBLIC_CTA_URL` | Must parse as a URL with protocol `https:`. Otherwise treated as unset |
+| CTA copy (title, button text, disclosure label) | constants | Disclosure label shown when the link is an affiliate or paid promo |
+| `DEFAULT_RATES` + `RATES_AS_OF` | constants | You set these from a real source before launch; date shown in the UI and receipt |
+| `ANALYTICS_SITE_ID` | constant | Public by design (Umami site IDs are embedded in page source) |
+| `AUTHOR_NAME`, `AUTHOR_URL` | constants | Optional. Footer shows "Built in Lagos by <name>" as a link only when both are set |
+
+Card renders only when `CTA_ENABLED` **and** `CTA_URL` is valid. Both are public values, so never put a secret or tokenized URL in them.
+
+---
+
+## 4. Share-link format v1
+
+### 4.1 Grammar
+
+```
+#v1-<preset>-<cur>-<group>-<usd>-<gbp>-<b1>-<b2>-<b3>-<b4>-<b5>
+```
+
+| Field | Encoding | Example |
+|---|---|---|
+| `v1` | literal version marker | `v1` |
+| `<preset>` | `b` = budget, `s` = soft, `f` = baller | `s` |
+| `<cur>` | `N` / `U` / `G` | `U` |
+| `<group>` | integer | `4` |
+| `<usd>`, `<gbp>` | rate × 100 as an integer (avoids a decimal point) | `150000` means ₦1,500.00 per $1 |
+| `<bN>` | `price.qty.mode.headcount`, with mode `s` = shared, `p` = per person | `150000.7.s.4` |
+
+Buckets are in fixed order: stay, events, tables, transport, food.
+
+Illustrative full example (the worked example above, in USD, with the made-up ₦1,500 rate and a made-up £ rate of ₦1,900):
+
+```
+#v1-s-U-4-150000-190000-150000.7.s.4-100000.3.p.4-800000.2.s.4-60000.7.s.4-40000.7.p.4
+```
+
+Allowed characters: digits, lowercase letters `b s f p`, uppercase `N U G`, `.` and `-`. Nothing else.
+
+### 4.2 Size
+
+Worst case per bucket is `50000000.999.s.100` (18 characters). Five of those plus separators plus the header is about 130 characters, and with a typical origin the full URL stays under about 200 characters. That is short enough that **no compression is needed**. Confirm with a real WhatsApp paste (Risk 3).
+
+### 4.3 Encoding rules
+
+- The encoder always **rebuilds the string from validated state**. It never echoes anything it read from a link.
+- Round-trip property: `decode(encode(state))` equals `state`.
+- The link is generated **when the user taps "Copy link"**, not on every keystroke. The app does not rewrite the URL while editing, which avoids history clutter and in-app-browser quirks.
+- Load precedence: **hash, then localStorage, then default scenario**.
+
+### 4.4 Decoding and validation (the security boundary)
+
+Treat the hash as hostile input.
+
+1. If the hash is empty, load the default silently.
+2. If its length is over 300 characters, reject.
+3. Check the character allow-list. Any other character means reject.
+4. Split on `-`. Version must be exactly `v1` and the field count must be exactly 11. Otherwise reject.
+5. Parse each numeric field with a strict digit-only pattern and a maximum digit count. Reject non-digits, signs, decimals, exponents, empty strings and whitespace.
+6. Enum fields must match exactly (`b/s/f`, `N/U/G`, `s/p`).
+7. Each bucket must split on `.` into exactly 4 fields.
+8. **Structural problems reject the whole link. Out-of-range numbers are clamped** to §2.2 limits (so a hand-edited ₦99 billion becomes the maximum).
+9. On any rejection, load the default scenario and show a small, non-blocking notice ("Couldn't read that link, here's a fresh one").
+10. Parsed values are only ever shown as text or drawn on a canvas. Never inject them as HTML.
+11. Unknown versions (`v2` and beyond, from the future) are rejected the same way.
+
+### 4.5 Versioning
+
+A new format gets a new version marker (`v2`). Keep a decoder for `v1` as long as you want old links to work. Changing the bucket order, adding a bucket or changing field meanings requires a new version.
+
+---
+
+## 5. Local persistence (`LastSnapshot`)
+
+- Key: `detty26:v1:last`. Value: the same string the share link uses (reuses the codec, one format to test).
+- Written after meaningful changes (debounced), and read on load only when there is no hash.
+- Every read and write is in try/catch. In private mode, in-app browsers or when full, the app works without it.
+- Stays on the device. Nothing is sent anywhere.
+- No expiry in MVP. A returning user in January sees their December calculation; acceptable, and "Reset to preset" is the escape hatch.
+
+---
+
+## 6. Receipt view model
+
+The renderer takes a **derived, display-ready object** and never touches raw state or rates, so it cannot disagree with the screen.
+
+```ts
+interface ReceiptView {
+  title: string                 // 'Detty December 2026'
+  lines: { label: string; formula: string; yourShare: string }[]  // 5 lines, formatted
+  groupSize: number
+  perPersonTotal: string        // formatted, sum of displayed lines
+  groupTotal: string
+  currency: CurrencyCode
+  ratesNote: string             // 'Rates as of <date>' or 'Custom rates'
+  badge: string                 // from the Tier
+  tagline: string
+  balanceLine: string           // from the Tier ('AVAIL BAL: ...')
+  authCode: string              // pseudo-code derived from total and tier (decoration)
+  siteUrl: string               // watermark, from Config
+}
+```
+
+`formula` example: `₦150,000 × 7 ÷ 4`. `ratesNote` is "custom rates" whenever the user's rates differ from `DEFAULT_RATES`, because the "as of" date is then no longer true.
+
+---
+
+## 7. Analytics event schema
+
+| Event | Properties | When |
+|---|---|---|
+| `receipt_export` | `tier` (1 to 5), `currency`, `method` (`share` / `download` / `inline`) | After the export path succeeds |
+| `link_copy` | none | After the link is copied |
+| `cta_click` | none | Only when the CTA is shown |
+| `preset_selected` (optional) | `preset` | On preset tap |
+
+Hard rule: **never send amounts, headcounts, rates or the share string.** Event properties are limited to the small enums above. That keeps analytics free of anything that could identify or reconstruct a person's plans.
+
+---
+
+## 8. Data lifecycle
+
+- **Nothing is stored server-side**, so there is nothing to delete, expire or leak from a database.
+- A share link is a self-contained snapshot. It can't be revoked or updated, and it isn't tied to anyone. Anyone holding it can read the numbers it contains, which is fine because they carry no identifying data.
+- Two people editing the same link diverge independently (A3, editable copies).
+- Local data is cleared by the user clearing site data. No cascade or orphan concerns exist.
+- Old links keep working as long as the `v1` decoder is kept.
+
+---
+
+## 9. Test cases
+
+### 9.1 Malformed and hostile links (all must load the default scenario, show the notice, and never throw)
+
+| # | Input hash | Expected |
+|---|---|---|
+| 1 | *(empty)* | Default, no notice |
+| 2 | `#v1` | Reject (field count) |
+| 3 | `#v2-s-U-4-150000-190000-…` (valid shape, wrong version) | Reject |
+| 4 | Valid link with one bucket removed | Reject |
+| 5 | Valid link with an extra 12th field | Reject |
+| 6 | Bucket with 3 or 5 dot-fields | Reject |
+| 7 | Price `-100000` | Reject (sign not allowed) |
+| 8 | Price `1e9` or `1.5` | Reject |
+| 9 | Price `99999999999999999999` | Reject (digit cap) or clamp to maximum |
+| 10 | Headcount `0` | Clamp to 1 |
+| 11 | Group size `0` or `1000` | Clamp to 1 or 100 |
+| 12 | Rate `0` | Clamp to the minimum (never divide by zero) |
+| 13 | Mode `x`, currency `X`, preset `z` | Reject |
+| 14 | `#v1-<script>alert(1)</script>` and `#v1-%3Cscript%3E` | Reject (character allow-list); nothing is rendered as HTML |
+| 15 | 5,000-character hash | Reject (length cap) |
+| 16 | Valid link with leading zeros (`0150000`) | Accept as 150000, or reject; pick one and keep it consistent |
+| 17 | Unicode, emoji, spaces, newlines in the hash | Reject |
+| 18 | Truncated link (cut off mid-bucket, as WhatsApp might) | Reject |
+| 19 | Valid link, uppercase/lowercase swapped in enum fields | Reject (exact match) |
+| 20 | Link opened with localStorage blocked | Works from hash alone |
+
+### 9.2 Calculation (use the worked example in §2.5 as the golden case)
+
+- All 5 buckets with quantity 0: per-person ₦0, Tier 1.
+- Headcount 1 on every shared bucket: your share equals the line total.
+- Per-person total in USD: lines sum exactly as shown ($898.34), group total $3,593.36.
+- Switching currency NGN to USD to GBP and back leaves AppState's ₦ values untouched.
+- Tier boundaries: exactly 300,000 selects Tier 2, 299,999 selects Tier 1 (inclusive lower bound).
+- Currency change never changes the tier.
+- Round-trip: `decode(encode(state)) = state` for the three presets and for the worst-case state.
+- Input fields: "1,500,000", "1 500 000", "", "abc" parse or are ignored without writing `NaN`.
+
+---
+
+## 11. UI contract (added in Prompt 4)
+
+Full shapes are in UI_PLAN.md §1. Summary of what the UI needs from this data layer:
+
+- **Decode result codes** the UI can tell apart: `empty`, `too_long`, `bad_chars`, `bad_version`, `bad_structure`, `bad_value`, and `ok` with a list of clamped fields (to show clamp hints). All rejection codes show the same notice (§4.4 step 9).
+- **Export outcomes:** `shared`, `downloaded`, `inline`, `cancelled` (silent), `failed` with a reason (`font`, `draw`, `blob`, `unknown`).
+- **Field drafts:** each numeric input holds its own text while typing and only writes a parsed, clamped number into AppState on blur or on a settled change. A half-typed value ("1,5") never reaches AppState. Empty or invalid input reverts to the last good value.
+- **Receipt view:** unchanged (§6). The renderer auto-shrinks the largest amounts to fit the canvas width, so the `max-values` case never clips.
+- **Fixtures** for building and testing the UI: all-zero, tier boundaries (299,999 / 300,000 / 749,999 / 750,000 …), max values (₦50,000,000 × 999, group size 100), custom rates, mixed modes, and the 20 bad links from §9.1.
+
+---
+
+## 10. Decisions still open
+
+- **O1:** preset numbers and tier thresholds (your price research).
+- Default exchange rates and their "as of" date (set from a real source before launch).
+- Leading zeros in links: accept or reject (test 16).
+- Whether "Copy link" should also offer the Web Share sheet for the URL itself (nice to have, not MVP).
+
+Next: **Prompt 4** (frontend audit and design direction). It will need this file, ARCHITECTURE.md and REQUIREMENTS.md.
