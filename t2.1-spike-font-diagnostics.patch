@@ -1,0 +1,241 @@
+From 296c5994f2bf8046192e74490a6c870658e6f135 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sat, 21 Nov 2026 17:17:30 +0000
+Subject: [PATCH] feat: per-font load diagnostics and retry in the export spike
+
+---
+ app/spike/SpikeClient.tsx | 55 ++++++++++++++++++++++++++++++++++-----
+ app/spike/drawReceipt.ts  | 50 ++++++++++++++++++++++-------------
+ 2 files changed, 80 insertions(+), 25 deletions(-)
+
+diff --git a/app/spike/SpikeClient.tsx b/app/spike/SpikeClient.tsx
+index 0d05f5e..13487f7 100644
+--- a/app/spike/SpikeClient.tsx
++++ b/app/spike/SpikeClient.tsx
+@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
+ import { SITE_URL } from "@/config";
+ import {
+   renderReceipt,
++  type FontDiagnostic,
+   type RenderDiagnostics,
+   type RenderFailureReason,
+   type SpikeReceiptView,
+@@ -47,12 +48,18 @@ type RenderState =
+       url: string;
+       diagnostics: RenderDiagnostics;
+     }
+-  | { status: "failed"; reason: RenderFailureReason; message: string };
++  | {
++      status: "failed";
++      reason: RenderFailureReason;
++      message: string;
++      fonts: ReadonlyArray<FontDiagnostic>;
++    };
+ 
+ interface Environment {
+   userAgent: string;
+   hasShare: boolean;
+   canShareFiles: boolean | null;
++  online: boolean;
+ }
+ 
+ function yesNo(value: boolean | null): string {
+@@ -64,6 +71,7 @@ export function SpikeClient() {
+   const [state, setState] = useState<RenderState>({ status: "rendering" });
+   const [env, setEnv] = useState<Environment | null>(null);
+   const [lastAction, setLastAction] = useState("none yet");
++  const [attempt, setAttempt] = useState(0);
+ 
+   useEffect(() => {
+     let cancelled = false;
+@@ -74,8 +82,18 @@ export function SpikeClient() {
+       const hasShare = "share" in navigator;
+ 
+       if (!result.ok) {
+-        setEnv({ userAgent: navigator.userAgent, hasShare, canShareFiles: null });
+-        setState({ status: "failed", reason: result.reason, message: result.message });
++        setEnv({
++          userAgent: navigator.userAgent,
++          hasShare,
++          canShareFiles: null,
++          online: navigator.onLine,
++        });
++        setState({
++          status: "failed",
++          reason: result.reason,
++          message: result.message,
++          fonts: result.fonts,
++        });
+         return;
+       }
+ 
+@@ -85,6 +103,7 @@ export function SpikeClient() {
+         userAgent: navigator.userAgent,
+         hasShare,
+         canShareFiles: "canShare" in navigator ? navigator.canShare({ files: [file] }) : false,
++        online: navigator.onLine,
+       });
+       setState({ status: "ready", file, url: objectUrl, diagnostics: result.diagnostics });
+     });
+@@ -93,7 +112,12 @@ export function SpikeClient() {
+       cancelled = true;
+       if (objectUrl) URL.revokeObjectURL(objectUrl);
+     };
+-  }, []);
++  }, [attempt]);
++
++  function handleRetry(): void {
++    setState({ status: "rendering" });
++    setAttempt((n) => n + 1);
++  }
+ 
+   // Deliberately NOT async: share() must start inside the click, with no await before it.
+   function handleShare(): void {
+@@ -120,18 +144,30 @@ export function SpikeClient() {
+   const rows: Array<readonly [string, string]> = [];
+   if (env) {
+     rows.push(["User agent", env.userAgent]);
++    rows.push(["navigator.onLine", yesNo(env.online)]);
+     rows.push(["navigator.share", yesNo(env.hasShare)]);
+     rows.push(["canShare({ files })", yesNo(env.canShareFiles)]);
+   }
++  const fontRows =
++    state.status === "ready"
++      ? state.diagnostics.fonts
++      : state.status === "failed"
++        ? state.fonts
++        : [];
++  for (const font of fontRows) {
++    const error = font.error ? `, error: ${font.error}` : "";
++    rows.push([
++      font.label,
++      `${font.facesLoaded} face(s) loaded, check ${yesNo(font.checkOk)}${error}`,
++    ]);
++  }
+   if (state.status === "ready") {
+-    for (const font of state.diagnostics.fonts) {
+-      rows.push([font.label, `${font.facesLoaded} face(s) loaded, check ${yesNo(font.checkOk)}`]);
+-    }
+     rows.push([
+       "Render",
+       `${state.diagnostics.renderMs} ms, ${(state.diagnostics.blobBytes / 1024).toFixed(0)} KB PNG`,
+     ]);
+   }
++  rows.push(["Render attempts", String(attempt + 1)]);
+   rows.push(["Last action", lastAction]);
+ 
+   return (
+@@ -153,6 +189,11 @@ export function SpikeClient() {
+         >
+           Share now
+         </button>
++        {state.status === "failed" && (
++          <button type="button" className={BUTTON} onClick={handleRetry}>
++            Retry
++          </button>
++        )}
+         {state.status === "ready" ? (
+           <a
+             className={BUTTON}
+diff --git a/app/spike/drawReceipt.ts b/app/spike/drawReceipt.ts
+index 68d9e38..e8c3a8a 100644
+--- a/app/spike/drawReceipt.ts
++++ b/app/spike/drawReceipt.ts
+@@ -28,6 +28,8 @@ export interface FontDiagnostic {
+   label: string;
+   facesLoaded: number;
+   checkOk: boolean;
++  /** Set when loading this font threw (e.g. NetworkError), otherwise null. */
++  error: string | null;
+ }
+ 
+ export interface RenderDiagnostics {
+@@ -38,7 +40,13 @@ export interface RenderDiagnostics {
+ 
+ export type RenderResult =
+   | { ok: true; blob: Blob; diagnostics: RenderDiagnostics }
+-  | { ok: false; reason: RenderFailureReason; message: string };
++  | {
++      ok: false;
++      reason: RenderFailureReason;
++      message: string;
++      /** Per-font results, so a failure shows which font file failed. */
++      fonts: ReadonlyArray<FontDiagnostic>;
++    };
+ 
+ type RenderFailure = Extract<RenderResult, { ok: false }>;
+ 
+@@ -64,8 +72,12 @@ const CONTENT_W = WIDTH - PAD_X * 2;
+ const FONT_SAMPLE =
+   "₦£$0123456789.,:*×÷ ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz";
+ 
+-function fail(reason: RenderFailureReason, message: string): RenderFailure {
+-  return { ok: false, reason, message };
++function fail(
++  reason: RenderFailureReason,
++  message: string,
++  fonts: ReadonlyArray<FontDiagnostic> = [],
++): RenderFailure {
++  return { ok: false, reason, message, fonts };
+ }
+ 
+ function describeError(error: unknown): string {
+@@ -263,24 +275,26 @@ export async function renderReceipt(view: SpikeReceiptView): Promise<RenderResul
+     { label: "Bungee 400", spec: `400 40px ${display}` },
+   ];
+ 
+-  let fonts: FontDiagnostic[] = [];
+-  try {
+-    fonts = await Promise.all(
+-      specs.map(async ({ label, spec }) => {
++  // Each font loads on its own so one failure can't hide which file failed.
++  const fonts: FontDiagnostic[] = await Promise.all(
++    specs.map(async ({ label, spec }): Promise<FontDiagnostic> => {
++      try {
+         const faces = await document.fonts.load(spec, FONT_SAMPLE);
+         return {
+           label,
+           facesLoaded: faces.length,
+           checkOk: document.fonts.check(spec, FONT_SAMPLE),
++          error: null,
+         };
+-      }),
+-    );
+-  } catch (error) {
+-    return fail("font", describeError(error));
+-  }
+-  const missing = fonts.filter((f) => f.facesLoaded === 0).map((f) => f.label);
+-  if (missing.length > 0) {
+-    return fail("font", `No font files loaded for: ${missing.join(", ")}`);
++      } catch (error) {
++        return { label, facesLoaded: 0, checkOk: false, error: describeError(error) };
++      }
++    }),
++  );
++  const failedFonts = fonts.filter((f) => f.error !== null || f.facesLoaded === 0);
++  if (failedFonts.length > 0) {
++    const detail = failedFonts.map((f) => `${f.label} (${f.error ?? "0 faces loaded"})`);
++    return fail("font", `Font load failed: ${detail.join("; ")}`, fonts);
+   }
+ 
+   let blob: Blob | null = null;
+@@ -289,13 +303,13 @@ export async function renderReceipt(view: SpikeReceiptView): Promise<RenderResul
+     canvas.width = WIDTH;
+     canvas.height = HEIGHT;
+     const ctx = canvas.getContext("2d");
+-    if (!ctx) return fail("draw", "Canvas 2D context unavailable");
++    if (!ctx) return fail("draw", "Canvas 2D context unavailable", fonts);
+     drawReceipt(ctx, view, { display, mono }, colors);
+     blob = await canvasToBlob(canvas);
+   } catch (error) {
+-    return fail("draw", describeError(error));
++    return fail("draw", describeError(error), fonts);
+   }
+-  if (!blob) return fail("blob", "canvas.toBlob returned null");
++  if (!blob) return fail("blob", "canvas.toBlob returned null", fonts);
+ 
+   return {
+     ok: true,
+-- 
+2.43.0
+

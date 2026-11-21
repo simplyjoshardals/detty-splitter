@@ -28,6 +28,8 @@ export interface FontDiagnostic {
   label: string;
   facesLoaded: number;
   checkOk: boolean;
+  /** Set when loading this font threw (e.g. NetworkError), otherwise null. */
+  error: string | null;
 }
 
 export interface RenderDiagnostics {
@@ -38,7 +40,13 @@ export interface RenderDiagnostics {
 
 export type RenderResult =
   | { ok: true; blob: Blob; diagnostics: RenderDiagnostics }
-  | { ok: false; reason: RenderFailureReason; message: string };
+  | {
+      ok: false;
+      reason: RenderFailureReason;
+      message: string;
+      /** Per-font results, so a failure shows which font file failed. */
+      fonts: ReadonlyArray<FontDiagnostic>;
+    };
 
 type RenderFailure = Extract<RenderResult, { ok: false }>;
 
@@ -64,8 +72,12 @@ const CONTENT_W = WIDTH - PAD_X * 2;
 const FONT_SAMPLE =
   "₦£$0123456789.,:*×÷ ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz";
 
-function fail(reason: RenderFailureReason, message: string): RenderFailure {
-  return { ok: false, reason, message };
+function fail(
+  reason: RenderFailureReason,
+  message: string,
+  fonts: ReadonlyArray<FontDiagnostic> = [],
+): RenderFailure {
+  return { ok: false, reason, message, fonts };
 }
 
 function describeError(error: unknown): string {
@@ -263,24 +275,26 @@ export async function renderReceipt(view: SpikeReceiptView): Promise<RenderResul
     { label: "Bungee 400", spec: `400 40px ${display}` },
   ];
 
-  let fonts: FontDiagnostic[] = [];
-  try {
-    fonts = await Promise.all(
-      specs.map(async ({ label, spec }) => {
+  // Each font loads on its own so one failure can't hide which file failed.
+  const fonts: FontDiagnostic[] = await Promise.all(
+    specs.map(async ({ label, spec }): Promise<FontDiagnostic> => {
+      try {
         const faces = await document.fonts.load(spec, FONT_SAMPLE);
         return {
           label,
           facesLoaded: faces.length,
           checkOk: document.fonts.check(spec, FONT_SAMPLE),
+          error: null,
         };
-      }),
-    );
-  } catch (error) {
-    return fail("font", describeError(error));
-  }
-  const missing = fonts.filter((f) => f.facesLoaded === 0).map((f) => f.label);
-  if (missing.length > 0) {
-    return fail("font", `No font files loaded for: ${missing.join(", ")}`);
+      } catch (error) {
+        return { label, facesLoaded: 0, checkOk: false, error: describeError(error) };
+      }
+    }),
+  );
+  const failedFonts = fonts.filter((f) => f.error !== null || f.facesLoaded === 0);
+  if (failedFonts.length > 0) {
+    const detail = failedFonts.map((f) => `${f.label} (${f.error ?? "0 faces loaded"})`);
+    return fail("font", `Font load failed: ${detail.join("; ")}`, fonts);
   }
 
   let blob: Blob | null = null;
@@ -289,13 +303,13 @@ export async function renderReceipt(view: SpikeReceiptView): Promise<RenderResul
     canvas.width = WIDTH;
     canvas.height = HEIGHT;
     const ctx = canvas.getContext("2d");
-    if (!ctx) return fail("draw", "Canvas 2D context unavailable");
+    if (!ctx) return fail("draw", "Canvas 2D context unavailable", fonts);
     drawReceipt(ctx, view, { display, mono }, colors);
     blob = await canvasToBlob(canvas);
   } catch (error) {
-    return fail("draw", describeError(error));
+    return fail("draw", describeError(error), fonts);
   }
-  if (!blob) return fail("blob", "canvas.toBlob returned null");
+  if (!blob) return fail("blob", "canvas.toBlob returned null", fonts);
 
   return {
     ok: true,

@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import { SITE_URL } from "@/config";
 import {
   renderReceipt,
+  type FontDiagnostic,
   type RenderDiagnostics,
   type RenderFailureReason,
   type SpikeReceiptView,
@@ -47,12 +48,18 @@ type RenderState =
       url: string;
       diagnostics: RenderDiagnostics;
     }
-  | { status: "failed"; reason: RenderFailureReason; message: string };
+  | {
+      status: "failed";
+      reason: RenderFailureReason;
+      message: string;
+      fonts: ReadonlyArray<FontDiagnostic>;
+    };
 
 interface Environment {
   userAgent: string;
   hasShare: boolean;
   canShareFiles: boolean | null;
+  online: boolean;
 }
 
 function yesNo(value: boolean | null): string {
@@ -64,6 +71,7 @@ export function SpikeClient() {
   const [state, setState] = useState<RenderState>({ status: "rendering" });
   const [env, setEnv] = useState<Environment | null>(null);
   const [lastAction, setLastAction] = useState("none yet");
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -74,8 +82,18 @@ export function SpikeClient() {
       const hasShare = "share" in navigator;
 
       if (!result.ok) {
-        setEnv({ userAgent: navigator.userAgent, hasShare, canShareFiles: null });
-        setState({ status: "failed", reason: result.reason, message: result.message });
+        setEnv({
+          userAgent: navigator.userAgent,
+          hasShare,
+          canShareFiles: null,
+          online: navigator.onLine,
+        });
+        setState({
+          status: "failed",
+          reason: result.reason,
+          message: result.message,
+          fonts: result.fonts,
+        });
         return;
       }
 
@@ -85,6 +103,7 @@ export function SpikeClient() {
         userAgent: navigator.userAgent,
         hasShare,
         canShareFiles: "canShare" in navigator ? navigator.canShare({ files: [file] }) : false,
+        online: navigator.onLine,
       });
       setState({ status: "ready", file, url: objectUrl, diagnostics: result.diagnostics });
     });
@@ -93,7 +112,12 @@ export function SpikeClient() {
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, []);
+  }, [attempt]);
+
+  function handleRetry(): void {
+    setState({ status: "rendering" });
+    setAttempt((n) => n + 1);
+  }
 
   // Deliberately NOT async: share() must start inside the click, with no await before it.
   function handleShare(): void {
@@ -120,18 +144,30 @@ export function SpikeClient() {
   const rows: Array<readonly [string, string]> = [];
   if (env) {
     rows.push(["User agent", env.userAgent]);
+    rows.push(["navigator.onLine", yesNo(env.online)]);
     rows.push(["navigator.share", yesNo(env.hasShare)]);
     rows.push(["canShare({ files })", yesNo(env.canShareFiles)]);
   }
+  const fontRows =
+    state.status === "ready"
+      ? state.diagnostics.fonts
+      : state.status === "failed"
+        ? state.fonts
+        : [];
+  for (const font of fontRows) {
+    const error = font.error ? `, error: ${font.error}` : "";
+    rows.push([
+      font.label,
+      `${font.facesLoaded} face(s) loaded, check ${yesNo(font.checkOk)}${error}`,
+    ]);
+  }
   if (state.status === "ready") {
-    for (const font of state.diagnostics.fonts) {
-      rows.push([font.label, `${font.facesLoaded} face(s) loaded, check ${yesNo(font.checkOk)}`]);
-    }
     rows.push([
       "Render",
       `${state.diagnostics.renderMs} ms, ${(state.diagnostics.blobBytes / 1024).toFixed(0)} KB PNG`,
     ]);
   }
+  rows.push(["Render attempts", String(attempt + 1)]);
   rows.push(["Last action", lastAction]);
 
   return (
@@ -153,6 +189,11 @@ export function SpikeClient() {
         >
           Share now
         </button>
+        {state.status === "failed" && (
+          <button type="button" className={BUTTON} onClick={handleRetry}>
+            Retry
+          </button>
+        )}
         {state.status === "ready" ? (
           <a
             className={BUTTON}
