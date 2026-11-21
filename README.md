@@ -60,4 +60,4 @@ public/       Static assets
 
 ## Deployment
 
-Cloudflare Pages (or Workers static assets): build command `npx next build`, output directory `out`.
+Cloudflare Pages (or Workers static assets): build command `yarn build`, output directory `out`.

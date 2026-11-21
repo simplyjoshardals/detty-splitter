@@ -172,7 +172,7 @@ Format: **recommendation**, alternatives, why, what would change my mind.
 - **Change my mind if:** you need a complex control (dialog, popover) that is costly to make accessible by hand.
 
 ### 3.8 Hosting
-- **Recommend:** Cloudflare Pages (or Workers static assets, see §0.6), free `.pages.dev` subdomain, build command `npx next build`, output directory `out` (from Cloudflare's static Next.js guide), connected to a GitHub repo for auto-deploy.
+- **Recommend:** Cloudflare Pages (or Workers static assets, see §0.6), free `.pages.dev` subdomain, build command `yarn build`, output directory `out` (from Cloudflare's static Next.js guide), connected to a GitHub repo for auto-deploy.
 - **Alternatives:** Vercel Hobby; GitHub Pages; Netlify.
 - **Why:** Free, global CDN, and the limits are not a concern for a small static site. Verified: Pages free limits are 500 builds/month, 20,000 files, 25 MiB per file, and Workers static assets are documented as free and unlimited.
 - **Commercial-use check (partly verified):** In Cloudflare's general terms and Self-Serve Subscription Agreement I found **no ban on commercial use of free plans**. Free Services are offered without liability and Cloudflare may end them at its sole discretion (§2.6), and you may not collect card details on a property receiving free services (§2.2.1(h)). Linking out to a Paystack page doesn't do that. I could **not** read the Developer Platform / service-specific terms, so that part is unconfirmed. For Vercel, I could not find the "non-commercial" wording on the Hobby and fair-use pages I fetched (parts rendered blank, and the terms page was blocked), so I can't confirm that claim from official text either. I've softened it in REQUIREMENTS.md.

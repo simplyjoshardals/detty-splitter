@@ -1,0 +1,6 @@
+# Cloudflare Pages response headers for static assets (ARCHITECTURE §6).
+# Format: a URL pattern line, then indented "Name: value" lines.
+# Content-Security-Policy is added last, in T11.3.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin

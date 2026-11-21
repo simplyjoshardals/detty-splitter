@@ -39,7 +39,7 @@ Goal: a live `.pages.dev` URL showing the design tokens, so every later slice sh
   - Depends on: T1.1.
   - Done notes: first-load JS measured at 185.8 KB gzipped (test page, 20 icons); a bare page is 172.2 KB, so the framework floor alone is about 22 KB over the ~150 KB guess and the icons plus test block add about 13.6 KB. Decision: keep Next.js; the guess is unvalidated, Cloudflare will likely serve brotli (smaller than gzip), and the receipt renderer is already a lazy chunk. Judge by real phone load time after T1.3 and re-measure after Slice 3. Measured on Windows with a .NET gzip helper, so compare like with like. `scripts/check-icons.mjs` (`yarn check:icons`) is kept to re-verify icon names.
 - [ ] **T1.3 Deploy to Cloudflare** (0.5h)
-  - Build: connect the repo; build command `npx next build`, output directory `out` (from Cloudflare's static Next.js guide). Note whether the dashboard offers Pages or Workers static assets, and set a Node version if the build asks for one (check Cloudflare's build docs; not verified here). Add a stub `public/_headers` (no CSP yet).
+  - Build: connect the repo; build command `yarn build`, output directory `out` (from Cloudflare's static Next.js guide). Note whether the dashboard offers Pages or Workers static assets, and set a Node version if the build asks for one (check Cloudflare's build docs; not verified here). Add a stub `public/_headers` (no CSP yet).
   - Also: set the real `SITE_URL` in `config/index.ts` once the `.pages.dev` URL is known.
   - Done when: the `.pages.dev` URL loads on your phone over HTTPS; pushing to `main` redeploys.
   - Depends on: T1.1, T1.2.
