@@ -26,6 +26,8 @@ export type RenderFailureReason = "font" | "draw" | "blob" | "unknown";
 
 export interface FontDiagnostic {
   label: string;
+  /** The single font family that was loaded (first entry of the CSS variable). */
+  family: string;
   facesLoaded: number;
   checkOk: boolean;
   /** Set when loading this font threw (e.g. NetworkError), otherwise null. */
@@ -82,6 +84,16 @@ function fail(
 
 function describeError(error: unknown): string {
   return error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+}
+
+/**
+ * First family of a CSS font-family list. next/font appends a local() fallback face
+ * (e.g. Arial) to the list. That face doesn't exist on Android, and including it makes
+ * document.fonts.load() reject with NetworkError even though the real font is fine.
+ */
+function primaryFamily(list: string): string {
+  const first = list.split(",")[0]?.trim();
+  return first ? first : list;
 }
 
 /** A canvas can't read CSS variables, so resolve them from the document. */
@@ -269,25 +281,28 @@ export async function renderReceipt(view: SpikeReceiptView): Promise<RenderResul
     return fail("draw", "CSS variables --receipt-* not found");
   }
 
-  const specs: ReadonlyArray<{ label: string; spec: string }> = [
-    { label: "Space Mono 400", spec: `400 40px ${mono}` },
-    { label: "Space Mono 700", spec: `700 40px ${mono}` },
-    { label: "Bungee 400", spec: `400 40px ${display}` },
+  const displayFamily = primaryFamily(display);
+  const monoFamily = primaryFamily(mono);
+  const specs: ReadonlyArray<{ label: string; family: string; spec: string }> = [
+    { label: "Space Mono 400", family: monoFamily, spec: `400 40px ${monoFamily}` },
+    { label: "Space Mono 700", family: monoFamily, spec: `700 40px ${monoFamily}` },
+    { label: "Bungee 400", family: displayFamily, spec: `400 40px ${displayFamily}` },
   ];
 
   // Each font loads on its own so one failure can't hide which file failed.
   const fonts: FontDiagnostic[] = await Promise.all(
-    specs.map(async ({ label, spec }): Promise<FontDiagnostic> => {
+    specs.map(async ({ label, family, spec }): Promise<FontDiagnostic> => {
       try {
         const faces = await document.fonts.load(spec, FONT_SAMPLE);
         return {
           label,
+          family,
           facesLoaded: faces.length,
           checkOk: document.fonts.check(spec, FONT_SAMPLE),
           error: null,
         };
       } catch (error) {
-        return { label, facesLoaded: 0, checkOk: false, error: describeError(error) };
+        return { label, family, facesLoaded: 0, checkOk: false, error: describeError(error) };
       }
     }),
   );
@@ -304,7 +319,12 @@ export async function renderReceipt(view: SpikeReceiptView): Promise<RenderResul
     canvas.height = HEIGHT;
     const ctx = canvas.getContext("2d");
     if (!ctx) return fail("draw", "Canvas 2D context unavailable", fonts);
-    drawReceipt(ctx, view, { display, mono }, colors);
+    drawReceipt(
+      ctx,
+      view,
+      { display: `${displayFamily}, sans-serif`, mono: `${monoFamily}, monospace` },
+      colors,
+    );
     blob = await canvasToBlob(canvas);
   } catch (error) {
     return fail("draw", describeError(error), fonts);

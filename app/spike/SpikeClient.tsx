@@ -158,7 +158,7 @@ export function SpikeClient() {
     const error = font.error ? `, error: ${font.error}` : "";
     rows.push([
       font.label,
-      `${font.facesLoaded} face(s) loaded, check ${yesNo(font.checkOk)}${error}`,
+      `${font.facesLoaded} face(s) loaded, check ${yesNo(font.checkOk)}, family ${font.family}${error}`,
     ]);
   }
   if (state.status === "ready") {
