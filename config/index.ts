@@ -7,6 +7,8 @@
  * can inline them at build time. Do not destructure or index them dynamically.
  */
 
+import type { Rates } from "@/lib/types";
+
 /** Placeholder until Cloudflare assigns the real URL (T1.3) or a custom domain is set. */
 export const SITE_URL = "https://detty-splitter.pages.dev";
 
@@ -28,3 +30,10 @@ function parseHttpsUrl(value: string | undefined): string | null {
 export const CTA_URL: string | null = parseHttpsUrl(
   process.env.NEXT_PUBLIC_CTA_URL,
 );
+
+/**
+ * PLACEHOLDER default rates, in naira per 1 unit of foreign currency. Not real:
+ * 1,500 is the DATA_MODEL example and the GBP figure is made up. Replace both from a
+ * real source before launch (DATA_MODEL §0 decision 5). The "as of" date arrives in T5.2.
+ */
+export const DEFAULT_RATES: Rates = { ngnPerUsd: 1500, ngnPerGbp: 2000 };
