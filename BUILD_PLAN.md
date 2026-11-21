@@ -75,26 +75,16 @@ Goal: learn now whether canvas export, Web Share and the fallbacks work where yo
     4. No in-app browser detection is needed: Share works in all three, and the Download behaviour is covered by decision 3.
     5. Fonts: load and draw using only the first family of `--font-bungee` and `--font-space-mono`. The fallback face `next/font` appends made `document.fonts.load()` reject with NetworkError on Android (likely because it points at a system font Android lacks), even though the real fonts were fine. Whether the in-page Retry recovers from a failed font load is untested.
 
-**Spike results (fill in):**
-
-| Environment | Renders OK | Share w/ file | Download | Press-hold save | Notes |
-|---|---|---|---|---|---|
-| iPhone Safari | | | | | |
-| Android Chrome | | | | | |
-| WhatsApp in-app | | | | | |
-| Instagram in-app | | | | | |
-| TikTok in-app | | | | | |
-| X in-app | | | | | |
-
 > Delete the `/spike` route before launch (it's on the Slice 11 checklist).
 
 ### Slice 3: First paint, defaults, read-only results (2.0h) *(UI_PLAN S2)*
 Goal: the smallest working version of the core feature, deployed: real numbers and the stamp on first paint.
 
-- [ ] **T3.1 Calculation core with tests** (0.75h)
+- [x] **T3.1 Calculation core with tests** (0.75h)
   - Build: `lib/money` (conversion, per-line rounding, formatting), `lib/calc` (line totals, shared vs per-person, per-person and group totals, tier lookup), per DATA_MODEL §2.4 including the rounding rule.
   - Done when: unit tests pass for the **golden example** (per person ₦1,347,500, group ₦5,390,000, Tier 3, USD lines 175.00 / 200.00 / 266.67 / 70.00 / 186.67 → $898.34, group $3,593.36), all-zero → Tier 1, tier boundaries (299,999 vs 300,000 etc.), headcount 1, currency round trip not changing ₦ values.
   - Depends on: T1.1.
+  - Done notes: 44 tests pass (Vitest 5.1.1). Amounts are integers (whole naira, or cents/pence) and the tier is chosen by comparing exact BigInt fractions, so floating point can never put a scenario in the wrong tier. Shared types live in `lib/types.ts`; tier thresholds are passed into `calculate()` (the real tiers file arrives in T3.2). `yarn test` runs `vitest run`; under Yarn, Vitest 5 needs `vite` installed explicitly (`yarn add -D --exact vite`).
 - [ ] **T3.2 Data files and state skeleton** (0.5h)
   - Build: `data/` bucket definitions, 3 presets (placeholder values until R1), 5 tiers with badge, tagline and balance line (draft copy), reducer + context with the default scenario (Soft Life, group 4).
   - Done when: state initialises to the default; types are strict, no `any`.
