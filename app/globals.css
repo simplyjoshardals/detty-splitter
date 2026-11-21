@@ -1,26 +1,104 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* light */
+  --paper: #f4f1ea; /* page background */
+  --surface: #ffffff; /* inputs, raised rows */
+  --ink: #111111; /* text, strong borders (16.7:1 on paper) */
+  --muted: #5c584f; /* secondary text (6.3:1) */
+  --border: #77726a; /* control borders (4.2:1) */
+  --rule: #b9b3a5; /* decorative dashed rules only */
+  --danfo: #ffc400; /* fills: header band, plates, primary button */
+  --danfo-ink: #111111; /* text on danfo (11.8:1) */
+  --stamp: #c4271b; /* red stamp ink, text (5.1:1 on paper) */
+  --danger: #b3261e; /* error text (5.8:1) */
+  --ok: #1b6e3a; /* success text (5.6:1) */
+  --focus: var(--ink);
+  --meter-bg: #111111; /* damage meter */
+  --meter-fg: #ffc400; /* meter digits (11.8:1) */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* receipt: fixed in both themes (a paper object) */
+  --receipt-paper: #f4f1ea;
+  --receipt-ink: #111111;
+  --receipt-muted: #5c584f;
+  --receipt-stamp: #c4271b;
+  --receipt-danfo: #ffc400;
+
+  /* space (4px base) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+
+  /* shape */
+  --r-sm: 2px;
+  --r-md: 4px;
+  --bw: 2px; /* control border */
+  --stripe: 6px; /* danfo stripe height */
+  --shadow-hard: 3px 3px 0 var(--ink);
+
+  /* motion */
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur-fast: 80ms;
+  --dur-base: 180ms;
+
+  /* type scale */
+  --t-xs: 12px;
+  --t-sm: 14px;
+  --t-base: 16px;
+  --t-lg: 20px;
+  --t-xl: 28px;
+  --t-2xl: 40px;
+  --t-3xl: 56px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --paper: #0e0e0c;
+    --surface: #1a1a17;
+    --ink: #f4f1ea; /* 17.1:1 */
+    --muted: #a29e93; /* 7.2:1 */
+    --border: #8c887d; /* 5.5:1 */
+    --rule: #4a473f;
+    --danfo: #ffc400; /* 12.1:1 on dark paper */
+    --danfo-ink: #111111;
+    --stamp: #ff6b5e; /* 6.9:1 on paper, 6.2:1 on surface */
+    --danger: #ff7b6e; /* 7.7:1 */
+    --ok: #5fd38d; /* 10.3:1 */
+    --focus: var(--danfo);
+    --meter-bg: #000000;
   }
 }
 
+@theme inline {
+  --font-display: var(--font-bungee);
+  --font-mono: var(--font-space-mono);
+  --font-sans: var(--font-space-mono);
+
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-rule: var(--rule);
+  --color-danfo: var(--danfo);
+  --color-danfo-ink: var(--danfo-ink);
+  --color-stamp: var(--stamp);
+  --color-danger: var(--danger);
+  --color-ok: var(--ok);
+  --color-meter-bg: var(--meter-bg);
+  --color-meter-fg: var(--meter-fg);
+
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-space-mono), ui-monospace, monospace;
 }

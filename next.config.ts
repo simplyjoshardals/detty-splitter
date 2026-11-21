@@ -5,6 +5,10 @@ const nextConfig: NextConfig = {
   output: "export",
   // No image optimization server exists in a static export.
   images: { unoptimized: true },
+  experimental: {
+    // Keeps the icon package tree-shaken (DESIGN §2). Re-check the bundle after changes.
+    optimizePackageImports: ["@phosphor-icons/react"],
+  },
   turbopack: {
     rules: {
       "*.css": {
