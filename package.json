@@ -6,9 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "check:icons": "node scripts/check-icons.mjs"
   },
   "dependencies": {
+    "@phosphor-icons/react": "2.1.10",
     "next": "16.4.6",
     "react": "19.3.0",
     "react-dom": "19.3.0"
