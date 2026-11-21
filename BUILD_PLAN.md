@@ -29,7 +29,7 @@ Goal: a live `.pages.dev` URL showing the design tokens, so every later slice sh
   - Done when: `yarn build` produces `out/`; `yarn dev` shows the default page; repo is on GitHub.
   - Depends on: nothing.
   - Done notes: removed `cacheComponents` and `partialPrefetching` from `next.config.ts` (server-runtime options, not needed for a static export); added `!.env.example` to `.gitignore` so the example file is tracked; `config/index.ts` is the only place env vars are read; empty folders are held by `.gitkeep` files (delete each when its first real file lands). `SITE_URL` is a placeholder, fixed in T1.3.
-- [ ] **T1.2 Tokens, fonts, icons** (0.5h)
+- [x] **T1.2 Tokens, fonts, icons** (0.5h)
   - Build: tokens and `@theme inline` from DESIGN.md §3 in `app/globals.css`; Bungee and Space Mono via `next/font` (latin + latin-ext); Phosphor installed, `optimizePackageImports` set; a throwaway test block.
   - Done when (all must pass):
     - Test line `₦1,234,567.89 $ £` renders correctly in Space Mono (if not, swap the mono per DESIGN.md §1).
@@ -37,6 +37,7 @@ Goal: a live `.pages.dev` URL showing the design tokens, so every later slice sh
     - Light and dark both look right (toggle OS theme).
     - `next build` output noted for the JS budget (starting guess ~150 KB gzipped).
   - Depends on: T1.1.
+  - Done notes: first-load JS measured at 185.8 KB gzipped (test page, 20 icons); a bare page is 172.2 KB, so the framework floor alone is about 22 KB over the ~150 KB guess and the icons plus test block add about 13.6 KB. Decision: keep Next.js; the guess is unvalidated, Cloudflare will likely serve brotli (smaller than gzip), and the receipt renderer is already a lazy chunk. Judge by real phone load time after T1.3 and re-measure after Slice 3. Measured on Windows with a .NET gzip helper, so compare like with like. `scripts/check-icons.mjs` (`yarn check:icons`) is kept to re-verify icon names.
 - [ ] **T1.3 Deploy to Cloudflare** (0.5h)
   - Build: connect the repo; build command `npx next build`, output directory `out` (from Cloudflare's static Next.js guide). Note whether the dashboard offers Pages or Workers static assets, and set a Node version if the build asks for one (check Cloudflare's build docs; not verified here). Add a stub `public/_headers` (no CSP yet).
   - Also: set the real `SITE_URL` in `config/index.ts` once the `.pages.dev` URL is known.
@@ -84,6 +85,7 @@ Goal: the smallest working version of the core feature, deployed: real numbers a
   - Build: header, 5 line items with icon tiles, totals, tier stamp, footer note, all read-only, from the default state.
   - Done when: matches the golden numbers on screen; no layout shift when fonts load; works at 360 / 768 / 1280px; deployed.
   - Depends on: T3.2, T1.3.
+  - Also: delete the throwaway `components/DevTestBlock.tsx` and its use in `app/page.tsx`; re-measure first-load JS and compare with the 172.2 KB bare-page baseline.
 
 ### Slice 4: Editing (3.25h) *(UI_PLAN S3)*
 Goal: every number editable, every mode switchable, safely.
