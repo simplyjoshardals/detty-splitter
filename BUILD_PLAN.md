@@ -24,10 +24,11 @@
 ### Slice 1: Scaffold, tokens, fonts, icons, deploy (1.5h) *(UI_PLAN S1)*
 Goal: a live `.pages.dev` URL showing the design tokens, so every later slice ships to a real device.
 
-- [ ] **T1.1 Scaffold the project** (0.5h)
+- [x] **T1.1 Scaffold the project** (0.5h)
   - Build: `create-next-app` with TypeScript, Tailwind, ESLint, App Router, **no `src/`**. Set `output: 'export'` and unoptimized images. Add `@/*` alias to `./*`, `.env.example` (`NEXT_PUBLIC_CTA_URL`, `NEXT_PUBLIC_CTA_ENABLED`), `config/` stub (SITE_URL, flags), folder skeleton from ARCHITECTURE §7. `git init`, push to GitHub.
   - Done when: `yarn build` produces `out/`; `yarn dev` shows the default page; repo is on GitHub.
   - Depends on: nothing.
+  - Done notes: removed `cacheComponents` and `partialPrefetching` from `next.config.ts` (server-runtime options, not needed for a static export); added `!.env.example` to `.gitignore` so the example file is tracked; `config/index.ts` is the only place env vars are read; empty folders are held by `.gitkeep` files (delete each when its first real file lands). `SITE_URL` is a placeholder, fixed in T1.3.
 - [ ] **T1.2 Tokens, fonts, icons** (0.5h)
   - Build: tokens and `@theme inline` from DESIGN.md §3 in `app/globals.css`; Bungee and Space Mono via `next/font` (latin + latin-ext); Phosphor installed, `optimizePackageImports` set; a throwaway test block.
   - Done when (all must pass):
@@ -38,6 +39,7 @@ Goal: a live `.pages.dev` URL showing the design tokens, so every later slice sh
   - Depends on: T1.1.
 - [ ] **T1.3 Deploy to Cloudflare** (0.5h)
   - Build: connect the repo; build command `npx next build`, output directory `out` (from Cloudflare's static Next.js guide). Note whether the dashboard offers Pages or Workers static assets, and set a Node version if the build asks for one (check Cloudflare's build docs; not verified here). Add a stub `public/_headers` (no CSP yet).
+  - Also: set the real `SITE_URL` in `config/index.ts` once the `.pages.dev` URL is known.
   - Done when: the `.pages.dev` URL loads on your phone over HTTPS; pushing to `main` redeploys.
   - Depends on: T1.1, T1.2.
 
