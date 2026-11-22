@@ -3,7 +3,7 @@ import { calculate } from "@/lib/calc";
 import { DEFAULT_RATES } from "@/config";
 import { PRESETS } from "@/data/presets";
 import { TIERS } from "@/data/tiers";
-import type { AppState, PresetId } from "@/lib/types";
+import type { AppState, BucketId, PresetId } from "@/lib/types";
 import { appReducer, createInitialState } from "@/state/reducer";
 import { GOLDEN, deepFreeze, mapBuckets } from "./fixtures";
 
@@ -89,5 +89,133 @@ describe("selectPreset", () => {
     const snapshot = structuredClone(frozen);
     appReducer(frozen, { type: "selectPreset", presetId: "baller" });
     expect(frozen).toEqual(snapshot);
+  });
+});
+
+describe("setBucketNumber", () => {
+  const find = (state: AppState, id: BucketId) => {
+    const bucket = state.buckets.find((b) => b.id === id);
+    if (!bucket) throw new Error(`missing bucket ${id}`);
+    return bucket;
+  };
+
+  it("sets a price, quantity or headcount on exactly one bucket", () => {
+    const base = createInitialState();
+    const priced = appReducer(base, {
+      type: "setBucketNumber",
+      bucketId: "tables",
+      field: "unitPriceNgn",
+      value: 1000000,
+    });
+    expect(find(priced, "tables").unitPriceNgn).toBe(1000000);
+    expect(find(priced, "tables").quantity).toBe(find(base, "tables").quantity);
+    for (const id of ["stay", "events", "transport", "food"] as const) {
+      expect(find(priced, id)).toEqual(find(base, id));
+    }
+
+    const counted = appReducer(base, {
+      type: "setBucketNumber",
+      bucketId: "stay",
+      field: "quantity",
+      value: 10,
+    });
+    expect(find(counted, "stay").quantity).toBe(10);
+
+    const shared = appReducer(base, {
+      type: "setBucketNumber",
+      bucketId: "stay",
+      field: "headcount",
+      value: 2,
+    });
+    expect(find(shared, "stay").headcount).toBe(2);
+  });
+
+  it("changes the totals: stay at 2 people instead of 4 doubles that share", () => {
+    const next = appReducer(createInitialState(), {
+      type: "setBucketNumber",
+      bucketId: "stay",
+      field: "headcount",
+      value: 2,
+    });
+    const result = calculate(next, TIERS);
+    expect(result.lines[0]?.shareMinor).toBe(525000); // 1,050,000 / 2
+    expect(result.perPersonMinor).toBe(1347500 - 262500 + 525000);
+  });
+
+  it("keeps the preset, currency, rates, group size and bucket order", () => {
+    const base = { ...createInitialState(), currency: "USD" as const };
+    const next = appReducer(base, {
+      type: "setBucketNumber",
+      bucketId: "food",
+      field: "unitPriceNgn",
+      value: 1,
+    });
+    expect(next.presetId).toBe(base.presetId);
+    expect(next.currency).toBe("USD");
+    expect(next.rates).toEqual(base.rates);
+    expect(next.groupSize).toBe(base.groupSize);
+    expect(next.buckets.map((b) => b.id)).toEqual(["stay", "events", "tables", "transport", "food"]);
+  });
+
+  it("clamps to the DATA_MODEL §2.2 ranges", () => {
+    const base = createInitialState();
+    const set = (field: "unitPriceNgn" | "quantity" | "headcount", value: number) =>
+      find(appReducer(base, { type: "setBucketNumber", bucketId: "stay", field, value }), "stay")[
+        field
+      ];
+    expect(set("unitPriceNgn", 99000000000)).toBe(50000000);
+    expect(set("unitPriceNgn", -5)).toBe(0);
+    expect(set("quantity", 1000)).toBe(999);
+    expect(set("quantity", 0)).toBe(0);
+    expect(set("headcount", 0)).toBe(1);
+    expect(set("headcount", 101)).toBe(100);
+  });
+
+  it("ignores values that are not safe integers, so NaN never reaches state", () => {
+    const base = createInitialState();
+    for (const value of [Number.NaN, Number.POSITIVE_INFINITY, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+      const next = appReducer(base, {
+        type: "setBucketNumber",
+        bucketId: "stay",
+        field: "unitPriceNgn",
+        value,
+      });
+      expect(next).toBe(base);
+    }
+  });
+
+  it("returns the same state object when nothing changes", () => {
+    const base = createInitialState();
+    const same = appReducer(base, {
+      type: "setBucketNumber",
+      bucketId: "stay",
+      field: "unitPriceNgn",
+      value: 150000,
+    });
+    expect(same).toBe(base);
+  });
+
+  it("does not mutate the state it is given", () => {
+    const frozen = deepFreeze(createInitialState()); // any mutation would throw
+    const snapshot = structuredClone(frozen);
+    appReducer(frozen, {
+      type: "setBucketNumber",
+      bucketId: "events",
+      field: "quantity",
+      value: 5,
+    });
+    expect(frozen).toEqual(snapshot);
+  });
+
+  it("does not touch the preset data, and Reset to preset undoes the edit", () => {
+    const edited = appReducer(createInitialState(), {
+      type: "setBucketNumber",
+      bucketId: "stay",
+      field: "unitPriceNgn",
+      value: 1,
+    });
+    expect(PRESETS.soft.buckets[0].unitPriceNgn).toBe(150000);
+    const reset = appReducer(edited, { type: "selectPreset", presetId: edited.presetId });
+    expect(reset.buckets).toEqual(GOLDEN.buckets);
   });
 });

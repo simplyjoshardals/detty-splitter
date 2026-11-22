@@ -50,7 +50,11 @@ app/
   layout.tsx
   page.tsx
 components/
-  DevTestBlock.tsx
+  Footer.tsx
+  Header.tsx
+  LineItem.tsx
+  ResultsPanel.tsx
+  TierStamp.tsx
 config/
   index.ts
 data/
@@ -99,7 +103,6 @@ next.config.ts
 package.json
 README.md
 REQUIREMENTS.md
-t3.2-build-plan.patch
 tsconfig.json
 UI_PLAN.md
 vitest.config.ts
@@ -107,37 +110,6 @@ vitest.config.ts
 
 <files>
 This section contains the contents of the repository's files.
-
-<file path="t3.2-build-plan.patch">
-From 93ec606de95d6a15eb88e931f73d115bcda7e1a0 Mon Sep 17 00:00:00 2001
-From: Claude <noreply@anthropic.com>
-Date: Sat, 21 Nov 2026 21:47:05 +0000
-Subject: [PATCH] docs: mark T3.2 done in BUILD_PLAN with placeholder notes
-
----
- BUILD_PLAN.md | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
-
-diff --git a/BUILD_PLAN.md b/BUILD_PLAN.md
-index b036472..329ed80 100644
---- a/BUILD_PLAN.md
-+++ b/BUILD_PLAN.md
-@@ -85,10 +85,11 @@ Goal: the smallest working version of the core feature, deployed: real numbers a
-   - Done when: unit tests pass for the **golden example** (per person ₦1,347,500, group ₦5,390,000, Tier 3, USD lines 175.00 / 200.00 / 266.67 / 70.00 / 186.67 → $898.34, group $3,593.36), all-zero → Tier 1, tier boundaries (299,999 vs 300,000 etc.), headcount 1, currency round trip not changing ₦ values.
-   - Depends on: T1.1.
-   - Done notes: 44 tests pass (Vitest 5.1.1). Amounts are integers (whole naira, or cents/pence) and the tier is chosen by comparing exact BigInt fractions, so floating point can never put a scenario in the wrong tier. Shared types live in `lib/types.ts`; tier thresholds are passed into `calculate()` (the real tiers file arrives in T3.2). `yarn test` runs `vitest run`; under Yarn, Vitest 5 needs `vite` installed explicitly (`yarn add -D --exact vite`).
--- [ ] **T3.2 Data files and state skeleton** (0.5h)
-+- [x] **T3.2 Data files and state skeleton** (0.5h)
-   - Build: `data/` bucket definitions, 3 presets (placeholder values until R1), 5 tiers with badge, tagline and balance line (draft copy), reducer + context with the default scenario (Soft Life, group 4).
-   - Done when: state initialises to the default; types are strict, no `any`.
-   - Depends on: T3.1.
-+  - Done notes: 62 tests pass. The Soft Life preset is the DATA_MODEL golden example, so the default state gives ₦1,347,500 per person and Tier 3. Budget (₦280,000, Tier 1) and Baller (₦5,812,500, Tier 5) are made-up placeholders, and `DEFAULT_RATES` in `config/` (₦1,500 per $1, ₦2,000 per £1) is a placeholder too: replace the preset prices and tier thresholds after price research (O1) and the rates from a real source before launch. The reducer has one action, `selectPreset` (also used for "Reset to preset"); the other actions arrive in Slices 4, 5 and 8. `AppStateProvider` is only type-checked so far: T3.3 mounts it. Tier 2's badge is "Budget Boss".
- - [ ] **T3.3 Read-only results page** (0.75h)
-   - Build: header, 5 line items with icon tiles, totals, tier stamp, footer note, all read-only, from the default state.
-   - Done when: matches the golden numbers on screen; no layout shift when fonts load; works at 360 / 768 / 1280px; deployed.
--- 
-2.43.0
-</file>
 
 <file path="app/spike/page.tsx">
 import { SpikeClient } from "./SpikeClient";
@@ -152,123 +124,179 @@ export default function SpikePage() {
 }
 </file>
 
-<file path="components/DevTestBlock.tsx">
+<file path="components/Footer.tsx">
+/** Estimates note (DESIGN §5.15). "Tap any number to edit." joins it when editing exists (T4.1). */
+export function Footer() {
+  return (
+    <footer className="border-t-2 border-dashed border-rule">
+      <p className="mx-auto w-full max-w-[560px] px-4 py-6 text-[length:var(--t-xs)] text-muted">
+        Estimates only, not quotes.
+      </p>
+    </footer>
+  );
+}
+</file>
+
+<file path="components/Header.tsx">
+/** Danfo band header (DESIGN §4): wordmark on yellow, black stripe underneath. */
+export function Header() {
+  return (
+    <header>
+      <div className="bg-danfo text-danfo-ink">
+        <div className="mx-auto flex w-full max-w-[560px] items-center px-4 py-4">
+          <h1 className="font-display text-[length:var(--t-lg)] leading-none">
+            DETTY DEC 2026
+          </h1>
+        </div>
+      </div>
+      <div className="h-[var(--stripe)] bg-ink" aria-hidden="true" />
+    </header>
+  );
+}
+</file>
+
+<file path="components/LineItem.tsx">
+import type { BedIcon } from "@phosphor-icons/react";
+
+interface LineItemProps {
+  label: string;
+  icon: typeof BedIcon;
+  /** Your share, already formatted for the display currency. */
+  amount: string;
+  /** e.g. "₦150,000 per night × 7 · split 4 ways" */
+  formula: string;
+}
+
+/** One bucket, read-only (DESIGN §5.4). Dashed-rule separated, not boxed. */
+export function LineItem({ label, icon: Icon, amount, formula }: LineItemProps) {
+  return (
+    <li className="flex gap-3 border-b-2 border-dashed border-rule py-4 last:border-b-0">
+      <span className="flex size-8 shrink-0 items-center justify-center border-2 border-ink">
+        <Icon size={20} weight="bold" aria-hidden="true" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="min-w-0 font-display text-[length:var(--t-sm)] leading-tight">
+            {label}
+          </h3>
+          <p className="shrink-0 whitespace-nowrap font-mono text-[length:var(--t-base)] font-bold">
+            {amount}
+          </p>
+        </div>
+        <p className="mt-1 text-[length:var(--t-xs)] text-muted">{formula}</p>
+      </div>
+    </li>
+  );
+}
+</file>
+
+<file path="components/ResultsPanel.tsx">
 "use client";
 
-/**
- * THROWAWAY (T1.2): checks fonts, tokens and icons in light and dark.
- * Delete this file and its use in app/page.tsx in T3.3.
- */
+import { useMemo } from "react";
 import {
-  ArrowCounterClockwiseIcon,
-  ArrowDownIcon,
   BedIcon,
   BeerBottleIcon,
-  BusIcon,
   CarIcon,
   ChampagneIcon,
-  CheckIcon,
-  ConfettiIcon,
-  CopyIcon,
-  CrownSimpleIcon,
-  CurrencyDollarIcon,
-  CurrencyGbpIcon,
-  CurrencyNgnIcon,
-  DoorOpenIcon,
-  MinusIcon,
-  PlusIcon,
-  ReceiptIcon,
   TicketIcon,
-  WarningIcon,
 } from "@phosphor-icons/react";
+import { BUCKETS } from "@/data/buckets";
+import { TIERS } from "@/data/tiers";
+import { calculate } from "@/lib/calc";
+import { formatAmount } from "@/lib/money";
+import type { Bucket, BucketId } from "@/lib/types";
+import { useAppState } from "@/state/AppStateProvider";
+import { LineItem } from "./LineItem";
+import { TierStamp } from "./TierStamp";
 
-// Every icon from DESIGN.md §2. All icons share one component type.
-const ICONS: ReadonlyArray<readonly [string, typeof BedIcon]> = [
-  ["BedIcon", BedIcon],
-  ["TicketIcon", TicketIcon],
-  ["ChampagneIcon", ChampagneIcon],
-  ["CarIcon", CarIcon],
-  ["BeerBottleIcon", BeerBottleIcon],
-  ["BusIcon", BusIcon],
-  ["ConfettiIcon", ConfettiIcon],
-  ["CrownSimpleIcon", CrownSimpleIcon],
-  ["CurrencyNgnIcon", CurrencyNgnIcon],
-  ["CurrencyDollarIcon", CurrencyDollarIcon],
-  ["CurrencyGbpIcon", CurrencyGbpIcon],
-  ["ReceiptIcon", ReceiptIcon],
-  ["CopyIcon", CopyIcon],
-  ["CheckIcon", CheckIcon],
-  ["ArrowDownIcon", ArrowDownIcon],
-  ["ArrowCounterClockwiseIcon", ArrowCounterClockwiseIcon],
-  ["DoorOpenIcon", DoorOpenIcon],
-  ["PlusIcon", PlusIcon],
-  ["MinusIcon", MinusIcon],
-  ["WarningIcon", WarningIcon],
-];
+// All icons share one component type.
+const BUCKET_ICONS: Record<BucketId, typeof BedIcon> = {
+  stay: BedIcon,
+  events: TicketIcon,
+  tables: ChampagneIcon,
+  transport: CarIcon,
+  food: BeerBottleIcon,
+};
 
-// Full class names written out so Tailwind can detect them.
-const SWATCHES: ReadonlyArray<readonly [string, string]> = [
-  ["paper", "bg-paper"],
-  ["surface", "bg-surface"],
-  ["ink", "bg-ink"],
-  ["muted", "bg-muted"],
-  ["border", "bg-border"],
-  ["rule", "bg-rule"],
-  ["danfo", "bg-danfo"],
-  ["stamp", "bg-stamp"],
-  ["danger", "bg-danger"],
-  ["ok", "bg-ok"],
-  ["meter-bg", "bg-meter-bg"],
-  ["meter-fg", "bg-meter-fg"],
-];
+/** Prices are shown in naira until the currency toggle exists (T5.1 converts them). */
+function describeLine(bucket: Bucket): string {
+  const price = formatAmount(bucket.unitPriceNgn, "NGN");
+  const base = `${price} ${BUCKETS[bucket.id].unitLabel} × ${bucket.quantity}`;
+  if (bucket.mode === "perPerson") return `${base} · per person`;
+  const ways = bucket.headcount === 1 ? "way" : "ways";
+  return `${base} · split ${bucket.headcount} ${ways}`;
+}
 
-export function DevTestBlock() {
+/** Read-only results from the app state: line items, totals and the tier stamp. */
+export function ResultsPanel() {
+  const { state } = useAppState();
+  const result = useMemo(() => calculate(state, TIERS), [state]);
+  const { currency, groupSize } = state;
+
   return (
-    <div className="flex flex-col gap-6">
-      <header className="bg-danfo px-4 py-3 text-danfo-ink">
-        <h1 className="font-display text-xl">T1.2 token test</h1>
-      </header>
+    <section aria-labelledby="results-heading">
+      <h2 id="results-heading" className="sr-only">
+        Your damage
+      </h2>
 
-      <section aria-labelledby="fonts-heading" className="flex flex-col gap-2">
-        <h2 id="fonts-heading" className="font-display text-lg">
-          Fonts
-        </h2>
-        <p className="font-mono text-base">₦1,234,567.89 $ £ (Space Mono 400)</p>
-        <p className="font-mono text-base font-bold">
-          ₦1,234,567.89 $ £ (Space Mono 700)
-        </p>
-        <p className="text-sm text-muted">
-          Check: the ₦ matches the digits in weight and style, not a fallback font.
-        </p>
-      </section>
+      <ul>
+        {state.buckets.map((bucket, i) => {
+          const line = result.lines[i];
+          if (!line) return null;
+          return (
+            <LineItem
+              key={bucket.id}
+              label={BUCKETS[bucket.id].label}
+              icon={BUCKET_ICONS[bucket.id]}
+              amount={formatAmount(line.shareMinor, currency)}
+              formula={describeLine(bucket)}
+            />
+          );
+        })}
+      </ul>
 
-      <section aria-labelledby="swatches-heading" className="flex flex-col gap-2">
-        <h2 id="swatches-heading" className="font-display text-lg">
-          Tokens
-        </h2>
-        <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-          {SWATCHES.map(([name, className]) => (
-            <li key={name} className="flex flex-col gap-1 text-xs">
-              <span className={`${className} block h-10 border-2 border-border`} />
-              {name}
-            </li>
-          ))}
-        </ul>
-      </section>
+      <dl className="flex flex-col gap-3 border-t-4 border-double border-ink pt-4">
+        <div>
+          <dt className="font-display text-[length:var(--t-sm)]">Per person</dt>
+          <dd className="font-mono text-[length:var(--t-2xl)] font-bold leading-tight [overflow-wrap:anywhere]">
+            {formatAmount(result.perPersonMinor, currency)}
+          </dd>
+        </div>
+        <div className="flex items-baseline justify-between gap-3">
+          <dt className="min-w-0 text-[length:var(--t-sm)] text-muted">
+            Group total · {groupSize} {groupSize === 1 ? "person" : "people"}
+          </dt>
+          <dd className="font-mono text-[length:var(--t-lg)] font-bold [overflow-wrap:anywhere]">
+            {formatAmount(result.groupTotalMinor, currency)}
+          </dd>
+        </div>
+      </dl>
 
-      <section aria-labelledby="icons-heading" className="flex flex-col gap-2">
-        <h2 id="icons-heading" className="font-display text-lg">
-          Icons (bold, 24px)
-        </h2>
-        <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {ICONS.map(([name, Icon]) => (
-            <li key={name} className="flex items-center gap-2 text-xs">
-              <Icon size={24} weight="bold" aria-hidden="true" />
-              {name}
-            </li>
-          ))}
-        </ul>
-      </section>
+      <TierStamp badge={result.tier.badge} tagline={result.tier.tagline} />
+    </section>
+  );
+}
+</file>
+
+<file path="components/TierStamp.tsx">
+interface TierStampProps {
+  badge: string;
+  tagline: string;
+}
+
+/**
+ * Tier verdict (DESIGN §5.8): red double-border stamp, rotated -4 degrees (static),
+ * tagline beneath. The block reserves two lines of height so a tier change never
+ * shifts the page.
+ */
+export function TierStamp({ badge, tagline }: TierStampProps) {
+  return (
+    <div className="flex min-h-36 flex-col items-center justify-center gap-4 py-4">
+      <p className="w-fit max-w-full -rotate-[4deg] border-[6px] border-double border-stamp px-4 py-2 text-center font-display text-[length:var(--t-lg)] leading-tight text-stamp">
+        {badge}
+      </p>
+      <p className="text-center text-[length:var(--t-sm)] text-muted">{tagline}</p>
     </div>
   );
 }
@@ -2933,18 +2961,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
 }
 </file>
 
-<file path="app/page.tsx">
-import { DevTestBlock } from "@/components/DevTestBlock";
-
-export default function Home() {
-  return (
-    <main className="mx-auto w-full max-w-3xl p-4">
-      <DevTestBlock />
-    </main>
-  );
-}
-</file>
-
 <file path="config/index.ts">
 /**
  * Single source for site-wide constants and env-driven flags.
@@ -3031,7 +3047,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-.repomix-*
+repomix-*
 </file>
 
 <file path="ARCHITECTURE.md">
@@ -4048,6 +4064,27 @@ export function SpikeClient() {
 }
 </file>
 
+<file path="app/page.tsx">
+import { Footer } from "@/components/Footer";
+import { Header } from "@/components/Header";
+import { ResultsPanel } from "@/components/ResultsPanel";
+import { AppStateProvider } from "@/state/AppStateProvider";
+
+export default function Home() {
+  return (
+    <>
+      <Header />
+      <main className="mx-auto w-full max-w-[560px] flex-1 px-4 py-6">
+        <AppStateProvider>
+          <ResultsPanel />
+        </AppStateProvider>
+      </main>
+      <Footer />
+    </>
+  );
+}
+</file>
+
 <file path="package.json">
 {
   "name": "detty-splitter",
@@ -4176,11 +4213,12 @@ Goal: the smallest working version of the core feature, deployed: real numbers a
   - Done when: state initialises to the default; types are strict, no `any`.
   - Depends on: T3.1.
   - Done notes: 62 tests pass. The Soft Life preset is the DATA_MODEL golden example, so the default state gives ₦1,347,500 per person and Tier 3. Budget (₦280,000, Tier 1) and Baller (₦5,812,500, Tier 5) are made-up placeholders, and `DEFAULT_RATES` in `config/` (₦1,500 per $1, ₦2,000 per £1) is a placeholder too: replace the preset prices and tier thresholds after price research (O1) and the rates from a real source before launch. The reducer has one action, `selectPreset` (also used for "Reset to preset"); the other actions arrive in Slices 4, 5 and 8. `AppStateProvider` is only type-checked so far: T3.3 mounts it. Tier 2's badge is "Budget Boss".
-- [ ] **T3.3 Read-only results page** (0.75h)
+- [x] **T3.3 Read-only results page** (0.75h)
   - Build: header, 5 line items with icon tiles, totals, tier stamp, footer note, all read-only, from the default state.
   - Done when: matches the golden numbers on screen; no layout shift when fonts load; works at 360 / 768 / 1280px; deployed.
   - Depends on: T3.2, T1.3.
   - Also: delete the throwaway `components/DevTestBlock.tsx` and its use in `app/page.tsx`; re-measure first-load JS and compare with the 172.2 KB bare-page baseline.
+  - Done notes: golden numbers confirmed on screen (₦1,347,500 per person, ₦5,390,000 for the group), checked at 360 / 768 / 1280px and in light and dark mode; layout shift measured at 0 locally and on the deployed site. `DevTestBlock` deleted. First-load JS is 179.7 KB gzipped (184,049 bytes): the 172.2 KB bare-page floor plus about 7.5 KB for the app code, data and 5 icons. That is still over the ~150 KB guess, so the T2.2 decision stands (keep Next.js, judge by real phone load time). The footer reads only "Estimates only, not quotes." until editing exists, the page is one centred column at every width until the live receipt (Slice 6), and formula lines show ₦ prices until T5.1.
 
 ### Slice 4: Editing (3.25h) *(UI_PLAN S3)*
 Goal: every number editable, every mode switchable, safely.
@@ -4189,6 +4227,7 @@ Goal: every number editable, every mode switchable, safely.
   - Build: `parseNumberInput` in `lib/`, `NumberField` (draft text separate from AppState, separators as you type, stable caret, 16px text, `inputMode="numeric"`, revert on empty/invalid, clamp with hint).
   - Done when: typing "1,5" never writes `NaN` or a half value; "1,500,000", "1 500 000", "", "abc" behave per DATA_MODEL §9.2; component tests pass (query by role and label).
   - Depends on: T3.2.
+  - Also: add "Tap any number to edit." to the footer note.
 - [ ] **T4.2 Stepper, segmented control, mode switch** (1.0h)
   - Build: stepper (Phosphor Plus/Minus, 44px), segmented radio control, shared/per-person switch with headcount shown only when shared, wired to the reducer.
   - Done when: switching mode changes the line total correctly (golden cases); headcount can't go below 1; keyboard and arrow keys work.
