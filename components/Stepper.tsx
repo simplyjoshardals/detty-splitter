@@ -1,11 +1,11 @@
 "use client";
 
 import { useId, useState, type ChangeEvent, type KeyboardEvent } from "react";
-import { MinusIcon, PlusIcon, WarningIcon } from "@phosphor-icons/react";
+import { MinusIcon, PlusIcon } from "@phosphor-icons/react";
 import { parseNumberInput, type NumberRange } from "@/lib/input";
-import { hintFromResult, hintText, type Hint } from "./numberHint";
+import { hintFromResult, type FieldHintProps } from "./numberHint";
 
-interface StepperProps {
+interface StepperProps extends FieldHintProps {
   /** Visible label, e.g. "Nights" or "Split between". */
   label: string;
   /** Ids of other visible elements that join the label in every accessible name, so the
@@ -18,6 +18,9 @@ interface StepperProps {
   suffix?: string;
   /** Called with a whole number inside `range`, never NaN. */
   onCommit: (value: number) => void;
+  /** Id of the row's hint slot. `aria-describedby` points at it while `hint` is set. The row
+   * renders the hint (see `useRowHint`), so a hint never moves the buttons around it. */
+  hintId: string;
 }
 
 const BUTTON_CLASS =
@@ -34,6 +37,7 @@ const BUTTON_CLASS =
  *   it instead of dropping to the page.
  * - ArrowUp and ArrowDown in the box step by one.
  * - A step commits at once, since it is a deliberate action rather than half-typed text.
+ * - The hint is owned and drawn by the row (DESIGN §4); this stepper only reports it.
  */
 export function Stepper({
   label,
@@ -42,24 +46,24 @@ export function Stepper({
   range,
   suffix,
   onCommit,
+  hint,
+  onHintChange,
+  hintId,
 }: StepperProps) {
   const id = useId();
   const labelId = `${id}-label`;
-  const hintId = `${id}-hint`;
   const decreaseId = `${id}-decrease`;
   const increaseId = `${id}-increase`;
 
   const [draft, setDraft] = useState<string | null>(null);
-  const [hint, setHint] = useState<Hint | null>(null);
 
   const text = draft ?? String(value);
-  const shownHint = hint !== null && hint.forValue === value ? hint : null;
-  const isError = shownHint?.kind === "reverted";
+  const isError = hint?.kind === "reverted";
 
   function commit(rawText: string) {
     const result = parseNumberInput(rawText, range, value);
     if (result.value !== value) onCommit(result.value);
-    setHint(hintFromResult(result));
+    onHintChange(hintFromResult(result));
     return result;
   }
 
@@ -69,7 +73,7 @@ export function Stepper({
     const next = base + delta;
     if (next < range.min || next > range.max) return;
     if (next !== value) onCommit(next);
-    setHint(null);
+    onHintChange(null);
     if (draft !== null) setDraft(String(next));
   }
 
@@ -120,10 +124,10 @@ export function Stepper({
           autoCorrect="off"
           spellCheck={false}
           aria-labelledby={names}
-          aria-describedby={shownHint ? hintId : undefined}
+          aria-describedby={hint ? hintId : undefined}
           value={text}
           onFocus={() => {
-            setHint(null);
+            onHintChange(null);
             setDraft(String(value));
           }}
           onChange={handleChange}
@@ -151,19 +155,6 @@ export function Stepper({
           >
             {suffix}
           </span>
-        )}
-      </div>
-      {/* Always in the page, so screen readers announce the hint when it appears. */}
-      <div id={hintId} role="status">
-        {shownHint && (
-          <p
-            className={`mt-2 flex items-start gap-1.5 text-[length:var(--t-xs)] ${
-              isError ? "text-danger" : "text-ink"
-            }`}
-          >
-            <WarningIcon size={16} weight="bold" aria-hidden="true" className="shrink-0" />
-            <span>{hintText(shownHint, range, "")}</span>
-          </p>
         )}
       </div>
     </div>

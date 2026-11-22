@@ -8,7 +8,6 @@ import {
   type ChangeEvent,
   type KeyboardEvent,
 } from "react";
-import { WarningIcon } from "@phosphor-icons/react";
 import {
   applyDraftEdit,
   formatNumberInput,
@@ -16,9 +15,9 @@ import {
   type NumberRange,
   type ParseResult,
 } from "@/lib/input";
-import { hintFromResult, hintText, type Hint } from "./numberHint";
+import { hintFromResult, type FieldHintProps } from "./numberHint";
 
-interface NumberFieldProps {
+interface NumberFieldProps extends FieldHintProps {
   /** Visible label, e.g. "Price per night". */
   label: string;
   /** Ids of other visible elements that join the label in the accessible name, so
@@ -31,6 +30,9 @@ interface NumberFieldProps {
   prefix?: string;
   /** Called with a parsed, clamped integer, only on blur or Enter. Never with NaN. */
   onCommit: (value: number) => void;
+  /** Id of the row's hint slot. `aria-describedby` points at it while `hint` is set. The row
+   * renders the hint (see `useRowHint`), so a hint never moves this field's neighbours. */
+  hintId: string;
 }
 
 /** Backspace and Delete arrive as the input event's `inputType`. */
@@ -52,6 +54,7 @@ function deletionOf(event: Event): "backward" | "forward" | null {
  * - The number is committed on blur or Enter only, so a half-typed value like "1,5" can
  *   never reach AppState. Empty or invalid text reverts to the saved number with a hint.
  *   Too big or too small is clamped, with a hint (not an error).
+ * - The hint is owned and drawn by the row (DESIGN §4); this field only reports it.
  */
 export function NumberField({
   label,
@@ -60,13 +63,14 @@ export function NumberField({
   range,
   prefix = "",
   onCommit,
+  hint,
+  onHintChange,
+  hintId,
 }: NumberFieldProps) {
   const id = useId();
   const labelId = `${id}-label`;
-  const hintId = `${id}-hint`;
 
   const [draft, setDraft] = useState<string | null>(null);
-  const [hint, setHint] = useState<Hint | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   // Where to put the caret after React writes the reformatted text.
   const pendingCaret = useRef<number | null>(null);
@@ -80,17 +84,16 @@ export function NumberField({
   }, [draft]);
 
   const text = draft ?? formatNumberInput(value);
-  const shownHint = hint !== null && hint.forValue === value ? hint : null;
 
   function commit(rawText: string): ParseResult {
     const result = parseNumberInput(rawText, range, value);
     if (result.value !== value) onCommit(result.value);
-    setHint(hintFromResult(result));
+    onHintChange(hintFromResult(result));
     return result;
   }
 
   function handleFocus() {
-    setHint(null);
+    onHintChange(null);
     setDraft(formatNumberInput(value));
   }
 
@@ -123,7 +126,7 @@ export function NumberField({
     setDraft(formatNumberInput(result.value));
   }
 
-  const isError = shownHint?.kind === "reverted";
+  const isError = hint?.kind === "reverted";
 
   return (
     <div>
@@ -155,7 +158,7 @@ export function NumberField({
           autoCorrect="off"
           spellCheck={false}
           aria-labelledby={[labelId, ...labelledBy].join(" ")}
-          aria-describedby={shownHint ? hintId : undefined}
+          aria-describedby={hint ? hintId : undefined}
           value={text}
           onFocus={handleFocus}
           onChange={handleChange}
@@ -163,20 +166,6 @@ export function NumberField({
           onKeyDown={handleKeyDown}
           className="min-w-0 flex-1 bg-transparent px-3 text-right font-mono text-[length:var(--t-base)] text-ink outline-none"
         />
-      </div>
-      {/* Always in the page, so screen readers announce the hint when it appears. */}
-      <div id={hintId} role="status">
-        {shownHint && (
-          <p
-            // mt-2 (8px) keeps the hint clear of the focus ring, which stays on after Enter.
-            className={`mt-2 flex items-start gap-1.5 text-[length:var(--t-xs)] ${
-              isError ? "text-danger" : "text-ink"
-            }`}
-          >
-            <WarningIcon size={16} weight="bold" aria-hidden="true" className="shrink-0" />
-            <span>{hintText(shownHint, range, prefix)}</span>
-          </p>
-        )}
       </div>
     </div>
   );

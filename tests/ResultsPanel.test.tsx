@@ -3,7 +3,7 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { Footer } from "@/components/Footer";
-import { ResultsPanel } from "@/components/ResultsPanel";
+import { ResultsPanel, totalSizeToken } from "@/components/ResultsPanel";
 import { AppStateProvider } from "@/state/AppStateProvider";
 
 afterEach(cleanup);
@@ -229,5 +229,74 @@ describe("footer", () => {
     expect(screen.getByRole("contentinfo").textContent).toContain(
       "Estimates only, not quotes. Tap any number to edit.",
     );
+  });
+});
+
+describe("totalSizeToken", () => {
+  it("keeps 40px for 11 characters or fewer", () => {
+    expect(totalSizeToken("₦0")).toBe("--t-2xl");
+    expect(totalSizeToken("₦1,347,500")).toBe("--t-2xl");
+    expect(totalSizeToken("₦12,345,678")).toBe("--t-2xl"); // 11 characters
+  });
+
+  it("drops to 28px at 12 characters or more", () => {
+    expect(totalSizeToken("₦123,456,789")).toBe("--t-xl"); // 12 characters
+    expect(totalSizeToken("₦249,750,000,000")).toBe("--t-xl"); // the max-values total
+  });
+
+  it("counts ₦ as one character, not by UTF-16 units", () => {
+    expect(totalSizeToken("\u20A6".repeat(11))).toBe("--t-2xl");
+    expect(totalSizeToken("\u20A6".repeat(12))).toBe("--t-xl");
+  });
+});
+
+describe("hints in a bucket line", () => {
+  async function typeInto(user: ReturnType<typeof userEvent.setup>, box: HTMLElement, text: string) {
+    await user.click(box);
+    await user.clear(box);
+    await user.type(box, text);
+    await user.tab();
+  }
+
+  it("replaces the formula line, and the formula comes back when the box is focused again", async () => {
+    const { user, stayPrice } = setup();
+    const stay = within(lineOf(STAY));
+    expect(stay.getByText(/total ÷ 4/)).toBeTruthy();
+    await typeInto(user, stayPrice, "99999999999");
+    expect(stay.getByText("Max is ₦50,000,000, so we adjusted it.")).toBeTruthy();
+    expect(stay.queryByText(/total ÷/)).toBeNull();
+    await user.click(stayPrice);
+    expect(stay.queryByText(/we adjusted/)).toBeNull();
+    expect(stay.getByText(/total ÷ 4/)).toBeTruthy();
+  });
+
+  it("sits after the mode control in the DOM, so it never moves a control above it", async () => {
+    const { user, stayPrice } = setup();
+    await typeInto(user, stayPrice, "99999999999");
+    const hint = screen.getByText("Max is ₦50,000,000, so we adjusted it.");
+    const mode = screen.getByRole("radiogroup", { name: `Cost split ${STAY}` });
+    expect(Boolean(mode.compareDocumentPosition(hint) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+  });
+
+  it("shows one hint per line: a newer one from another field takes the slot", async () => {
+    const { user, stayPrice } = setup();
+    await typeInto(user, stayPrice, "99999999999");
+    const headcount = headcountInput(STAY);
+    if (headcount === null) throw new Error("stay should start shared");
+    await typeInto(user, headcount, "0");
+    const stay = within(lineOf(STAY));
+    expect(stay.getByText("Min is 1, so we adjusted it.")).toBeTruthy();
+    expect(stay.queryByText(/Max is/)).toBeNull();
+    // Both boxes of the line share one slot id, so a screen reader reads the same place.
+    const slot = document.getElementById(headcount.getAttribute("aria-describedby") ?? "");
+    expect(slot?.textContent).toBe("Min is 1, so we adjusted it.");
+    expect(stayPrice.getAttribute("aria-describedby")).toBeNull();
+  });
+
+  it("keeps a hint out of the other lines", async () => {
+    const { user, stayPrice } = setup();
+    await typeInto(user, stayPrice, "99999999999");
+    expect(within(lineOf(EVENTS)).queryByText(/we adjusted/)).toBeNull();
+    expect(within(lineOf(EVENTS)).getByText("Each person pays this")).toBeTruthy();
   });
 });

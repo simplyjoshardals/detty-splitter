@@ -3,7 +3,9 @@ import { useState } from "react";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { HintMessage } from "@/components/HintMessage";
 import { NumberField } from "@/components/NumberField";
+import { hintText, useRowHint } from "@/components/numberHint";
 import { RANGES, type NumberRange } from "@/lib/input";
 
 afterEach(cleanup);
@@ -16,7 +18,10 @@ interface HarnessProps {
   onCommit?: (value: number) => void;
 }
 
-/** Holds the saved number the way AppState would, and reports every commit. */
+/**
+ * Holds the saved number the way AppState would, reports every commit, and plays the row:
+ * it owns the hint and draws it in one status slot, as BucketLine does.
+ */
 function Harness({
   initial = 150000,
   range = RANGES.unitPriceNgn,
@@ -25,6 +30,7 @@ function Harness({
   onCommit,
 }: HarnessProps) {
   const [value, setValue] = useState(initial);
+  const hints = useRowHint({ field: value });
   return (
     <>
       <NumberField
@@ -36,7 +42,14 @@ function Harness({
           onCommit?.(next);
           setValue(next);
         }}
+        hintId="row-hint"
+        {...hints.forField("field")}
       />
+      <div id="row-hint" role="status">
+        {hints.active !== null && (
+          <HintMessage hint={hints.active.hint} text={hintText(hints.active.hint, range, prefix)} />
+        )}
+      </div>
       <button type="button" onClick={() => setValue(777)}>
         Outside change
       </button>

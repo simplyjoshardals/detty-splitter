@@ -10,6 +10,10 @@ interface LineItemProps {
   amount: string;
   /** What the line adds up to, e.g. "₦1,050,000 total ÷ 4". Never repeats the price. */
   formula: string;
+  /** Id of the hint slot below the controls. The fields point `aria-describedby` at it. */
+  hintId: string;
+  /** The row's one hint, or null. It takes the formula line's place (DESIGN §4). */
+  hint: ReactNode;
   priceField: ReactNode;
   quantityField: ReactNode;
   modeField: ReactNode;
@@ -20,6 +24,11 @@ interface LineItemProps {
 /**
  * One bucket (DESIGN §5.4). Dashed-rule separated, not boxed.
  * Price and quantity stack below 480px and sit side by side from 480px up.
+ *
+ * The last row is one reserved two-line slot (32px) that holds the formula or, when a field
+ * has something to say, that field's hint. It sits below every control, so a hint appearing
+ * moves nothing the user might be about to tap, and being reserved it moves nothing below
+ * it either. The 16px line height is set here so the 32px is exact.
  */
 export function LineItem({
   label,
@@ -27,6 +36,8 @@ export function LineItem({
   icon: Icon,
   amount,
   formula,
+  hintId,
+  hint,
   priceField,
   quantityField,
   modeField,
@@ -64,7 +75,14 @@ export function LineItem({
         </div>
         <div className="mt-4">{modeField}</div>
         {headcountField != null && <div className="mt-4">{headcountField}</div>}
-        <p className="mt-3 text-[length:var(--t-xs)] text-muted">{formula}</p>
+        <div className="mt-3 min-h-8 text-[length:var(--t-xs)] leading-4">
+          {/* Always in the page, so screen readers announce a hint when it appears. The
+              formula stays outside it: it changes on every edit and shouldn't be announced. */}
+          <div id={hintId} role="status">
+            {hint}
+          </div>
+          {hint == null && <p className="text-muted">{formula}</p>}
+        </div>
       </div>
     </li>
   );

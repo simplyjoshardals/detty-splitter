@@ -3,7 +3,9 @@ import { useState } from "react";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { HintMessage } from "@/components/HintMessage";
 import { Stepper } from "@/components/Stepper";
+import { hintText, useRowHint } from "@/components/numberHint";
 import { RANGES, type NumberRange } from "@/lib/input";
 
 afterEach(cleanup);
@@ -15,7 +17,10 @@ interface HarnessProps {
   onCommit?: (value: number) => void;
 }
 
-/** Holds the saved number the way AppState would, and reports every commit. */
+/**
+ * Holds the saved number the way AppState would, reports every commit, and plays the row:
+ * it owns the hint and draws it in one status slot, as BucketLine does.
+ */
 function Harness({
   initial = 7,
   range = RANGES.quantity,
@@ -23,6 +28,7 @@ function Harness({
   onCommit,
 }: HarnessProps) {
   const [value, setValue] = useState(initial);
+  const hints = useRowHint({ field: value });
   return (
     <>
       <Stepper
@@ -34,7 +40,14 @@ function Harness({
           onCommit?.(next);
           setValue(next);
         }}
+        hintId="row-hint"
+        {...hints.forField("field")}
       />
+      <div id="row-hint" role="status">
+        {hints.active !== null && (
+          <HintMessage hint={hints.active.hint} text={hintText(hints.active.hint, range, "")} />
+        )}
+      </div>
       <h3 id="heading">Short-lets</h3>
     </>
   );
@@ -198,5 +211,20 @@ describe("Stepper typed value", () => {
     expect(screen.getByText("Min is 1, so we adjusted it.")).toBeTruthy();
     await user.click(input);
     expect(screen.queryByText("Min is 1, so we adjusted it.")).toBeNull();
+  });
+});
+
+describe("Stepper hint wiring", () => {
+  it("points aria-describedby at the row's hint slot only while a hint shows", async () => {
+    const { user, input } = setup({ initial: 4, range: RANGES.headcount });
+    expect(input.getAttribute("aria-describedby")).toBeNull();
+    await user.click(input);
+    await user.clear(input);
+    await user.type(input, "0");
+    await user.tab();
+    const slot = document.getElementById(input.getAttribute("aria-describedby") ?? "");
+    expect(slot?.textContent).toBe("Min is 1, so we adjusted it.");
+    await user.click(input);
+    expect(input.getAttribute("aria-describedby")).toBeNull();
   });
 });

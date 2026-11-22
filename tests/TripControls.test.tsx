@@ -148,3 +148,89 @@ describe("status line", () => {
     expect(screen.queryByText("Reset to Soft Life Standard.")).toBeNull();
   });
 });
+
+describe("group size hint", () => {
+  const applyButton = () => screen.getByRole("button", { name: "Apply to all shared" });
+  const resetButton = () => screen.getByRole("button", { name: "Reset to preset" });
+
+  it("lets Apply land when it is tapped straight after typing text that isn't a number", async () => {
+    const { user } = setup();
+    await user.click(groupSizeBox());
+    await user.clear(groupSizeBox());
+    await user.paste("abc");
+    const apply = applyButton();
+    // The click blurs the box first, which commits and raises the hint. The button must
+    // be the same element afterwards, or the tap is lost.
+    await user.click(apply);
+    expect(applyButton()).toBe(apply);
+    expect(screen.getByText("Shared items already split 4 ways.")).toBeTruthy();
+    expect(inputValue(groupSizeBox())).toBe("4");
+    expect(splitValues()).toEqual(["4", "4", "4"]);
+  });
+
+  it("lets Apply land straight after typing 0, using the clamped group size", async () => {
+    const { user } = setup();
+    await user.click(groupSizeBox());
+    await user.clear(groupSizeBox());
+    await user.type(groupSizeBox(), "0");
+    await user.click(applyButton());
+    expect(splitValues()).toEqual(["1", "1", "1"]);
+    expect(screen.getByText("Set 3 shared items to 1 person.")).toBeTruthy();
+  });
+
+  it("shows the hint after both buttons, not between the stepper and them", async () => {
+    const { user } = setup();
+    await user.click(groupSizeBox());
+    await user.clear(groupSizeBox());
+    await user.type(groupSizeBox(), "0");
+    await user.tab();
+    const hint = screen.getByText("Min is 1, so we adjusted it.");
+    const follows = (a: Node, b: Node) =>
+      Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(follows(applyButton(), hint)).toBe(true);
+    expect(follows(resetButton(), hint)).toBe(true);
+  });
+
+  it("points the stepper at the hint with aria-describedby while it shows", async () => {
+    const { user } = setup();
+    expect(groupSizeBox().getAttribute("aria-describedby")).toBeNull();
+    await user.click(groupSizeBox());
+    await user.clear(groupSizeBox());
+    await user.paste("abc");
+    await user.tab();
+    const slot = document.getElementById(groupSizeBox().getAttribute("aria-describedby") ?? "");
+    expect(slot?.textContent).toBe("That number no make sense. We kept your old one.");
+  });
+
+  it("gives way to the next status line, and to focusing the box again", async () => {
+    const { user } = setup();
+    await user.click(groupSizeBox());
+    await user.clear(groupSizeBox());
+    await user.type(groupSizeBox(), "0");
+    await user.tab();
+    expect(screen.getByText("Min is 1, so we adjusted it.")).toBeTruthy();
+    await user.click(screen.getByText("Outside on a Budget"));
+    expect(screen.queryByText("Min is 1, so we adjusted it.")).toBeNull();
+    expect(screen.getByText("Route set to Outside on a Budget.")).toBeTruthy();
+
+    await user.click(groupSizeBox());
+    await user.clear(groupSizeBox());
+    await user.paste("abc");
+    await user.tab();
+    expect(screen.getByText("That number no make sense. We kept your old one.")).toBeTruthy();
+    await user.click(groupSizeBox());
+    expect(screen.queryByText(/no make sense/)).toBeNull();
+  });
+
+  it("drops a price hint when a route change replaces the number it was about", async () => {
+    const { user } = setup();
+    await user.click(stayPrice());
+    await user.clear(stayPrice());
+    await user.type(stayPrice(), "99999999999");
+    await user.tab();
+    expect(screen.getByText("Max is ₦50,000,000, so we adjusted it.")).toBeTruthy();
+    await user.click(screen.getByText("Outside on a Budget"));
+    expect(screen.queryByText(/we adjusted/)).toBeNull();
+    expect(inputValue(stayPrice())).toBe("40,000");
+  });
+});
