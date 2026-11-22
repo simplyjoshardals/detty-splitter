@@ -116,7 +116,7 @@ None. No network calls after first load other than the analytics script. No cach
 
 ### 2.4 Forms and validation
 
-No form library. Each numeric field uses the same `parseNumberInput(text, range, lastGood)` from `lib/input`, returning `ParseResult`. Ranges (`RANGES`) come from DATA_MODEL.md §2.2. On blur or Enter: clamp, revert to `lastGood` if empty or invalid, and show the hint from §9 of DESIGN.md.
+No form library. Each numeric field uses the same `parseNumberInput(text, range, lastGood)` from `lib/input`, returning `ParseResult`. Ranges (`RANGES`) come from DATA_MODEL.md §2.2. On blur or Enter: clamp, revert to `lastGood` if empty or invalid, and show the hint from §9 of DESIGN.md. The field only reports the hint (`hint`, `onHintChange`, `hintId` props). The row that holds the fields owns it (`useRowHint`) and draws one hint in a reserved slot below its controls, starting with the field's name (DESIGN §4, §5.2), so a hint never moves a control the user is about to tap.
 
 ### 2.5 Export architecture (important)
 

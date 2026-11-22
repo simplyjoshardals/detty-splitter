@@ -45,7 +45,7 @@ function Harness({
       />
       <div id="row-hint" role="status">
         {hints.active !== null && (
-          <HintMessage hint={hints.active.hint} text={hintText(hints.active.hint, range, "")} />
+          <HintMessage hint={hints.active.hint} field="Field" text={hintText(hints.active.hint, range, "")} />
         )}
       </div>
       <h3 id="heading">Short-lets</h3>
@@ -223,7 +223,7 @@ describe("Stepper hint wiring", () => {
     await user.type(input, "0");
     await user.tab();
     const slot = document.getElementById(input.getAttribute("aria-describedby") ?? "");
-    expect(slot?.textContent).toBe("Min is 1, so we adjusted it.");
+    expect(slot?.textContent).toBe("Field: Min is 1, so we adjusted it.");
     await user.click(input);
     expect(input.getAttribute("aria-describedby")).toBeNull();
   });

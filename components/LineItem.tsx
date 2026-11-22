@@ -28,7 +28,8 @@ interface LineItemProps {
  * The last row is one reserved two-line slot (32px) that holds the formula or, when a field
  * has something to say, that field's hint. It sits below every control, so a hint appearing
  * moves nothing the user might be about to tap, and being reserved it moves nothing below
- * it either. The 16px line height is set here so the 32px is exact.
+ * it either. The 16px line height is set here so the 32px is exact. Bottom padding is 8px, not
+ * 16px, because the slot's spare line already adds space under a one-line formula.
  */
 export function LineItem({
   label,
@@ -44,7 +45,7 @@ export function LineItem({
   headcountField,
 }: LineItemProps) {
   return (
-    <li className="flex gap-3 border-b-2 border-dashed border-rule py-4 last:border-b-0">
+    <li className="flex gap-3 border-b-2 border-dashed border-rule pt-4 pb-2 last:border-b-0">
       <span className="flex size-8 shrink-0 items-center justify-center border-2 border-ink">
         <Icon size={20} weight="bold" aria-hidden="true" />
       </span>

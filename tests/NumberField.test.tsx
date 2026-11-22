@@ -47,7 +47,7 @@ function Harness({
       />
       <div id="row-hint" role="status">
         {hints.active !== null && (
-          <HintMessage hint={hints.active.hint} text={hintText(hints.active.hint, range, prefix)} />
+          <HintMessage hint={hints.active.hint} field="Field" text={hintText(hints.active.hint, range, prefix)} />
         )}
       </div>
       <button type="button" onClick={() => setValue(777)}>
@@ -197,7 +197,7 @@ describe("NumberField: empty and invalid text revert", () => {
     expect(onCommit).not.toHaveBeenCalled();
     expect(input.value).toBe("150,000");
     const status = screen.getByRole("status");
-    expect(status.textContent).toBe("Nothing there, so we kept your old number.");
+    expect(status.textContent).toBe("Field: Nothing there, so we kept your old number.");
   });
 
   it('keeps "abc" on screen while typing, then reverts on blur with a hint', async () => {
@@ -210,7 +210,7 @@ describe("NumberField: empty and invalid text revert", () => {
     expect(onCommit).not.toHaveBeenCalled();
     expect(input.value).toBe("150,000");
     expect(screen.getByRole("status").textContent).toBe(
-      "That number no make sense. We kept your old one.",
+      "Field: That number no make sense. We kept your old one.",
     );
   });
 
@@ -261,7 +261,7 @@ describe("NumberField: clamping", () => {
     await user.tab();
     expect(onCommit).toHaveBeenCalledWith(50000000);
     expect(input.value).toBe("50,000,000");
-    expect(screen.getByRole("status").textContent).toBe("Max is ₦50,000,000, so we adjusted it.");
+    expect(screen.getByRole("status").textContent).toBe("Field: Max is ₦50,000,000, so we adjusted it.");
   });
 
   it("clamps an absurdly long number without losing the max", async () => {
@@ -284,7 +284,7 @@ describe("NumberField: clamping", () => {
     await user.tab();
     expect(onCommit).toHaveBeenCalledWith(1);
     expect(input.value).toBe("1");
-    expect(screen.getByRole("status").textContent).toBe("Min is 1, so we adjusted it.");
+    expect(screen.getByRole("status").textContent).toBe("Field: Min is 1, so we adjusted it.");
   });
 
   it("takes the exact boundaries without a hint", async () => {

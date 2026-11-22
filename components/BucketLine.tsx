@@ -68,6 +68,12 @@ export function BucketLine({ bucket, line, currency }: BucketLineProps) {
     headcount: bucket.headcount,
   });
   const format = hints.active === null ? null : FIELD_HINT_FORMAT[hints.active.field];
+  // Short names, so a hint still fits two lines at 320px. Quantity uses the visible label.
+  const hintNames: Record<BucketNumberField, string> = {
+    unitPriceNgn: "Price",
+    quantity: definition.quantityLabel,
+    headcount: "Split",
+  };
 
   function setNumber(field: BucketNumberField) {
     return (value: number) =>
@@ -86,6 +92,7 @@ export function BucketLine({ bucket, line, currency }: BucketLineProps) {
         hints.active !== null && format !== null ? (
           <HintMessage
             hint={hints.active.hint}
+            field={hintNames[hints.active.field]}
             text={hintText(hints.active.hint, format.range, format.prefix)}
           />
         ) : null

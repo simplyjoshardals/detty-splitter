@@ -88,7 +88,7 @@ Two fonts total, no italics. `display: 'swap'`, automatic fallback adjustment le
 | "Open in browser" hint | `DoorOpenIcon` | Confirmed |
 | Steppers | `PlusIcon`, `MinusIcon` | Confirmed at install (`yarn check:icons`) |
 | Mode switch: Shared / Per person | `UsersThreeIcon`, `UserIcon` | Confirmed at install (`yarn check:icons`), added in T4.2 |
-| Error / clamp hint | `WarningIcon` | Not confirmed: confirm |
+| Error / clamp hint | `WarningIcon` | Confirmed (T4.4) |
 
 **Install-time check (S1):** after installing, list the package's exports and assert every name above exists. Swap any missing one for the nearest icon on phosphoricons.com. I couldn't finish confirming the last three rows and the alternates because some lookups were blocked.
 
@@ -227,6 +227,8 @@ Rules:
 - **Damage meter** (mobile and tablet) is the sticky bottom bar. Respects the iOS safe area. Hidden when the receipt section is on screen.
 - No modal dialogs in the core flow. Rates and export result expand inline.
 - Touch targets at least 44×44px. Inputs 48px tall, **16px minimum text** (prevents iOS focus zoom).
+- **One hint per row (T4.4).** A number field never draws its own hint. The row that holds the fields draws one hint, in one reserved slot **below every control in the row**, so a hint appearing never moves a control the user is about to tap. The latest commit wins. A bucket's slot is two lines (32px, 16px line height) and holds the formula line when there is no hint, so the hint *replaces* the formula. The group row's slot is its status line, also two lines; an action's status replaces a hint. Every hint starts with its field's name in bold (§5.2), because it is not under the field. Any new row of fields (T5.2 rates) follows this, with the slot last.
+- **Per-person total size (T4.4).** `--t-2xl` (40px) for 11 characters or fewer, `--t-xl` (28px) for 12 or more (`totalSizeToken` in `ResultsPanel.tsx`). Space Mono is about 0.61em wide: 11 characters at 40px is about 269px, inside the 288px column at 320px; 12 would be about 294px. The max-values total (16 characters) at 28px is about 274px. `whitespace-nowrap` plus `overflow-wrap: anywhere` are a safety net only: under `nowrap` an over-long amount overflows rather than splitting its digits.
 
 ---
 
@@ -246,7 +248,7 @@ Pressed: translate 2px, shadow collapses (80ms). Disabled: 50% ink, no shadow, `
 
 **Draft and commit (T4.1).** The text being typed is held in the field, never in app state. It is written to state only on blur or Enter, as a parsed, clamped integer, so a half-typed value never gets out. Enter commits and keeps focus. Digits are regrouped with commas as you type and the caret stays after the digit it was after; deleting a comma removes the neighbouring digit so the caret never sticks. A comma is a thousands separator, so "1,5" is 15, and "1.5" is invalid (nothing is rounded).
 
-**Hint (T4.1).** One line under the field: `WarningIcon` (16px, bold) plus 12px text, in a `role="status"` region that is always in the page so the hint is announced when it appears. The field points to it with `aria-describedby` while it shows. An empty or invalid revert uses `--danger` text and border; a clamp uses `--ink` text and keeps the normal border. The hint clears when the field is focused again, or when the saved number changes some other way (for example a preset switch). The hint is in normal flow, so it pushes the content below it down by one line. Re-check this in T4.4 if a button ever sits directly under a field.
+**Hint (T4.1, moved to the row in T4.4).** `WarningIcon` (16px, bold) plus 12px text, drawn by the row and not by the field (§4, "One hint per row"), inside a `role="status"` slot that is always in the page so the hint is announced when it appears. The text starts with the field's name in bold and a colon ("Price: Max is ₦50,000,000, so we adjusted it."), because the hint is below the whole row and a clamp has no red border to point at its field. Names: "Price", the line's quantity label ("Nights", "Days"), "Split", "Group size". The field points to the slot with `aria-describedby` only while its hint shows. An empty or invalid revert uses `--danger` text and border; a clamp uses `--ink` text and keeps the normal border. The hint clears when any field in the row is focused, when another field in the row reports a newer hint, or when the saved number it was about changes some other way (for example a preset switch). Fields take `hint`, `onHintChange` and `hintId` props; `useRowHint` (`numberHint.ts`) holds the one hint per row and `HintMessage` draws it.
 
 **Accessible name.** The visible label (for example "Price per day") comes first, followed by the bucket heading, so two fields with the same label can still be told apart ("Price per day Daily Food & Drinks").
 
@@ -267,25 +269,29 @@ Labels: "Outside on a Budget", "Soft Life Standard", "Full IJGB / Baller Mode". 
         [ Shared | Per person ]
         Split between                              (only when Shared)
         [ − 4 + ] people
-        ₦1,050,000 total ÷ 4                       (muted mono)
+        ₦1,050,000 total ÷ 4                       (muted mono; a hint takes this line's place)
 ```
-Dashed-rule separated, not boxed. Icon in a 32px black-bordered tile. Label in Bungee 14px.
+Dashed-rule separated, not boxed. Icon in a 32px black-bordered tile. Label in Bungee 14px. Padding is 16px above and 8px below: the reserved last row (below) already adds space under a one-line formula.
 
-**Price and quantity row (T4.2).** Side by side from 480px up, stacked below it. The quantity column is a fixed 144px (the stepper's own width), so a hint under it wraps inside the column and never squeezes the price field. At 360px the content column is about 284px, too narrow for a 10-digit price beside a stepper. Each control has its own small label above it (12px muted). The "×" is decoration (`aria-hidden`) and only shows when the two sit side by side.
+**Price and quantity row (T4.2).** Side by side from 480px up, stacked below it. The quantity column is a fixed 144px (the stepper's own width), so it never changes size. (Until T4.4 it also had to hold the stepper's hint, which wrapped to four lines in it; hints are now drawn by the row, see §5.2.) At 360px the content column is about 284px, too narrow for a 10-digit price beside a stepper. Each control has its own small label above it (12px muted). The "×" is decoration (`aria-hidden`) and only shows when the two sit side by side.
 
 **Headcount (T4.2).** A separate "Split between" stepper row under the mode control, shown only when the line is Shared, so the stepper is never inside a radio's label. It is hidden, not reset, when the mode is Per person: switching back restores the old split. Switching mode adds or removes one row, so the content below moves by that row's height; this only happens on the user's own tap.
 
-**Formula line (T4.2).** Muted mono, under the controls. It never repeats the price or quantity, which are visible in the controls above. Shared: `₦{line total} total ÷ {headcount}`. Per person: `Each person pays this`. Naira until the currency toggle (T5.1).
+**Formula and hint line (T4.2, T4.4).** The last row of the line, a reserved 32px slot (two 16px lines). Muted mono. Normally the formula: it never repeats the price or quantity, which are visible in the controls above. Shared: `₦{line total} total ÷ {headcount}`. Per person: `Each person pays this`. Naira until the currency toggle (T5.1). When a field in the line has a hint, the hint takes the slot and the formula is hidden until the hint clears. The slot is reserved, so neither the controls above it nor the next line move. At 320px the longest hint ("Table nights: That number no make sense. We kept your old one.") wraps to three lines and grows the slot by one line; this is known and left, since it only moves content below it.
 
 ### 5.5 Segmented control (currency, mode)
-Native radios, 44px, 2px ink border, selected segment filled with ink (text `--paper`) plus its Phosphor icon in `fill`. Group has a label.
+Native radios, 44px, 2px ink border. The selected segment has a thick inner ink frame (3px inset, so 5px in all), bold text and its Phosphor icon in `fill`; it stays on a `--surface` fill. Group has a label.
 
-**Built in T4.2.** A `radiogroup` with a visible 12px label and an accessible name that also includes the bucket heading ("Cost split Short-lets / Accommodation"). Each segment is a native radio, so the group is one tab stop and the arrow keys move the selection. Unselected: surface fill, icon in `bold`. Selected: ink fill, `--paper` text, icon in `fill`. Focus: the 3px ring on the focused segment. Mode segments: `UsersThreeIcon` "Shared", `UserIcon` "Per person". The component is generic, so the currency control (T5.1) reuses it.
+**Built in T4.2.** A `radiogroup` with a visible 12px label and an accessible name that also includes the bucket heading ("Cost split Short-lets / Accommodation"). Each segment is a native radio, so the group is one tab stop and the arrow keys move the selection. Unselected: surface fill, 2px frame, icon in `bold`. Selected: surface fill, 5px frame (2px border plus 3px inner ring), bold text (Space Mono is monospace, so bold does not change the width), icon in `fill`, raised above its neighbour so the frame is not cut by the 2px overlap. Focus: the 3px ring on the focused segment. Mode segments: `UsersThreeIcon` "Shared", `UserIcon` "Per person". The component is generic, so the currency control (T5.1) reuses it.
+
+**Changed in T4.4.** The selected segment used to be a solid ink block. Five of them in the bucket list were the heaviest thing on the page and outweighed the totals (seen in the 360px screenshots), so the selection now uses a thick frame, bold text and the `fill` icon instead. It still does not rely on colour alone.
 
 ### 5.6 Stepper
 `MinusIcon` / value / `PlusIcon`, each 44×44px, square with 2px border. Value is a real input. Deliberately plain.
 
 **Built in T4.2.** Visible 12px label above. The value box is 44px tall and 56px wide, centred, Space Mono 16px, and commits like the number input (blur or Enter, same hint copy for empty, invalid and clamped text; for headcount the clamp hint reads "Min is 1, so we adjusted it."). A button press (minus or plus) and ArrowUp / ArrowDown in the box commit at once. At a bound the button is `aria-disabled` with 50% ink (as §5.1), not `disabled`, so keyboard focus stays on it. Buttons are named "Decrease" / "Increase" followed by the label and the bucket heading ("Decrease Nights Short-lets / Accommodation"). Ranges: quantity 0 to 999, headcount 1 to 100. An optional muted suffix ("people") follows the buttons and is hidden from screen readers.
+
+**Built in T4.4.** The value box takes `hint`, `onHintChange` and `hintId` like the number input (§5.2) and draws nothing under itself. The focused box is raised above the two buttons (`focus-visible:z-10`): flex items paint in order, so the later plus button used to cover the right edge of the 3px focus ring.
 
 ### 5.7 Damage meter (sticky bar)
 Black bar (`--meter-bg`), 2px yellow top border in dark mode, `--meter-fg` digits in Space Mono 700 (large), label "DAMAGE METER" small, "per person" caption, `ArrowDownIcon` button "See receipt". No count-up animation. A visually hidden live region announces changes (debounced).
@@ -296,7 +302,7 @@ Red (`--stamp`) double-border stamp, Bungee uppercase, rotated −4° (static), 
 ### 5.9 Status line
 One `role="status"` line under the actions, with an icon: `CheckIcon` for success, `WarningIcon` for errors. No floating toasts.
 
-**Group row status (T4.3).** The same pattern under the group row's buttons: always in the page, `min-h-5` (one line) even when empty so the list below never shifts, 12px text with `CheckIcon`. It says what a plate tap, "Apply to all shared" or "Reset to preset" just did, and says so when "Apply to all shared" had nothing to change (copy in §9). It clears after 6 seconds.
+**Group row status (T4.3, T4.4).** The same pattern under the group row's buttons: always in the page, two lines high (`min-h-8`, 16px lines) even when empty so the list below never shifts, 12px text with `CheckIcon`. It says what a plate tap, "Apply to all shared" or "Reset to preset" just did, and says so when "Apply to all shared" had nothing to change (copy in §9). It clears after 6 seconds. Since T4.4 it also holds the group size hint ("Group size: Min is 1, so we adjusted it."), so the hint never pushes the two buttons down while the user is reaching for one. The latest message wins: an action's status replaces the hint (the status names the number that was kept), and a hint replaces the status. The row's bottom padding is 4px, because this slot supplies the space.
 
 ### 5.10 Inline panel (rates, export result)
 Expands in place with a dashed top rule. Rates: two inputs ("₦ per $1", "₦ per £1"), "as of <date>" or a "Custom rates" tag, "Reset rates" with `ArrowCounterClockwiseIcon`.
@@ -404,6 +410,7 @@ Standard English with light Nigerian Pidgin, one Pidgin phrase per message at mo
 | Invalid number | "That number no make sense. We kept your old one." |
 | Value clamped (max) | "Max is ₦50,000,000, so we adjusted it." |
 | Value clamped (min) | "Min is {x}, so we adjusted it." |
+| Hint prefix | "{Field}: {hint}", for example "Nights: Max is 999, so we adjusted it." Field is Price, the line's quantity label, Split or Group size. |
 | Bad share link | "We couldn't read that link, so here's a fresh calculation." |
 | Link copied | "Link copied. Drop it in the group chat." |
 | Clipboard blocked | "Copy blocked. Press and hold the link below to copy." |
@@ -424,7 +431,7 @@ Tier badges and taglines live in `data/`, with the new **balance lines** (draft,
 
 - Body text at least 4.5:1, UI borders and focus at least 3:1 (computed, §3.1). Re-check any colour you change.
 - Visible focus on everything interactive; logical tab order; radios use native arrow keys.
-- Selected states use shape plus icon plus shadow, never colour alone.
+- Selected states use shape plus icon plus shadow, never colour alone. The mode control uses a thick inner frame, bold text and a `fill` icon.
 - The damage meter and totals are announced through a visually hidden `aria-live="polite"` region after edits settle (about 600ms), not on every keystroke.
 - On-screen receipt is real text; the exported image has `alt` text restating the key numbers. The stamp is text, not an image.
 - Reduced motion respected (§8). Errors carry text and an icon.
@@ -440,6 +447,7 @@ Tier badges and taglines live in `data/`, with the new **balance lines** (draft,
 5. **Currency toggle.** Instant, columns stay aligned because digits are monospace.
 6. **Export.** The tap reaches the share sheet with no wait, and the image matches the page. *Cheap if:* a blank image, wrong font in the PNG, or clipped digits on big totals.
 7. **The image.** Readable at phone size, strong yellow URL band, funny POS lines. This is the thing that gets posted.
+8. **Hints.** Type something bad into any field and tap the next control straight away. The tap lands, nothing under your finger moves, and the hint names its field. *Cheap if:* a button jumps 16 to 33px when the field loses focus, or "Max is 999" does not say which number.
 
 ---
 

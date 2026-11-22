@@ -199,7 +199,7 @@ describe("group size hint", () => {
     await user.paste("abc");
     await user.tab();
     const slot = document.getElementById(groupSizeBox().getAttribute("aria-describedby") ?? "");
-    expect(slot?.textContent).toBe("That number no make sense. We kept your old one.");
+    expect(slot?.textContent).toBe("Group size: That number no make sense. We kept your old one.");
   });
 
   it("gives way to the next status line, and to focusing the box again", async () => {

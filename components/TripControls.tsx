@@ -78,7 +78,7 @@ export function TripControls() {
   }
 
   return (
-    <div className="flex flex-col gap-6 border-b-2 border-dashed border-rule pb-4">
+    <div className="flex flex-col gap-6 border-b-2 border-dashed border-rule pb-1">
       <RoutePlates value={state.presetId} onChange={selectRoute} />
       <div>
         <Stepper
@@ -100,7 +100,8 @@ export function TripControls() {
           </button>
         </div>
         {/* Always in the page, and two lines high (16px each) even when empty, so a hint or a
-            wrapped status never shifts the list below. Nothing tappable is under it. */}
+            wrapped status never shifts the list below. Nothing tappable is under it. The row's
+            bottom padding is only 4px because this slot already supplies the space. */}
         <div
           id={STATUS_ID}
           role="status"
@@ -109,6 +110,7 @@ export function TripControls() {
           {hints.active !== null ? (
             <HintMessage
               hint={hints.active.hint}
+              field="Group size"
               text={hintText(hints.active.hint, RANGES.groupSize, "")}
             />
           ) : (

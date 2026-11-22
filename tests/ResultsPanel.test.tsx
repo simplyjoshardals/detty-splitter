@@ -289,8 +289,21 @@ describe("hints in a bucket line", () => {
     expect(stay.queryByText(/Max is/)).toBeNull();
     // Both boxes of the line share one slot id, so a screen reader reads the same place.
     const slot = document.getElementById(headcount.getAttribute("aria-describedby") ?? "");
-    expect(slot?.textContent).toBe("Min is 1, so we adjusted it.");
+    expect(slot?.textContent).toBe("Split: Min is 1, so we adjusted it.");
     expect(stayPrice.getAttribute("aria-describedby")).toBeNull();
+  });
+
+  it("names the field each hint is about, since the hint sits below the whole line", async () => {
+    const { user, stayPrice } = setup();
+    const slotText = () => document.getElementById("line-stay-hint")?.textContent;
+    await typeInto(user, stayPrice, "99999999999");
+    expect(slotText()).toBe("Price: Max is ₦50,000,000, so we adjusted it.");
+    await typeInto(user, screen.getByRole("textbox", { name: `Nights ${STAY}` }), "5000");
+    expect(slotText()).toBe("Nights: Max is 999, so we adjusted it.");
+    const headcount = headcountInput(STAY);
+    if (headcount === null) throw new Error("stay should start shared");
+    await typeInto(user, headcount, "0");
+    expect(slotText()).toBe("Split: Min is 1, so we adjusted it.");
   });
 
   it("keeps a hint out of the other lines", async () => {

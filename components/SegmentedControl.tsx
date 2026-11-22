@@ -22,8 +22,9 @@ interface SegmentedControlProps<T extends string> {
 
 /**
  * Native radios with custom visuals (DESIGN §5.5), so the arrow keys move the selection
- * for free. The selected segment is filled with ink, with a `fill` icon: shape and
- * weight as well as colour. Generic, so T5.1 can reuse it for the currency control.
+ * for free. The selected segment has a thick inner ink frame, bold text and a `fill` icon:
+ * shape and weight, never colour alone. It is deliberately not an ink block, because five of
+ * them in a list outweighed the totals (T4.4). Generic, so T5.1 can reuse it for the currency control.
  */
 export function SegmentedControl<T extends string>({
   label,
@@ -59,7 +60,7 @@ export function SegmentedControl<T extends string>({
                 className="peer sr-only"
               />
               <span
-                className="flex h-11 w-full items-center justify-center gap-2 border-2 border-ink bg-surface px-2 text-[length:var(--t-sm)] text-ink peer-checked:bg-ink peer-checked:text-paper peer-focus-visible:relative peer-focus-visible:z-10 peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-(--focus)"
+                className="flex h-11 w-full items-center justify-center gap-2 border-2 border-ink bg-surface px-2 text-[length:var(--t-sm)] text-ink peer-checked:relative peer-checked:z-[1] peer-checked:font-bold peer-checked:shadow-[inset_0_0_0_3px_var(--ink)] peer-focus-visible:relative peer-focus-visible:z-10 peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-(--focus)"
               >
                 <Icon size={20} weight={selected ? "fill" : "bold"} aria-hidden="true" />
                 {option.label}

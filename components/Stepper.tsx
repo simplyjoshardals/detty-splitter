@@ -133,7 +133,7 @@ export function Stepper({
           onChange={handleChange}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
-          className={`h-11 w-14 min-w-0 border-y-2 bg-surface px-1 text-center font-mono text-[length:var(--t-base)] text-ink focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--focus) ${
+          className={`relative h-11 w-14 min-w-0 border-y-2 bg-surface px-1 text-center font-mono text-[length:var(--t-base)] text-ink focus-visible:z-10 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--focus) ${
             isError ? "border-danger" : "border-border"
           }`}
         />
