@@ -24,8 +24,8 @@ interface StepperProps extends FieldHintProps {
 }
 
 const BUTTON_CLASS =
-  "flex size-11 shrink-0 items-center justify-center border-2 border-border bg-surface text-ink " +
-  "focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--focus) " +
+  "relative flex size-11 shrink-0 items-center justify-center border-2 border-border bg-surface text-ink " +
+  "focus-visible:z-10 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--focus) " +
   "active:bg-danfo active:text-danfo-ink " +
   "aria-disabled:cursor-not-allowed aria-disabled:text-ink/50 aria-disabled:active:bg-surface aria-disabled:active:text-ink/50";
 

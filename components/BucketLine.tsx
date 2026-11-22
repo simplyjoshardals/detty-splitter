@@ -13,11 +13,12 @@ import { BUCKETS } from "@/data/buckets";
 import type { LineResult } from "@/lib/calc";
 import { RANGES, type NumberRange } from "@/lib/input";
 import { formatAmount } from "@/lib/money";
-import type { Bucket, BucketId, CurrencyCode, Mode } from "@/lib/types";
+import type { Bucket, BucketId, CurrencyCode, Mode, Rates } from "@/lib/types";
 import { useAppState } from "@/state/AppStateProvider";
 import type { BucketNumberField } from "@/state/reducer";
 import { HintMessage } from "./HintMessage";
 import { LineItem } from "./LineItem";
+import { describeLine } from "./lineFormula";
 import { NumberField } from "./NumberField";
 import { hintText, useRowHint } from "./numberHint";
 import { SegmentedControl, type SegmentOption } from "./SegmentedControl";
@@ -44,20 +45,15 @@ const FIELD_HINT_FORMAT: Record<BucketNumberField, { range: NumberRange; prefix:
   headcount: { range: RANGES.headcount, prefix: "" },
 };
 
-/** The sum for this line, in naira until the currency toggle exists (T5.1 converts it). */
-function describeLine(bucket: Bucket, lineTotalNgn: number): string {
-  if (bucket.mode === "perPerson") return "Each person pays this";
-  return `${formatAmount(lineTotalNgn, "NGN")} total ÷ ${bucket.headcount}`;
-}
-
 interface BucketLineProps {
   bucket: Bucket;
   line: LineResult;
   currency: CurrencyCode;
+  rates: Rates;
 }
 
 /** One bucket's editable line: price, quantity, mode and, when shared, headcount. */
-export function BucketLine({ bucket, line, currency }: BucketLineProps) {
+export function BucketLine({ bucket, line, currency, rates }: BucketLineProps) {
   const { dispatch } = useAppState();
   const definition = BUCKETS[bucket.id];
   const headingId = `line-${bucket.id}-heading`;
@@ -86,7 +82,7 @@ export function BucketLine({ bucket, line, currency }: BucketLineProps) {
       headingId={headingId}
       icon={BUCKET_ICONS[bucket.id]}
       amount={formatAmount(line.shareMinor, currency)}
-      formula={describeLine(bucket, line.lineTotalNgn)}
+      formula={describeLine(bucket, line.lineTotalNgn, currency, rates)}
       hintId={hintId}
       hint={
         hints.active !== null && format !== null ? (

@@ -31,7 +31,7 @@ const TOTAL_SIZE_CLASS: Record<TotalSizeToken, string> = {
 export function ResultsPanel() {
   const { state } = useAppState();
   const result = useMemo(() => calculate(state, TIERS), [state]);
-  const { currency, groupSize } = state;
+  const { currency, groupSize, rates } = state;
   const perPerson = formatAmount(result.perPersonMinor, currency);
 
   return (
@@ -44,7 +44,13 @@ export function ResultsPanel() {
         {state.buckets.map((bucket, i) => {
           const line = result.lines[i];
           if (!line) return null;
-          return <BucketLine key={bucket.id} bucket={bucket} line={line} currency={currency} />;
+          return <BucketLine
+              key={bucket.id}
+              bucket={bucket}
+              line={line}
+              currency={currency}
+              rates={rates}
+            />;
         })}
       </ul>
 
