@@ -100,15 +100,17 @@ Goal: the smallest working version of the core feature, deployed: real numbers a
 ### Slice 4: Editing (3.25h) *(UI_PLAN S3)*
 Goal: every number editable, every mode switchable, safely.
 
-- [ ] **T4.1 Number input with draft handling** (1.0h)
+- [x] **T4.1 Number input with draft handling** (1.0h)
   - Build: `parseNumberInput` in `lib/`, `NumberField` (draft text separate from AppState, separators as you type, stable caret, 16px text, `inputMode="numeric"`, revert on empty/invalid, clamp with hint).
   - Done when: typing "1,5" never writes `NaN` or a half value; "1,500,000", "1 500 000", "", "abc" behave per DATA_MODEL §9.2; component tests pass (query by role and label).
   - Depends on: T3.2.
   - Also: add "Tap any number to edit." to the footer note.
+  - Done notes: 183 tests pass (152 before, plus 31 new); ESLint clean. `parseNumberInput(text, range, lastGood)` returns a union, `ok` / `clamped` (with `bound`) / `reverted` (with `reason`), instead of the old `{ value, clamped, reverted }` booleans; UI_PLAN §1.2 is updated to match. Commas are thousands separators, so "1,5" is 15 and "1.5" is invalid (nothing is rounded); more than 15 digits clamps to max. A field commits only on blur or Enter (totals move then, not per keystroke), and the iOS numeric keypad has no Return key, so people tap elsewhere. Pulled forward from Slice 4: the reducer action `setBucketNumber` (re-clamps with the same `RANGES`) and one price field per bucket, so the footer text is true. Decimals are not supported yet: T5.2 rates need 2, so add `decimals` to the range type then. New devDeps for component tests: `jsdom` 31.0.1, `@testing-library/react` 16.3.3, `@testing-library/dom` 10.4.2, `@testing-library/user-event` 14.6.13; `.test.tsx` files opt into jsdom with a first-line `// @vitest-environment jsdom` comment, so logic tests stay in plain Node. Checked in real Chromium: 16px text, 48px box, no overflow at 360 / 768 / 1280px with all five prices at max, light and dark. Fixed after the first screenshots: the group total now wraps under its label instead of breaking mid-number, and the focus ring has an 8px gap above the hint. Not yet checked: caret behaviour on a real Gboard and iOS Safari (**VERIFY**, fold into the T4.4 pass).
 - [ ] **T4.2 Stepper, segmented control, mode switch** (1.0h)
   - Build: stepper (Phosphor Plus/Minus, 44px), segmented radio control, shared/per-person switch with headcount shown only when shared, wired to the reducer.
   - Done when: switching mode changes the line total correctly (golden cases); headcount can't go below 1; keyboard and arrow keys work.
   - Depends on: T4.1.
+  - Also: the formula line under each price field still repeats the price (left from T4.1); restructure that row, with quantity beside the price field as in DESIGN §5.4, and drop the duplicate. This also fixes the "split 4 / ways" orphan.
 - [ ] **T4.3 Route plates, group size, apply-to-all, reset** (0.75h)
   - Build: three route plates (native radios, icons, selected state is shape + icon + shadow, not colour alone), group-size stepper, "Apply to all shared", "Reset to preset" (keeps currency and rates).
   - Done when: tapping a plate fills all 5 buckets and updates totals at once; reset restores the last-picked preset's values; selected plate is distinguishable in greyscale.
@@ -117,6 +119,7 @@ Goal: every number editable, every mode switchable, safely.
   - Build: clamp and error hints with icons and `aria-describedby`; every input labelled; layout check at 360px.
   - Done when: `max-values` fixture shows no overflow or clipping; every input has a visible label; no iOS zoom on focus.
   - Depends on: T4.1 to T4.3.
+  - Also: T4.1 already built the hint (icon, `role="status"`, `aria-describedby`), so audit it rather than rebuild. A hint pushes the content below it down by about 33px, so a button directly under a field can miss a tap; either reserve the line or let the hint replace the formula line. Check caret behaviour on a real Gboard and iOS Safari.
 
 ### Slice 5: Currency and rates (1.0h) *(UI_PLAN S4)*
 - [ ] **T5.1 Currency control and display conversion** (0.5h)

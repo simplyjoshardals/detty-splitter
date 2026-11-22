@@ -54,11 +54,15 @@ type ExportOutcome =
   | { status: 'cancelled' }
   | { status: 'failed'; reason: 'font' | 'draw' | 'blob' | 'unknown' }
 
-// field draft held by the input component while typing (not in AppState)
-interface FieldDraft { text: string; lastGood: number }
+// field draft held by the input component while typing (not in AppState):
+// the typed text, or null when the field isn't focused. lastGood is the saved prop value.
+interface FieldDraft { text: string | null; lastGood: number }
 
-// parse result for any numeric input
-type ParseResult = { value: number; clamped: boolean; reverted: boolean }
+// parse result for any numeric input (lib/input). value is always safe to write.
+type ParseResult =
+  | { status: 'ok'; value: number }
+  | { status: 'clamped'; value: number; bound: 'min' | 'max' }
+  | { status: 'reverted'; value: number; reason: 'empty' | 'invalid' }
 ```
 
 `ReceiptView` stays as defined in DATA_MODEL.md §6. The UI never passes raw state to the renderer.
@@ -112,7 +116,7 @@ None. No network calls after first load other than the analytics script. No cach
 
 ### 2.4 Forms and validation
 
-No form library. Each numeric field uses the same `parseNumberInput(text, range)` from `lib/`, returning `ParseResult`. Ranges come from DATA_MODEL.md §2.2. On blur: clamp, revert if empty or invalid, and show the hint from §8 of DESIGN.md.
+No form library. Each numeric field uses the same `parseNumberInput(text, range, lastGood)` from `lib/input`, returning `ParseResult`. Ranges (`RANGES`) come from DATA_MODEL.md §2.2. On blur or Enter: clamp, revert to `lastGood` if empty or invalid, and show the hint from §9 of DESIGN.md.
 
 ### 2.5 Export architecture (important)
 

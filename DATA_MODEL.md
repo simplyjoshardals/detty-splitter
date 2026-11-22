@@ -359,7 +359,7 @@ Full shapes are in UI_PLAN.md §1. Summary of what the UI needs from this data l
 
 - **Decode result codes** the UI can tell apart: `empty`, `too_long`, `bad_chars`, `bad_version`, `bad_structure`, `bad_value`, and `ok` with a list of clamped fields (to show clamp hints). All rejection codes show the same notice (§4.4 step 9).
 - **Export outcomes:** `shared`, `downloaded`, `inline`, `cancelled` (silent), `failed` with a reason (`font`, `draw`, `blob`, `unknown`).
-- **Field drafts:** each numeric input holds its own text while typing and only writes a parsed, clamped number into AppState on blur or on a settled change. A half-typed value ("1,5") never reaches AppState. Empty or invalid input reverts to the last good value.
+- **Field drafts:** each numeric input holds its own text while typing and only writes a parsed, clamped number into AppState on blur or Enter. A half-typed value ("1,5") never reaches AppState. Empty or invalid input reverts to the last good value.
 - **Receipt view:** unchanged (§6). The renderer auto-shrinks the largest amounts to fit the canvas width, so the `max-values` case never clips.
 - **Fixtures** for building and testing the UI: all-zero, tier boundaries (299,999 / 300,000 / 749,999 / 750,000 …), max values (₦50,000,000 × 999, group size 100), custom rates, mixed modes, and the 20 bad links from §9.1.
 

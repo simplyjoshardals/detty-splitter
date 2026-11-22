@@ -187,7 +187,8 @@ Format: **recommendation**, alternatives, why, what would change my mind.
 - **Decision:** go with Option 1 (Umami Cloud). Keep `track()` behind the adapter so swapping tools is a one-file change. If the cap or behavior at the cap is a problem, fall back to Option 2. Because only one script is used, Cloudflare Web Analytics is not added, so its cookie behavior (not confirmed; the page I tried to read was blocked) no longer matters.
 
 ### 3.10 Testing approach (for later prompts)
-- Unit tests (Vitest) for the calculation core, the share-link codec including malformed input, and tier lookup.
+- Unit tests (Vitest) for the calculation core, number-input parsing, the share-link codec including malformed input, and tier lookup.
+- Component tests (Vitest, jsdom, Testing Library) for stateful UI such as `NumberField`, queried by role and label; no snapshots.
 - One end-to-end happy path (Playwright), plus manual device checks for the receipt (these can't be automated reliably).
 
 ---
@@ -255,6 +256,7 @@ detty-splitter/
 ├─ lib/
 │  ├─ calc/                # pure math: line totals, split, tier lookup
 │  ├─ money/               # currency conversion and formatting
+│  ├─ input/               # number-input parsing, clamping, draft and caret helpers
 │  ├─ share/               # hash encode, decode, validate
 │  ├─ receipt/             # canvas renderer (lazy-loaded)
 │  ├─ export/              # share / download / inline-image fallback chain
@@ -274,7 +276,7 @@ detty-splitter/
 No `src/` folder. `app/` is the stock `create-next-app` folder (`favicon.ico`, `globals.css`, `layout.tsx`, `page.tsx`), and the other folders are siblings of it at the project root. Per the Next.js docs, `components/` and `lib/` have no special meaning and live outside `app/` here, which the docs list as a valid strategy ("store project files outside of `app`"). When you run `create-next-app`, answer **No** to "Use `src/` directory?". Make sure Tailwind picks up classes in `components/` too (Tailwind v4 detects sources automatically; on v3 list the folders in the config).
 
 Rules of placement:
-- `lib/calc`, `lib/money`, `lib/share` must not import React. This keeps them testable and reusable by the receipt renderer.
+- `lib/calc`, `lib/money`, `lib/input`, `lib/share` must not import React. This keeps them testable and reusable by the receipt renderer.
 - Components never contain pricing numbers; those live in `data/`.
 - Every environment variable is read in `config/` only.
 - Tier thresholds and taglines live in `data/` so you can tune them (O1) without touching logic.

@@ -46,7 +46,7 @@ These are public values inlined at build time. Never put secrets in them. Changi
 ```
 app/          Next.js routes and global styles
 components/   Presentational UI
-lib/          Pure logic: calc, money, share, receipt, export, storage, analytics
+lib/          Pure logic: calc, money, input, share, receipt, export, storage, analytics
 state/        Reducer, actions, context provider
 data/         Presets, tiers, bucket definitions
 config/       Site URL, env-driven flags
