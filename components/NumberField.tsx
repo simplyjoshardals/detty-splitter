@@ -16,6 +16,7 @@ import {
   type NumberRange,
   type ParseResult,
 } from "@/lib/input";
+import { hintFromResult, hintText, type Hint } from "./numberHint";
 
 interface NumberFieldProps {
   /** Visible label, e.g. "Price per night". */
@@ -30,37 +31,6 @@ interface NumberFieldProps {
   prefix?: string;
   /** Called with a parsed, clamped integer, only on blur or Enter. Never with NaN. */
   onCommit: (value: number) => void;
-}
-
-/**
- * What the last commit told the user. `forValue` is the saved number the hint was about:
- * when the saved number changes some other way (a preset switch), the hint goes away.
- */
-type Hint =
-  | { kind: "clamped"; bound: "min" | "max"; forValue: number }
-  | { kind: "reverted"; reason: "empty" | "invalid"; forValue: number };
-
-function hintFromResult(result: ParseResult): Hint | null {
-  switch (result.status) {
-    case "ok":
-      return null;
-    case "clamped":
-      return { kind: "clamped", bound: result.bound, forValue: result.value };
-    case "reverted":
-      return { kind: "reverted", reason: result.reason, forValue: result.value };
-  }
-}
-
-/** Hint copy from DESIGN §9. */
-function hintText(hint: Hint, range: NumberRange, prefix: string): string {
-  if (hint.kind === "clamped") {
-    const limit = hint.bound === "max" ? range.max : range.min;
-    const name = hint.bound === "max" ? "Max" : "Min";
-    return `${name} is ${prefix}${formatNumberInput(limit)}, so we adjusted it.`;
-  }
-  return hint.reason === "empty"
-    ? "Nothing there, so we kept your old number."
-    : "That number no make sense. We kept your old one.";
 }
 
 /** Backspace and Delete arrive as the input event's `inputType`. */

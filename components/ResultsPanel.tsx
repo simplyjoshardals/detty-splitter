@@ -1,45 +1,16 @@
 "use client";
 
 import { useMemo } from "react";
-import {
-  BedIcon,
-  BeerBottleIcon,
-  CarIcon,
-  ChampagneIcon,
-  TicketIcon,
-} from "@phosphor-icons/react";
-import { BUCKETS } from "@/data/buckets";
 import { TIERS } from "@/data/tiers";
 import { calculate } from "@/lib/calc";
-import { RANGES } from "@/lib/input";
 import { formatAmount } from "@/lib/money";
-import type { Bucket, BucketId } from "@/lib/types";
 import { useAppState } from "@/state/AppStateProvider";
-import { LineItem } from "./LineItem";
-import { NumberField } from "./NumberField";
+import { BucketLine } from "./BucketLine";
 import { TierStamp } from "./TierStamp";
 
-// All icons share one component type.
-const BUCKET_ICONS: Record<BucketId, typeof BedIcon> = {
-  stay: BedIcon,
-  events: TicketIcon,
-  tables: ChampagneIcon,
-  transport: CarIcon,
-  food: BeerBottleIcon,
-};
-
-/** Prices are shown in naira until the currency toggle exists (T5.1 converts them). */
-function describeLine(bucket: Bucket): string {
-  const price = formatAmount(bucket.unitPriceNgn, "NGN");
-  const base = `${price} ${BUCKETS[bucket.id].unitLabel} × ${bucket.quantity}`;
-  if (bucket.mode === "perPerson") return `${base} · per person`;
-  const ways = bucket.headcount === 1 ? "way" : "ways";
-  return `${base} · split ${bucket.headcount} ${ways}`;
-}
-
-/** Results from the app state: line items (price editable), totals and the tier stamp. */
+/** Results from the app state: editable line items, totals and the tier stamp. */
 export function ResultsPanel() {
-  const { state, dispatch } = useAppState();
+  const { state } = useAppState();
   const result = useMemo(() => calculate(state, TIERS), [state]);
   const { currency, groupSize } = state;
 
@@ -53,34 +24,7 @@ export function ResultsPanel() {
         {state.buckets.map((bucket, i) => {
           const line = result.lines[i];
           if (!line) return null;
-          const headingId = `line-${bucket.id}-heading`;
-          return (
-            <LineItem
-              key={bucket.id}
-              label={BUCKETS[bucket.id].label}
-              headingId={headingId}
-              icon={BUCKET_ICONS[bucket.id]}
-              amount={formatAmount(line.shareMinor, currency)}
-              formula={describeLine(bucket)}
-              priceField={
-                <NumberField
-                  label={`Price ${BUCKETS[bucket.id].unitLabel}`}
-                  labelledBy={[headingId]}
-                  prefix="₦"
-                  range={RANGES.unitPriceNgn}
-                  value={bucket.unitPriceNgn}
-                  onCommit={(value) =>
-                    dispatch({
-                      type: "setBucketNumber",
-                      bucketId: bucket.id,
-                      field: "unitPriceNgn",
-                      value,
-                    })
-                  }
-                />
-              }
-            />
-          );
+          return <BucketLine key={bucket.id} bucket={bucket} line={line} currency={currency} />;
         })}
       </ul>
 

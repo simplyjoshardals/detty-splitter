@@ -8,13 +8,19 @@ interface LineItemProps {
   icon: typeof BedIcon;
   /** Your share, already formatted for the display currency. */
   amount: string;
-  /** e.g. "₦150,000 per night × 7 · split 4 ways" */
+  /** What the line adds up to, e.g. "₦1,050,000 total ÷ 4". Never repeats the price. */
   formula: string;
-  /** The price field (T4.1). Quantity and mode controls join it in T4.2. */
   priceField: ReactNode;
+  quantityField: ReactNode;
+  modeField: ReactNode;
+  /** Only passed when the line is shared. */
+  headcountField?: ReactNode;
 }
 
-/** One bucket (DESIGN §5.4). Dashed-rule separated, not boxed. */
+/**
+ * One bucket (DESIGN §5.4). Dashed-rule separated, not boxed.
+ * Price and quantity stack below 480px and sit side by side from 480px up.
+ */
 export function LineItem({
   label,
   headingId,
@@ -22,6 +28,9 @@ export function LineItem({
   amount,
   formula,
   priceField,
+  quantityField,
+  modeField,
+  headcountField,
 }: LineItemProps) {
   return (
     <li className="flex gap-3 border-b-2 border-dashed border-rule py-4 last:border-b-0">
@@ -40,8 +49,22 @@ export function LineItem({
             {amount}
           </p>
         </div>
-        <div className="mt-3">{priceField}</div>
-        <p className="mt-2 text-[length:var(--t-xs)] text-muted">{formula}</p>
+        <div className="mt-3 flex flex-col gap-4 min-[480px]:flex-row min-[480px]:items-start min-[480px]:gap-3">
+          <div className="min-w-0 flex-1">{priceField}</div>
+          {/* Lines up with the middle of the 48px price box: 18px label + 8px gap + 24px. */}
+          <span
+            aria-hidden="true"
+            className="hidden h-12 items-center font-mono text-[length:var(--t-base)] text-muted min-[480px]:mt-[26px] min-[480px]:flex"
+          >
+            ×
+          </span>
+          {/* Fixed at the stepper's own width (44 + 56 + 44px) so a hint under it wraps inside
+              the column instead of widening it and squeezing the price field. */}
+          <div className="min-[480px]:w-36 min-[480px]:shrink-0">{quantityField}</div>
+        </div>
+        <div className="mt-4">{modeField}</div>
+        {headcountField != null && <div className="mt-4">{headcountField}</div>}
+        <p className="mt-3 text-[length:var(--t-xs)] text-muted">{formula}</p>
       </div>
     </li>
   );

@@ -4,6 +4,8 @@ export interface BucketDefinition {
   id: BucketId;
   label: string;
   unitLabel: string;
+  /** The quantity's name, as the stepper label: "Nights", "Events", "Table nights", "Days". */
+  quantityLabel: string;
 }
 
 /** The fixed order of the five buckets everywhere: state, share link, receipt. */
@@ -16,9 +18,9 @@ export const BUCKET_ORDER: readonly BucketId[] = [
 ];
 
 export const BUCKETS: Record<BucketId, BucketDefinition> = {
-  stay: { id: "stay", label: "Short-lets / Accommodation", unitLabel: "per night" },
-  events: { id: "events", label: "Concerts & Raves", unitLabel: "per event" },
-  tables: { id: "tables", label: "Club Tables", unitLabel: "per table night" },
-  transport: { id: "transport", label: "Transport / SUV / Security", unitLabel: "per day" },
-  food: { id: "food", label: "Daily Food & Drinks", unitLabel: "per day" },
+  stay: { id: "stay", label: "Short-lets / Accommodation", unitLabel: "per night", quantityLabel: "Nights" },
+  events: { id: "events", label: "Concerts & Raves", unitLabel: "per event", quantityLabel: "Events" },
+  tables: { id: "tables", label: "Club Tables", unitLabel: "per table night", quantityLabel: "Table nights" },
+  transport: { id: "transport", label: "Transport / SUV / Security", unitLabel: "per day", quantityLabel: "Days" },
+  food: { id: "food", label: "Daily Food & Drinks", unitLabel: "per day", quantityLabel: "Days" },
 };

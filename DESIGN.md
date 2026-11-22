@@ -86,7 +86,8 @@ Two fonts total, no italics. `display: 'swap'`, automatic fallback adjustment le
 | See receipt (meter jump) | `ArrowDownIcon` | Confirmed |
 | Reset to preset / rates | `ArrowCounterClockwiseIcon` | Confirmed |
 | "Open in browser" hint | `DoorOpenIcon` | Confirmed |
-| Steppers | `PlusIcon`, `MinusIcon` | Not confirmed from the sources I could read: confirm |
+| Steppers | `PlusIcon`, `MinusIcon` | Confirmed at install (`yarn check:icons`) |
+| Mode switch: Shared / Per person | `UsersThreeIcon`, `UserIcon` | Confirmed at install (`yarn check:icons`), added in T4.2 |
 | Error / clamp hint | `WarningIcon` | Not confirmed: confirm |
 
 **Install-time check (S1):** after installing, list the package's exports and assert every name above exists. Swap any missing one for the nearest icon on phosphoricons.com. I couldn't finish confirming the last three rows and the alternates because some lookups were blocked.
@@ -256,16 +257,31 @@ Labels: "Outside on a Budget", "Soft Life Standard", "Full IJGB / Baller Mode". 
 ### 5.4 Line item (bucket)
 ```
 [ICON]  SHORT-LET                    ₦262,500   (your share, Space Mono 700)
-        ₦ [150,000] × [ − 7 + ] nights
-        (•) Shared ÷ [ − 4 + ]    ( ) Per person
+        Price per night              Nights
+        ₦ [150,000]              ×   [ − 7 + ]
+        Cost split
+        [ Shared | Per person ]
+        Split between                              (only when Shared)
+        [ − 4 + ] people
+        ₦1,050,000 total ÷ 4                       (muted mono)
 ```
-Dashed-rule separated, not boxed. Icon in a 32px black-bordered tile. Label in Bungee 14px. Formula in muted mono.
+Dashed-rule separated, not boxed. Icon in a 32px black-bordered tile. Label in Bungee 14px.
+
+**Price and quantity row (T4.2).** Side by side from 480px up, stacked below it. The quantity column is a fixed 144px (the stepper's own width), so a hint under it wraps inside the column and never squeezes the price field. At 360px the content column is about 284px, too narrow for a 10-digit price beside a stepper. Each control has its own small label above it (12px muted). The "×" is decoration (`aria-hidden`) and only shows when the two sit side by side.
+
+**Headcount (T4.2).** A separate "Split between" stepper row under the mode control, shown only when the line is Shared, so the stepper is never inside a radio's label. It is hidden, not reset, when the mode is Per person: switching back restores the old split. Switching mode adds or removes one row, so the content below moves by that row's height; this only happens on the user's own tap.
+
+**Formula line (T4.2).** Muted mono, under the controls. It never repeats the price or quantity, which are visible in the controls above. Shared: `₦{line total} total ÷ {headcount}`. Per person: `Each person pays this`. Naira until the currency toggle (T5.1).
 
 ### 5.5 Segmented control (currency, mode)
 Native radios, 44px, 2px ink border, selected segment filled with ink (text `--paper`) plus its Phosphor icon in `fill`. Group has a label.
 
+**Built in T4.2.** A `radiogroup` with a visible 12px label and an accessible name that also includes the bucket heading ("Cost split Short-lets / Accommodation"). Each segment is a native radio, so the group is one tab stop and the arrow keys move the selection. Unselected: surface fill, icon in `bold`. Selected: ink fill, `--paper` text, icon in `fill`. Focus: the 3px ring on the focused segment. Mode segments: `UsersThreeIcon` "Shared", `UserIcon` "Per person". The component is generic, so the currency control (T5.1) reuses it.
+
 ### 5.6 Stepper
 `MinusIcon` / value / `PlusIcon`, each 44×44px, square with 2px border. Value is a real input. Deliberately plain.
+
+**Built in T4.2.** Visible 12px label above. The value box is 44px tall and 56px wide, centred, Space Mono 16px, and commits like the number input (blur or Enter, same hint copy for empty, invalid and clamped text; for headcount the clamp hint reads "Min is 1, so we adjusted it."). A button press (minus or plus) and ArrowUp / ArrowDown in the box commit at once. At a bound the button is `aria-disabled` with 50% ink (as §5.1), not `disabled`, so keyboard focus stays on it. Buttons are named "Decrease" / "Increase" followed by the label and the bucket heading ("Decrease Nights Short-lets / Accommodation"). Ranges: quantity 0 to 999, headcount 1 to 100. An optional muted suffix ("people") follows the buttons and is hidden from screen readers.
 
 ### 5.7 Damage meter (sticky bar)
 Black bar (`--meter-bg`), 2px yellow top border in dark mode, `--meter-fg` digits in Space Mono 700 (large), label "DAMAGE METER" small, "per person" caption, `ArrowDownIcon` button "See receipt". No count-up animation. A visually hidden live region announces changes (debounced).
