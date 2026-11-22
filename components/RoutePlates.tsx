@@ -22,7 +22,9 @@ interface RoutePlatesProps {
  * visuals, so the arrow keys move the selection for free. The selected plate is told
  * apart by shape as well as colour: yellow fill, `fill` icon, 3px border, hard shadow
  * and a check badge (yellow on paper is only 1.4:1). Both states have the same outer
- * size: the 1px of extra border is taken out of the padding, so nothing shifts.
+ * size: the 1px of extra border is taken out of the padding, so nothing shifts. The right
+ * padding makes room for the check badge only when the plate is a row (under 480px); in a
+ * column the badge sits beside the icon and the text can use the full width.
  */
 export function RoutePlates({ value, onChange }: RoutePlatesProps) {
   const name = useId();
@@ -48,8 +50,8 @@ export function RoutePlates({ value, onChange }: RoutePlatesProps) {
               <span
                 className={`relative flex w-full items-center gap-3 border-ink peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-(--focus) min-[480px]:flex-col min-[480px]:items-start min-[480px]:gap-2 ${
                   selected
-                    ? "border-[3px] bg-danfo p-[11px] pr-[39px] text-danfo-ink [box-shadow:var(--shadow-hard)]"
-                    : "border-2 bg-paper p-3 pr-10 text-ink"
+                    ? "border-[3px] bg-danfo p-[11px] pr-[39px] text-danfo-ink [box-shadow:var(--shadow-hard)] min-[480px]:pr-[11px]"
+                    : "border-2 bg-paper p-3 pr-10 text-ink min-[480px]:pr-3"
                 }`}
               >
                 <Icon size={28} weight={selected ? "fill" : "bold"} aria-hidden="true" className="shrink-0" />

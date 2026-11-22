@@ -61,7 +61,7 @@ export function TripControls() {
   }
 
   return (
-    <div className="flex flex-col gap-6 border-b-2 border-dashed border-rule pb-2">
+    <div className="flex flex-col gap-6 border-b-2 border-dashed border-rule pb-4">
       <RoutePlates value={state.presetId} onChange={selectRoute} />
       <div>
         <Stepper
@@ -81,7 +81,7 @@ export function TripControls() {
           </button>
         </div>
         {/* Always in the page, and one line high even when empty, so the list below never shifts. */}
-        <div role="status" className="min-h-5 text-[length:var(--t-xs)]">
+        <div role="status" className="mt-1 min-h-5 text-[length:var(--t-xs)]">
           {status !== null && (
             <p className="flex items-start gap-1.5">
               <CheckIcon size={16} weight="bold" aria-hidden="true" className="shrink-0" />
