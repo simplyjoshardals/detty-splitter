@@ -8,6 +8,8 @@ export default defineConfig({
     alias: { "@": resolve(fileURLToPath(new URL(".", import.meta.url))) },
   },
   test: {
-    include: ["tests/**/*.test.ts"],
+    // .tsx tests opt in to a browser-like DOM with a `// @vitest-environment jsdom` first line;
+    // the logic tests stay in plain Node.
+    include: ["tests/**/*.test.{ts,tsx}"],
   },
 });

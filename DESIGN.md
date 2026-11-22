@@ -243,6 +243,12 @@ Pressed: translate 2px, shadow collapses (80ms). Disabled: 50% ink, no shadow, `
 ### 5.2 Number input
 `inputMode="numeric"`, `type="text"`, 48px tall, 2px `--border`, `--surface` fill, Space Mono 16px right-aligned, currency prefix as a non-editable label. Separators as you type; caret stable. Empty or invalid reverts on blur. States: default, focus, error (`--danger` border plus hint with icon, `aria-describedby`), clamped (hint, not error), disabled. **Deliberately plain.**
 
+**Draft and commit (T4.1).** The text being typed is held in the field, never in app state. It is written to state only on blur or Enter, as a parsed, clamped integer, so a half-typed value never gets out. Enter commits and keeps focus. Digits are regrouped with commas as you type and the caret stays after the digit it was after; deleting a comma removes the neighbouring digit so the caret never sticks. A comma is a thousands separator, so "1,5" is 15, and "1.5" is invalid (nothing is rounded).
+
+**Hint (T4.1).** One line under the field: `WarningIcon` (16px, bold) plus 12px text, in a `role="status"` region that is always in the page so the hint is announced when it appears. The field points to it with `aria-describedby` while it shows. An empty or invalid revert uses `--danger` text and border; a clamp uses `--ink` text and keeps the normal border. The hint clears when the field is focused again, or when the saved number changes some other way (for example a preset switch). The hint is in normal flow, so it pushes the content below it down by one line. Re-check this in T4.4 if a button ever sits directly under a field.
+
+**Accessible name.** The visible label (for example "Price per day") comes first, followed by the bucket heading, so two fields with the same label can still be told apart ("Price per day Daily Food & Drinks").
+
 ### 5.3 Route plates (presets)
 Three plates in a row (stack on very narrow screens), each styled like a danfo destination board: 2px ink border, Bungee label, Phosphor icon (Bus / Confetti / CrownSimple), small caption. Implemented as native radio inputs with custom visuals. Selected plate: `--danfo` fill, `fill` icon weight, check mark, hard shadow, 3px border. Unselected: paper fill, `bold` icon.
 Labels: "Outside on a Budget", "Soft Life Standard", "Full IJGB / Baller Mode". Group has `legend` "Pick your route".
@@ -368,8 +374,10 @@ Standard English with light Nigerian Pidgin, one Pidgin phrase per message at mo
 | Meter label | "DAMAGE METER" |
 | Estimates note | "Estimates only, not quotes. Tap any number to edit." |
 | Empty (all zero) | "Meter never start. Add a number, oya." |
+| Empty input | "Nothing there, so we kept your old number." |
 | Invalid number | "That number no make sense. We kept your old one." |
-| Value clamped | "Max is ₦50,000,000, so we adjusted it." |
+| Value clamped (max) | "Max is ₦50,000,000, so we adjusted it." |
+| Value clamped (min) | "Min is {x}, so we adjusted it." |
 | Bad share link | "We couldn't read that link, so here's a fresh calculation." |
 | Link copied | "Link copied. Drop it in the group chat." |
 | Clipboard blocked | "Copy blocked. Press and hold the link below to copy." |
