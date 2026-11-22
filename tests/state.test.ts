@@ -92,6 +92,114 @@ describe("selectPreset", () => {
   });
 });
 
+describe("setGroupSize", () => {
+  it("golden: group of 6 leaves the per-person total alone and scales the group total", () => {
+    const base = createInitialState();
+    const next = appReducer(base, { type: "setGroupSize", value: 6 });
+    expect(next.groupSize).toBe(6);
+    const before = calculate(base, TIERS);
+    const after = calculate(next, TIERS);
+    expect(after.perPersonMinor).toBe(before.perPersonMinor);
+    expect(after.groupTotalMinor).toBe(1347500 * 6);
+    expect(after.tier.id).toBe(before.tier.id);
+  });
+
+  it("does not touch any bucket, so shared headcounts stay as they were", () => {
+    const base = createInitialState();
+    const next = appReducer(base, { type: "setGroupSize", value: 9 });
+    expect(next.buckets).toBe(base.buckets);
+    expect(next.presetId).toBe(base.presetId);
+    expect(next.currency).toBe(base.currency);
+    expect(next.rates).toEqual(base.rates);
+  });
+
+  it("clamps to the DATA_MODEL §2.2 range", () => {
+    const base = createInitialState();
+    const set = (value: number) => appReducer(base, { type: "setGroupSize", value }).groupSize;
+    expect(set(0)).toBe(1);
+    expect(set(-3)).toBe(1);
+    expect(set(1)).toBe(1);
+    expect(set(100)).toBe(100);
+    expect(set(101)).toBe(100);
+  });
+
+  it("ignores values that are not safe integers, so NaN never reaches state", () => {
+    const base = createInitialState();
+    for (const value of [Number.NaN, Number.POSITIVE_INFINITY, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+      expect(appReducer(base, { type: "setGroupSize", value })).toBe(base);
+    }
+  });
+
+  it("returns the same state object when the size is already set", () => {
+    const base = createInitialState();
+    expect(appReducer(base, { type: "setGroupSize", value: 4 })).toBe(base);
+  });
+
+  it("does not mutate the state it is given", () => {
+    const frozen = deepFreeze(createInitialState()); // any mutation would throw
+    const snapshot = structuredClone(frozen);
+    appReducer(frozen, { type: "setGroupSize", value: 7 });
+    expect(frozen).toEqual(snapshot);
+  });
+});
+
+describe("applyGroupSizeToShared", () => {
+  const sizedTo = (groupSize: number): AppState => ({ ...createInitialState(), groupSize });
+
+  it("sets the headcount of every shared bucket to the group size", () => {
+    const next = appReducer(sizedTo(6), { type: "applyGroupSizeToShared" });
+    const shared = next.buckets.filter((b) => b.mode === "shared");
+    expect(shared.map((b) => b.id)).toEqual(["stay", "tables", "transport"]);
+    expect(shared.every((b) => b.headcount === 6)).toBe(true);
+  });
+
+  it("leaves per-person buckets alone, so their stored split survives", () => {
+    const base: AppState = mapBuckets(sizedTo(6), (b) =>
+      b.mode === "perPerson" ? { ...b, headcount: 2 } : b,
+    );
+    const next = appReducer(base, { type: "applyGroupSizeToShared" });
+    for (const id of ["events", "food"] as const) {
+      expect(next.buckets.find((b) => b.id === id)).toEqual(base.buckets.find((b) => b.id === id));
+    }
+  });
+
+  it("golden: a group of 8 sharing the stay halves its share and keeps the other fields", () => {
+    const base = sizedTo(8);
+    const next = appReducer(base, { type: "applyGroupSizeToShared" });
+    const stay = next.buckets[0];
+    expect(stay).toEqual({ ...GOLDEN.buckets[0], headcount: 8 });
+    expect(next.groupSize).toBe(8);
+    expect(next.presetId).toBe(base.presetId);
+    expect(next.currency).toBe(base.currency);
+    expect(next.rates).toEqual(base.rates);
+    expect(calculate(next, TIERS).lines[0]?.shareMinor).toBe(131250);
+  });
+
+  it("returns the same state object when every shared bucket already matches", () => {
+    const base = createInitialState();
+    expect(appReducer(base, { type: "applyGroupSizeToShared" })).toBe(base);
+  });
+
+  it("returns the same state object when no bucket is shared", () => {
+    const base = mapBuckets(sizedTo(6), (b) => ({ ...b, mode: "perPerson" }));
+    expect(appReducer(base, { type: "applyGroupSizeToShared" })).toBe(base);
+  });
+
+  it("does not mutate the state it is given", () => {
+    const frozen = deepFreeze(sizedTo(6)); // any mutation would throw
+    const snapshot = structuredClone(frozen);
+    appReducer(frozen, { type: "applyGroupSizeToShared" });
+    expect(frozen).toEqual(snapshot);
+  });
+
+  it("Reset to preset undoes it, and brings the group size back too", () => {
+    const applied = appReducer(sizedTo(6), { type: "applyGroupSizeToShared" });
+    const reset = appReducer(applied, { type: "selectPreset", presetId: applied.presetId });
+    expect(reset.groupSize).toBe(4);
+    expect(reset.buckets).toEqual(GOLDEN.buckets);
+  });
+});
+
 describe("setBucketMode", () => {
   const find = (state: AppState, id: BucketId) => {
     const bucket = state.buckets.find((b) => b.id === id);

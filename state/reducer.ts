@@ -1,7 +1,8 @@
 /**
  * App state (DATA_MODEL.md §2). Plain TypeScript, no React, so it can be tested directly.
- * `selectPreset`, `setBucketNumber` and `setBucketMode` exist so far. The other editing,
- * currency, rate and load actions arrive in Slices 4, 5 and 8, together with their clamping.
+ * `selectPreset`, `setBucketNumber`, `setBucketMode`, `setGroupSize` and
+ * `applyGroupSizeToShared` exist so far. The currency, rate and load actions arrive in
+ * Slices 5 and 8, together with their clamping.
  */
 import { DEFAULT_RATES } from "@/config";
 import { DEFAULT_PRESET_ID, PRESETS, type Preset } from "@/data/presets";
@@ -63,7 +64,9 @@ export type BucketNumberField = "unitPriceNgn" | "quantity" | "headcount";
 export type AppAction =
   | { type: "selectPreset"; presetId: PresetId }
   | { type: "setBucketNumber"; bucketId: BucketId; field: BucketNumberField; value: number }
-  | { type: "setBucketMode"; bucketId: BucketId; mode: Mode };
+  | { type: "setBucketMode"; bucketId: BucketId; mode: Mode }
+  | { type: "setGroupSize"; value: number }
+  | { type: "applyGroupSizeToShared" };
 
 // Every action type needs a case. The `never` assignment in `default` turns a forgotten
 // case into a compile error.
@@ -88,6 +91,26 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       const current = state.buckets.find((b) => b.id === action.bucketId);
       if (current === undefined || current.mode === action.mode) return state;
       return withBucketChanged(state, action.bucketId, (b) => ({ ...b, mode: action.mode }));
+    }
+    case "setGroupSize": {
+      // Same rule as setBucketNumber: clamp, and ignore a value that isn't a safe integer.
+      // Only the group total moves; shared headcounts are left for applyGroupSizeToShared.
+      const next = clampInteger(action.value, RANGES.groupSize);
+      if (next === null || next === state.groupSize) return state;
+      return { ...state, groupSize: next };
+    }
+    case "applyGroupSizeToShared": {
+      // Shared buckets only. A per-person headcount is stored but unused, and is left
+      // alone so switching that bucket to shared restores its old split.
+      const { groupSize } = state;
+      const needsChange = (b: Bucket) => b.mode === "shared" && b.headcount !== groupSize;
+      if (!state.buckets.some(needsChange)) return state;
+      const apply = (b: Bucket): Bucket => (needsChange(b) ? { ...b, headcount: groupSize } : b);
+      const [stay, events, tables, transport, food] = state.buckets;
+      return {
+        ...state,
+        buckets: [apply(stay), apply(events), apply(tables), apply(transport), apply(food)],
+      };
     }
     default: {
       const unreachable: never = action;

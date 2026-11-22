@@ -104,6 +104,8 @@ Meaning of **mode**:
 - **shared:** `lineTotal = unitPrice × quantity` is one bill split across `headcount` people. Your share = `lineTotal / headcount`.
 - **perPerson:** `unitPrice × quantity` is what **each person** pays. Your share = `unitPrice × quantity`. `headcount` is stored but unused.
 
+**Group size and headcounts (S1).** Changing `groupSize` changes only the group total; it never touches a headcount. "Apply to all shared" sets `headcount = groupSize` on every `shared` bucket and leaves `perPerson` buckets alone, so their stored split comes back if you switch them to shared. If every shared headcount already equals `groupSize`, or no bucket is shared, it changes nothing.
+
 ### 2.4 Derived values (never stored)
 
 ```

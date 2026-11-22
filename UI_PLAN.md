@@ -106,7 +106,7 @@ Keep the client boundary as low as practical: static copy (footer, headings) can
 
 ### 2.2 State
 
-- `useReducer` + context in `state/`. Actions: set preset, set field, set mode, set headcount, set group size, set currency, set rate, apply group size to all, reset to preset, load state (from link or storage).
+- `useReducer` + context in `state/`. Actions: select preset (also "Reset to preset": the same action with the current preset id), set bucket number (price, quantity, headcount), set bucket mode, set group size, apply group size to shared, set currency, set rate, load state (from link or storage).
 - **Hydration rule:** the first client render must match the server HTML (the default scenario). After mount, an effect applies hash, else localStorage, else leaves the default. Result: link receivers see the defaults for a moment before their numbers swap in. This is a small, known flash; accept it, and mark the results region `aria-busy` for that frame.
 - Input drafts (`FieldDraft`) live inside the field component, so typing "1,5" never writes a half-parsed number into AppState.
 
