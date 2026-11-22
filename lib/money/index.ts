@@ -5,6 +5,14 @@
  */
 import type { CurrencyCode, Rates } from "@/lib/types";
 
+/** Every display currency, in the order the control shows them. */
+export const CURRENCY_CODES: readonly CurrencyCode[] = ["NGN", "USD", "GBP"];
+
+/** True only for an exact, known code. "usd", "EUR" and non-strings are all false. */
+export function isCurrencyCode(value: unknown): value is CurrencyCode {
+  return CURRENCY_CODES.some((code) => code === value);
+}
+
 /** Decimal places shown per currency. NGN has none (whole naira, no kobo). */
 export const MINOR_DIGITS: Record<CurrencyCode, number> = {
   NGN: 0,

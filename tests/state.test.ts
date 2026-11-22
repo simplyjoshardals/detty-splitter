@@ -400,3 +400,46 @@ describe("setBucketNumber", () => {
     expect(reset.buckets).toEqual(GOLDEN.buckets);
   });
 });
+
+describe("setCurrency", () => {
+  const setCurrency = (state: AppState, currency: unknown) =>
+    // The cast stands in for hostile input (a decoded link, a bad caller) that types can't stop.
+    appReducer(state, { type: "setCurrency", currency } as { type: "setCurrency"; currency: "NGN" });
+
+  it("changes only the currency", () => {
+    const base = createInitialState();
+    const next = setCurrency(base, "USD");
+    expect(next.currency).toBe("USD");
+    expect({ ...next, currency: base.currency }).toEqual(base);
+  });
+
+  it("returns the same state object when the currency is already selected", () => {
+    const base = createInitialState();
+    expect(setCurrency(base, "NGN")).toBe(base);
+    const usd = setCurrency(base, "USD");
+    expect(setCurrency(usd, "USD")).toBe(usd);
+  });
+
+  it.each(["usd", "EUR", "", null, undefined, 7, {}])("ignores %j, never writes it", (bad) => {
+    const base = createInitialState();
+    expect(setCurrency(base, bad)).toBe(base);
+  });
+
+  it("golden: dollars show $898.34 per person and $3,593.36 for the group", () => {
+    const result = calculate(setCurrency(createInitialState(), "USD"), TIERS);
+    expect(result.perPersonMinor).toBe(89834);
+    expect(result.groupTotalMinor).toBe(359336);
+    expect(result.tier.id).toBe(3);
+  });
+
+  it("does not mutate the previous state", () => {
+    const frozen = deepFreeze(createInitialState());
+    setCurrency(frozen, "GBP");
+  });
+
+  it("is kept by selectPreset, so Reset to preset keeps the chosen currency", () => {
+    const gbp = setCurrency(createInitialState(), "GBP");
+    const reset = appReducer(gbp, { type: "selectPreset", presetId: gbp.presetId });
+    expect(reset.currency).toBe("GBP");
+  });
+});

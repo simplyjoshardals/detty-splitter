@@ -84,7 +84,7 @@ interface AppState {
 | `mode` | enum | `shared` / `perPerson` | Anything else is rejected |
 | `headcount` | integer | 1 to 100 | Clamp up to 1, never 0 (prevents divide-by-zero) |
 | `groupSize` | integer | 1 to 100 | Clamp |
-| `currency` | enum | `NGN` / `USD` / `GBP` | Display only |
+| `currency` | enum | `NGN` / `USD` / `GBP` | Display only: `setCurrency` writes nothing else, so ₦ values, rates and the tier never move. An unknown code is rejected (ignored by the reducer, rejected by the decoder) |
 | `rates.ngnPerUsd`, `ngnPerGbp` | number, at most 2 decimals | 50 to 100,000 | Clamp. Never 0 or negative (prevents divide-by-zero) |
 | `presetId` | enum | `budget` / `soft` / `baller` | |
 

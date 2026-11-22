@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { formatAmount, rateToHundredths, toMinorUnits } from "@/lib/money";
+import {
+  CURRENCY_CODES,
+  formatAmount,
+  isCurrencyCode,
+  rateToHundredths,
+  toMinorUnits,
+} from "@/lib/money";
 import type { CurrencyCode } from "@/lib/types";
 
 const RATES = { ngnPerUsd: 1500, ngnPerGbp: 2000 };
@@ -81,4 +87,18 @@ describe("toMinorUnits: USD and GBP round to the nearest cent, halves up", () =>
     const rates = { ngnPerUsd: 50, ngnPerGbp: 50 };
     expect(toMinorUnits(49950000000, 1, "USD", rates)).toBe(99900000000);
   });
+});
+
+describe("isCurrencyCode", () => {
+  it("accepts exactly the three codes the control offers", () => {
+    expect(CURRENCY_CODES).toEqual(["NGN", "USD", "GBP"]);
+    for (const code of CURRENCY_CODES) expect(isCurrencyCode(code)).toBe(true);
+  });
+
+  it.each(["usd", "Usd", "EUR", "X", "", " USD", "USD ", "NGN,USD", null, undefined, 0, {}, ["USD"]])(
+    "rejects %j",
+    (value) => {
+      expect(isCurrencyCode(value)).toBe(false);
+    },
+  );
 });

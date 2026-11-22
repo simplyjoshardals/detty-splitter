@@ -131,6 +131,7 @@ Goal: every number editable, every mode switchable, safely.
   - Build: three-option control with Phosphor currency icons and text labels; all amounts converted for display only.
   - Done when: switching ₦/$/£ never changes the tier or stored ₦ values; displayed total equals the sum of displayed lines.
   - Depends on: T3.1, T4.2.
+  - Part A done (Part B, the control and the formula line, still open, so the box stays unticked): reducer action `setCurrency` (changes only `currency`; unknown codes ignored; same state object when unchanged) and `isCurrencyCode` / `CURRENCY_CODES` in `lib/money`. New `tests/currency.test.ts` runs the Done-when through the reducer for all three presets in all three currencies (tier and ₦ values unchanged, displayed total equals the sum of the displayed lines at three rate pairs). The calculation itself already converted for display since T3.1, so no `calc` change.
 - [ ] **T5.2 Rates panel** (0.5h)
   - Build: inline panel with two inputs, "as of <date>" vs "Custom rates" tag, "Reset rates"; defaults and date from `config/` (you set real values from a real source before launch).
   - Done when: out-of-range rate shows a hint and keeps the old rate; rate 0 is impossible; custom-rates tag appears when edited.

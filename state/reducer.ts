@@ -1,13 +1,14 @@
 /**
  * App state (DATA_MODEL.md §2). Plain TypeScript, no React, so it can be tested directly.
- * `selectPreset`, `setBucketNumber`, `setBucketMode`, `setGroupSize` and
- * `applyGroupSizeToShared` exist so far. The currency, rate and load actions arrive in
- * Slices 5 and 8, together with their clamping.
+ * `selectPreset`, `setBucketNumber`, `setBucketMode`, `setGroupSize`,
+ * `applyGroupSizeToShared` and `setCurrency` exist so far. The rate and load actions arrive
+ * in Slices 5 and 8, together with their clamping.
  */
 import { DEFAULT_RATES } from "@/config";
 import { DEFAULT_PRESET_ID, PRESETS, type Preset } from "@/data/presets";
 import { RANGES, clampInteger } from "@/lib/input";
-import type { AppState, Bucket, BucketId, Mode, PresetId } from "@/lib/types";
+import { isCurrencyCode } from "@/lib/money";
+import type { AppState, Bucket, BucketId, CurrencyCode, Mode, PresetId } from "@/lib/types";
 
 /** Copies preset values into fresh bucket objects (nothing is shared with PRESETS). */
 function bucketsFromPreset(preset: Preset): AppState["buckets"] {
@@ -66,7 +67,8 @@ export type AppAction =
   | { type: "setBucketNumber"; bucketId: BucketId; field: BucketNumberField; value: number }
   | { type: "setBucketMode"; bucketId: BucketId; mode: Mode }
   | { type: "setGroupSize"; value: number }
-  | { type: "applyGroupSizeToShared" };
+  | { type: "applyGroupSizeToShared" }
+  | { type: "setCurrency"; currency: CurrencyCode };
 
 // Every action type needs a case. The `never` assignment in `default` turns a forgotten
 // case into a compile error.
@@ -111,6 +113,13 @@ export function appReducer(state: AppState, action: AppAction): AppState {
         ...state,
         buckets: [apply(stay), apply(events), apply(tables), apply(transport), apply(food)],
       };
+    }
+    case "setCurrency": {
+      // Display only (DATA_MODEL §2.2): nothing but `currency` changes, so the stored naira
+      // values, the rates and therefore the tier are untouched. An unknown code is ignored,
+      // never written, like an unknown mode.
+      if (!isCurrencyCode(action.currency) || action.currency === state.currency) return state;
+      return { ...state, currency: action.currency };
     }
     default: {
       const unreachable: never = action;
