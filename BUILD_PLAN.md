@@ -85,10 +85,11 @@ Goal: the smallest working version of the core feature, deployed: real numbers a
   - Done when: unit tests pass for the **golden example** (per person ₦1,347,500, group ₦5,390,000, Tier 3, USD lines 175.00 / 200.00 / 266.67 / 70.00 / 186.67 → $898.34, group $3,593.36), all-zero → Tier 1, tier boundaries (299,999 vs 300,000 etc.), headcount 1, currency round trip not changing ₦ values.
   - Depends on: T1.1.
   - Done notes: 44 tests pass (Vitest 5.1.1). Amounts are integers (whole naira, or cents/pence) and the tier is chosen by comparing exact BigInt fractions, so floating point can never put a scenario in the wrong tier. Shared types live in `lib/types.ts`; tier thresholds are passed into `calculate()` (the real tiers file arrives in T3.2). `yarn test` runs `vitest run`; under Yarn, Vitest 5 needs `vite` installed explicitly (`yarn add -D --exact vite`).
-- [ ] **T3.2 Data files and state skeleton** (0.5h)
+- [x] **T3.2 Data files and state skeleton** (0.5h)
   - Build: `data/` bucket definitions, 3 presets (placeholder values until R1), 5 tiers with badge, tagline and balance line (draft copy), reducer + context with the default scenario (Soft Life, group 4).
   - Done when: state initialises to the default; types are strict, no `any`.
   - Depends on: T3.1.
+  - Done notes: 62 tests pass. The Soft Life preset is the DATA_MODEL golden example, so the default state gives ₦1,347,500 per person and Tier 3. Budget (₦280,000, Tier 1) and Baller (₦5,812,500, Tier 5) are made-up placeholders, and `DEFAULT_RATES` in `config/` (₦1,500 per $1, ₦2,000 per £1) is a placeholder too: replace the preset prices and tier thresholds after price research (O1) and the rates from a real source before launch. The reducer has one action, `selectPreset` (also used for "Reset to preset"); the other actions arrive in Slices 4, 5 and 8. `AppStateProvider` is only type-checked so far: T3.3 mounts it. Tier 2's badge is "Budget Boss".
 - [ ] **T3.3 Read-only results page** (0.75h)
   - Build: header, 5 line items with icon tiles, totals, tier stamp, footer note, all read-only, from the default state.
   - Done when: matches the golden numbers on screen; no layout shift when fonts load; works at 360 / 768 / 1280px; deployed.
