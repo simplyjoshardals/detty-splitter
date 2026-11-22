@@ -91,11 +91,12 @@ export function ResultsPanel() {
             {formatAmount(result.perPersonMinor, currency)}
           </dd>
         </div>
-        <div className="flex items-baseline justify-between gap-3">
+        {/* Wraps instead of squeezing: at max values the amount drops below the label. */}
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
           <dt className="min-w-0 text-[length:var(--t-sm)] text-muted">
             Group total · {groupSize} {groupSize === 1 ? "person" : "people"}
           </dt>
-          <dd className="font-mono text-[length:var(--t-lg)] font-bold [overflow-wrap:anywhere]">
+          <dd className="ml-auto max-w-full font-mono text-[length:var(--t-lg)] font-bold [overflow-wrap:anywhere]">
             {formatAmount(result.groupTotalMinor, currency)}
           </dd>
         </div>

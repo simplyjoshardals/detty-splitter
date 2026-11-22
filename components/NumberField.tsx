@@ -165,7 +165,8 @@ export function NumberField({
         {label}
       </label>
       <div
-        className={`mt-1 flex h-12 items-stretch border-2 bg-surface focus-within:outline-3 focus-within:outline-offset-2 focus-within:outline-(--focus) ${
+        // mt-2 (8px) clears the 3px focus ring plus its 2px offset above the box.
+        className={`mt-2 flex h-12 items-stretch border-2 bg-surface focus-within:outline-3 focus-within:outline-offset-2 focus-within:outline-(--focus) ${
           isError ? "border-danger" : "border-border"
         }`}
       >
@@ -197,7 +198,8 @@ export function NumberField({
       <div id={hintId} role="status">
         {shownHint && (
           <p
-            className={`mt-1 flex items-start gap-1.5 text-[length:var(--t-xs)] ${
+            // mt-2 (8px) keeps the hint clear of the focus ring, which stays on after Enter.
+            className={`mt-2 flex items-start gap-1.5 text-[length:var(--t-xs)] ${
               isError ? "text-danger" : "text-ink"
             }`}
           >
