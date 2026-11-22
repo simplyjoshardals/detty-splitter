@@ -3,7 +3,7 @@ import { calculate } from "@/lib/calc";
 import { DEFAULT_RATES } from "@/config";
 import { PRESETS } from "@/data/presets";
 import { TIERS } from "@/data/tiers";
-import type { AppState, BucketId, PresetId } from "@/lib/types";
+import type { AppState, BucketId, Mode, PresetId } from "@/lib/types";
 import { appReducer, createInitialState } from "@/state/reducer";
 import { GOLDEN, deepFreeze, mapBuckets } from "./fixtures";
 
@@ -88,6 +88,79 @@ describe("selectPreset", () => {
     const frozen = deepFreeze(createInitialState()); // any mutation would throw
     const snapshot = structuredClone(frozen);
     appReducer(frozen, { type: "selectPreset", presetId: "baller" });
+    expect(frozen).toEqual(snapshot);
+  });
+});
+
+describe("setBucketMode", () => {
+  const find = (state: AppState, id: BucketId) => {
+    const bucket = state.buckets.find((b) => b.id === id);
+    if (!bucket) throw new Error(`missing bucket ${id}`);
+    return bucket;
+  };
+  const setMode = (state: AppState, bucketId: BucketId, mode: Mode) =>
+    appReducer(state, { type: "setBucketMode", bucketId, mode });
+
+  it("sets the mode on exactly one bucket", () => {
+    const base = createInitialState();
+    const next = setMode(base, "stay", "perPerson");
+    expect(find(next, "stay").mode).toBe("perPerson");
+    for (const id of ["events", "tables", "transport", "food"] as const) {
+      expect(find(next, id)).toEqual(find(base, id));
+    }
+  });
+
+  it("golden: Short-lets per person is the whole ₦1,050,000, not a quarter of it", () => {
+    const result = calculate(setMode(createInitialState(), "stay", "perPerson"), TIERS);
+    expect(result.lines[0]?.shareMinor).toBe(1050000);
+    expect(result.perPersonMinor).toBe(1347500 - 262500 + 1050000); // 2,135,000
+    expect(result.groupTotalMinor).toBe(2135000 * 4);
+  });
+
+  it("golden: Concerts shared by 4 is a quarter of ₦300,000", () => {
+    const result = calculate(setMode(createInitialState(), "events", "shared"), TIERS);
+    expect(result.lines[1]?.shareMinor).toBe(75000);
+    expect(result.perPersonMinor).toBe(1347500 - 300000 + 75000); // 1,122,500
+  });
+
+  it("keeps the headcount, so per person and back restores the same split", () => {
+    const base = appReducer(createInitialState(), {
+      type: "setBucketNumber",
+      bucketId: "stay",
+      field: "headcount",
+      value: 3,
+    });
+    const away = setMode(base, "stay", "perPerson");
+    expect(find(away, "stay").headcount).toBe(3);
+    expect(setMode(away, "stay", "shared")).toEqual(base);
+  });
+
+  it("keeps the preset, currency, rates, group size and bucket order", () => {
+    const base = { ...createInitialState(), currency: "USD" as const };
+    const next = setMode(base, "food", "shared");
+    expect(next.presetId).toBe(base.presetId);
+    expect(next.currency).toBe("USD");
+    expect(next.rates).toEqual(base.rates);
+    expect(next.groupSize).toBe(base.groupSize);
+    expect(next.buckets.map((b) => b.id)).toEqual(["stay", "events", "tables", "transport", "food"]);
+  });
+
+  it("returns the same state object when the mode is already set", () => {
+    const base = createInitialState();
+    expect(setMode(base, "stay", "shared")).toBe(base);
+    expect(setMode(base, "events", "perPerson")).toBe(base);
+  });
+
+  it("ignores a mode that is not one of the two, so nothing invalid reaches state", () => {
+    const base = createInitialState();
+    const bogus = "everyone" as unknown as Mode;
+    expect(setMode(base, "stay", bogus)).toBe(base);
+  });
+
+  it("does not mutate the state it is given", () => {
+    const frozen = deepFreeze(createInitialState()); // any mutation would throw
+    const snapshot = structuredClone(frozen);
+    setMode(frozen, "tables", "perPerson");
     expect(frozen).toEqual(snapshot);
   });
 });
