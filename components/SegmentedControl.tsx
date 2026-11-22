@@ -13,6 +13,8 @@ export interface SegmentOption<T extends string> {
 interface SegmentedControlProps<T extends string> {
   /** Visible group label, e.g. "Cost split". */
   label: string;
+  /** Short muted text on the label's row, e.g. "Prices stay in ₦". Never changes the row's height. */
+  note?: string;
   /** Ids of other visible elements that join the label in the group's accessible name. */
   labelledBy?: readonly string[];
   options: readonly SegmentOption<T>[];
@@ -28,6 +30,7 @@ interface SegmentedControlProps<T extends string> {
  */
 export function SegmentedControl<T extends string>({
   label,
+  note,
   labelledBy = [],
   options,
   value,
@@ -35,15 +38,24 @@ export function SegmentedControl<T extends string>({
 }: SegmentedControlProps<T>) {
   const id = useId();
   const labelId = `${id}-label`;
+  const noteId = `${id}-note`;
 
   return (
     <div>
-      <span id={labelId} className="block text-[length:var(--t-xs)] text-muted">
-        {label}
-      </span>
+      <div className="flex items-baseline justify-between gap-3">
+        <span id={labelId} className="block text-[length:var(--t-xs)] text-muted">
+          {label}
+        </span>
+        {note !== undefined && (
+          <span id={noteId} className="text-right text-[length:var(--t-xs)] text-muted">
+            {note}
+          </span>
+        )}
+      </div>
       <div
         role="radiogroup"
         aria-labelledby={[labelId, ...labelledBy].join(" ")}
+        aria-describedby={note !== undefined ? noteId : undefined}
         className="mt-2 grid grid-flow-col auto-cols-fr"
       >
         {options.map((option, i) => {

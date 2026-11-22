@@ -144,7 +144,7 @@ export function NumberField({
         }`}
       >
         {prefix !== "" && (
-          <span className="flex items-center pl-3 font-mono text-[length:var(--t-base)] text-muted">
+          <span className="flex items-center pl-3 font-mono text-[length:var(--t-base)] font-bold text-ink">
             {prefix}
           </span>
         )}

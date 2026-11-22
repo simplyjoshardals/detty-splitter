@@ -28,6 +28,8 @@ export function CurrencyControl() {
   return (
     <SegmentedControl
       label="Currency"
+      // The price fields never change currency, so say so while the amounts around them do.
+      note={state.currency === "NGN" ? undefined : "Prices stay in ₦"}
       options={CURRENCY_OPTIONS}
       value={state.currency}
       onChange={(currency) => dispatch({ type: "setCurrency", currency })}

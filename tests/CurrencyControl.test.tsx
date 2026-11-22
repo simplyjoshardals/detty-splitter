@@ -105,4 +105,18 @@ describe("CurrencyControl", () => {
     expect(radio("USD")).toHaveProperty("checked", true);
     expect(screen.getByText("$898.34")).toBeTruthy();
   });
+
+  it("says the price fields stay in naira, only while the amounts are not naira", async () => {
+    const { choose } = setup();
+    const group = screen.getByRole("radiogroup", { name: "Currency" });
+    expect(screen.queryByText("Prices stay in ₦")).toBeNull();
+    expect(group.getAttribute("aria-describedby")).toBeNull();
+    await choose("USD");
+    const note = screen.getByText("Prices stay in ₦");
+    expect(group.getAttribute("aria-describedby")).toBe(note.id);
+    await choose("GBP");
+    expect(screen.getByText("Prices stay in ₦")).toBeTruthy();
+    await choose("NGN");
+    expect(screen.queryByText("Prices stay in ₦")).toBeNull();
+  });
 });
