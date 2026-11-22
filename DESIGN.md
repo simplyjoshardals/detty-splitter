@@ -215,7 +215,7 @@ Verified: Tailwind's Next.js guide (v4.3) uses `@import "tailwindcss";` in `app/
 Top to bottom on mobile:
 1. **Danfo band header:** full-width yellow band, wordmark "DETTY DEC 2026" in Bungee, currency control (3 Phosphor currency icons with text labels), a black danfo stripe (`--stripe`) underneath.
 2. **Route plates:** "Pick your route" label and three plates (see §5.3).
-3. **Group row:** group-size stepper plus "Apply to all shared" text button.
+3. **Group row:** group-size stepper, then "Apply to all shared" and "Reset to preset" text buttons, then a status line (§5.9).
 4. **Bucket list:** 5 line items, each with a 32px icon tile.
 5. **Rates:** collapsed "Rates" row; opens inline.
 6. **Printer slot and receipt section:** a black slot bar, then the live receipt hanging from it.
@@ -254,6 +254,10 @@ Pressed: translate 2px, shadow collapses (80ms). Disabled: 50% ink, no shadow, `
 Three plates in a row (stack on very narrow screens), each styled like a danfo destination board: 2px ink border, Bungee label, Phosphor icon (Bus / Confetti / CrownSimple), small caption. Implemented as native radio inputs with custom visuals. Selected plate: `--danfo` fill, `fill` icon weight, check mark, hard shadow, 3px border. Unselected: paper fill, `bold` icon.
 Labels: "Outside on a Budget", "Soft Life Standard", "Full IJGB / Baller Mode". Group has `legend` "Pick your route".
 
+**Built in T4.3.** A `fieldset` with a Bungee `legend`. Under 480px the plates stack, each a row (icon on the left, label and the preset's blurb on the right); from 480px they sit in a row of three, icon above the text. Selected and unselected plates have the same outer size: the selected 3px border is balanced by 1px less padding, so nothing shifts. Selected: `--danfo` fill, `fill` icon, hard shadow, 3px border, and a small ink square with a check mark at the top right, so it still reads in greyscale. Tapping a plate runs the same action as "Reset to preset" for that preset: all five buckets, the group size and every edit are replaced, and currency and rates are kept. There is no undo, so the status line says what happened. Tapping the plate that is already picked does nothing (a radio can't change to itself); "Reset to preset" is the way back to its values.
+
+**Group row (T4.3).** The group size is the §5.6 stepper ("Group size", suffix "people"), range 1 to 100. Changing it only changes the group total; shared splits stay as they are until "Apply to all shared" sets every shared line's split to the group size (per-person lines are left alone). "Apply to all shared" and "Reset to preset" are text buttons (§5.1, 44px tall); only reset has an icon (`ArrowCounterClockwiseIcon`).
+
 ### 5.4 Line item (bucket)
 ```
 [ICON]  SHORT-LET                    ₦262,500   (your share, Space Mono 700)
@@ -291,6 +295,8 @@ Red (`--stamp`) double-border stamp, Bungee uppercase, rotated −4° (static), 
 
 ### 5.9 Status line
 One `role="status"` line under the actions, with an icon: `CheckIcon` for success, `WarningIcon` for errors. No floating toasts.
+
+**Group row status (T4.3).** The same pattern under the group row's buttons: always in the page, `min-h-5` (one line) even when empty so the list below never shifts, 12px text with `CheckIcon`. It says what a plate tap, "Apply to all shared" or "Reset to preset" just did, and says so when "Apply to all shared" had nothing to change (copy in §9). It clears after 6 seconds.
 
 ### 5.10 Inline panel (rates, export result)
 Expands in place with a dashed top rule. Rates: two inputs ("₦ per $1", "₦ per £1"), "as of <date>" or a "Custom rates" tag, "Reset rates" with `ArrowCounterClockwiseIcon`.
@@ -387,6 +393,10 @@ Standard English with light Nigerian Pidgin, one Pidgin phrase per message at mo
 |---|---|
 | Tagline | "Plan the damage before December plans you." |
 | Route label | "Pick your route" |
+| Route picked | "Route set to {preset}." |
+| Apply to all shared | "Set {n} shared items to {size} people." (singular: "1 shared item", "1 person") |
+| Apply, nothing to change | "Shared items already split {size} ways." / "No shared items to change." |
+| Reset to preset | "Reset to {preset}." |
 | Meter label | "DAMAGE METER" |
 | Estimates note | "Estimates only, not quotes. Tap any number to edit." |
 | Empty (all zero) | "Meter never start. Add a number, oya." |
