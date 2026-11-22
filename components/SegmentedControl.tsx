@@ -56,7 +56,7 @@ export function SegmentedControl<T extends string>({
         role="radiogroup"
         aria-labelledby={[labelId, ...labelledBy].join(" ")}
         aria-describedby={note !== undefined ? noteId : undefined}
-        className="mt-2 grid grid-flow-col auto-cols-fr"
+        className="mt-2 grid grid-flow-col auto-cols-[minmax(max-content,1fr)]"
       >
         {options.map((option, i) => {
           const selected = option.value === value;
@@ -72,7 +72,7 @@ export function SegmentedControl<T extends string>({
                 className="peer sr-only"
               />
               <span
-                className="flex h-11 w-full items-center justify-center gap-2 border-2 border-ink bg-surface px-2 text-[length:var(--t-sm)] text-ink peer-checked:relative peer-checked:z-[1] peer-checked:font-bold peer-checked:shadow-[inset_0_0_0_3px_var(--ink)] peer-focus-visible:relative peer-focus-visible:z-10 peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-(--focus)"
+                className="flex h-11 w-full items-center justify-center gap-2 whitespace-nowrap border-2 border-ink bg-surface px-2 text-[length:var(--t-sm)] text-ink peer-checked:relative peer-checked:z-[1] peer-checked:font-bold peer-checked:shadow-[inset_0_0_0_3px_var(--ink)] peer-focus-visible:relative peer-focus-visible:z-10 peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-(--focus)"
               >
                 <Icon size={20} weight={selected ? "fill" : "bold"} aria-hidden="true" />
                 {option.label}

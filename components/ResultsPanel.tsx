@@ -66,8 +66,10 @@ export function ResultsPanel() {
             {perPerson}
           </dd>
         </div>
-        {/* Wraps instead of squeezing: at max values the amount drops below the label. */}
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        {/* Label above amount below 560px, side by side from 560px: decided by the viewport, not
+            by how long the amount is, so switching currency or editing a price never re-wraps
+            it and moves the stamp. `flex-wrap` stays as a safety net for extreme values. */}
+        <div className="flex flex-col gap-1 min-[560px]:flex-row min-[560px]:flex-wrap min-[560px]:items-baseline min-[560px]:justify-between min-[560px]:gap-x-3">
           <dt className="min-w-0 text-[length:var(--t-sm)] text-muted">
             Group total · {groupSize} {groupSize === 1 ? "person" : "people"}
           </dt>
