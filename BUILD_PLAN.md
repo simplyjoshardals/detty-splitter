@@ -90,11 +90,12 @@ Goal: the smallest working version of the core feature, deployed: real numbers a
   - Done when: state initialises to the default; types are strict, no `any`.
   - Depends on: T3.1.
   - Done notes: 62 tests pass. The Soft Life preset is the DATA_MODEL golden example, so the default state gives ₦1,347,500 per person and Tier 3. Budget (₦280,000, Tier 1) and Baller (₦5,812,500, Tier 5) are made-up placeholders, and `DEFAULT_RATES` in `config/` (₦1,500 per $1, ₦2,000 per £1) is a placeholder too: replace the preset prices and tier thresholds after price research (O1) and the rates from a real source before launch. The reducer has one action, `selectPreset` (also used for "Reset to preset"); the other actions arrive in Slices 4, 5 and 8. `AppStateProvider` is only type-checked so far: T3.3 mounts it. Tier 2's badge is "Budget Boss".
-- [ ] **T3.3 Read-only results page** (0.75h)
+- [x] **T3.3 Read-only results page** (0.75h)
   - Build: header, 5 line items with icon tiles, totals, tier stamp, footer note, all read-only, from the default state.
   - Done when: matches the golden numbers on screen; no layout shift when fonts load; works at 360 / 768 / 1280px; deployed.
   - Depends on: T3.2, T1.3.
   - Also: delete the throwaway `components/DevTestBlock.tsx` and its use in `app/page.tsx`; re-measure first-load JS and compare with the 172.2 KB bare-page baseline.
+  - Done notes: golden numbers confirmed on screen (₦1,347,500 per person, ₦5,390,000 for the group), checked at 360 / 768 / 1280px and in light and dark mode; layout shift measured at 0 locally and on the deployed site. `DevTestBlock` deleted. First-load JS is 179.7 KB gzipped (184,049 bytes): the 172.2 KB bare-page floor plus about 7.5 KB for the app code, data and 5 icons. That is still over the ~150 KB guess, so the T2.2 decision stands (keep Next.js, judge by real phone load time). The footer reads only "Estimates only, not quotes." until editing exists, the page is one centred column at every width until the live receipt (Slice 6), and formula lines show ₦ prices until T5.1.
 
 ### Slice 4: Editing (3.25h) *(UI_PLAN S3)*
 Goal: every number editable, every mode switchable, safely.
@@ -103,6 +104,7 @@ Goal: every number editable, every mode switchable, safely.
   - Build: `parseNumberInput` in `lib/`, `NumberField` (draft text separate from AppState, separators as you type, stable caret, 16px text, `inputMode="numeric"`, revert on empty/invalid, clamp with hint).
   - Done when: typing "1,5" never writes `NaN` or a half value; "1,500,000", "1 500 000", "", "abc" behave per DATA_MODEL §9.2; component tests pass (query by role and label).
   - Depends on: T3.2.
+  - Also: add "Tap any number to edit." to the footer note.
 - [ ] **T4.2 Stepper, segmented control, mode switch** (1.0h)
   - Build: stepper (Phosphor Plus/Minus, 44px), segmented radio control, shared/per-person switch with headcount shown only when shared, wired to the reducer.
   - Done when: switching mode changes the line total correctly (golden cases); headcount can't go below 1; keyboard and arrow keys work.
