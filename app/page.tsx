@@ -1,3 +1,4 @@
+import { DamageMeter } from "@/components/DamageMeter";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { ResultsPanel } from "@/components/ResultsPanel";
@@ -7,7 +8,8 @@ import { AppStateProvider } from "@/state/AppStateProvider";
 /**
  * The provider wraps Header, main and Footer, because the currency control in the header
  * reads state. Home, Header and Footer stay server components: children passed through a
- * client provider are still rendered on the server.
+ * client provider are still rendered on the server. The damage meter is the last child, so its
+ * sticky bottom bar follows the footer and nothing above it moves (DESIGN §4).
  */
 export default function Home() {
   return (
@@ -18,6 +20,7 @@ export default function Home() {
         <ResultsPanel />
       </main>
       <Footer />
+      <DamageMeter />
     </AppStateProvider>
   );
 }
