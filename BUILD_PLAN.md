@@ -143,6 +143,7 @@ Goal: every number editable, every mode switchable, safely.
 - [ ] **T6.1 Danfo band header, stripe, footer** (0.5h)
   - Done when: header band and stripe render in light and dark; currency control sits in the band; footer note present; optional "Built in Lagos by <name>" only when `AUTHOR_NAME` and `AUTHOR_URL` are set.
   - Depends on: T5.1.
+  - Part A done (logic): `AUTHOR_NAME` and `AUTHOR_URL` added to `config/` as plain constants, empty by default (DATA_MODEL §3.3 says constants, so no `.env` change). New `lib/author` with `authorCredit(name, url)`, which returns `{ name, url }` or `null` (needs a non-blank name and an `https:` URL; the name is trimmed and returned as plain text). `parseHttpsUrl` moved out of `config/` into `lib/author` and is shared with `CTA_URL`; behaviour unchanged. Tests in `tests/author.test.ts`. **Part B decisions, agreed:** `AppStateProvider` moves up to wrap Header, main and Footer (Header and Footer stay server components); new `.on-danfo` scope in `globals.css` (light island in both themes, stripe uses `--danfo-ink`) to be written into DESIGN §4, §5.5 and §5.15; the currency control stacks under the wordmark below 560px and shares the row from 560px. Part B below.
 - [ ] **T6.2 Damage meter** (0.5h)
   - Build: sticky bottom bar (black, yellow digits), "See receipt" jump, hides when the receipt is in view, iOS safe-area padding, hidden polite live region announcing totals after about 600ms.
   - Done when: no count-up animation; meter text passes contrast; screen reader announces once per settled edit.

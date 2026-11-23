@@ -187,11 +187,11 @@ Rules:
 |---|---|---|
 | `SITE_URL` | constant | Used for the receipt watermark and metadata. One-line swap for a custom domain |
 | `CTA_ENABLED` | `NEXT_PUBLIC_CTA_ENABLED` | On only if the value is exactly the string `true`. Anything else is off |
-| `CTA_URL` | `NEXT_PUBLIC_CTA_URL` | Must parse as a URL with protocol `https:`. Otherwise treated as unset |
+| `CTA_URL` | `NEXT_PUBLIC_CTA_URL` | Must parse as a URL with protocol `https:` (`parseHttpsUrl`, shared from `lib/author`). Otherwise treated as unset |
 | CTA copy (title, button text, disclosure label) | constants | Disclosure label shown when the link is an affiliate or paid promo |
 | `DEFAULT_RATES` + `RATES_AS_OF` | constants | You set these from a real source before launch; date shown in the UI and receipt |
 | `ANALYTICS_SITE_ID` | constant | Public by design (Umami site IDs are embedded in page source) |
-| `AUTHOR_NAME`, `AUTHOR_URL` | constants | Optional. Footer shows "Built in Lagos by <name>" as a link only when both are set |
+| `AUTHOR_NAME`, `AUTHOR_URL` | constants | Optional, empty by default. Footer shows "Built in Lagos by <name>" as a link only when both are set: `authorCredit` (`lib/author`) needs a non-blank name and a URL with protocol `https:`, otherwise it is treated as unset |
 
 Card renders only when `CTA_ENABLED` **and** `CTA_URL` is valid. Both are public values, so never put a secret or tokenized URL in them.
 

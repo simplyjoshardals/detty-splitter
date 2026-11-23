@@ -7,6 +7,7 @@
  * can inline them at build time. Do not destructure or index them dynamically.
  */
 
+import { parseHttpsUrl } from "@/lib/author";
 import type { Rates } from "@/lib/types";
 
 /** Placeholder until Cloudflare assigns the real URL (T1.3) or a custom domain is set. */
@@ -16,20 +17,17 @@ export const SITE_URL = "https://detty-splitter.pages.dev";
 export const CTA_ENABLED: boolean =
   process.env.NEXT_PUBLIC_CTA_ENABLED === "true";
 
-/** Returns the URL string only if it parses with the https: protocol, else null. */
-function parseHttpsUrl(value: string | undefined): string | null {
-  if (!value) return null;
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" ? url.toString() : null;
-  } catch {
-    return null;
-  }
-}
-
 export const CTA_URL: string | null = parseHttpsUrl(
   process.env.NEXT_PUBLIC_CTA_URL,
 );
+
+/**
+ * Optional footer credit, "Built in Lagos by <name>" (DESIGN §5.15). Plain constants,
+ * public by design. Empty means no credit; the footer shows it only when the name is
+ * non-empty and the URL is a valid https: URL (see authorCredit in lib/author).
+ */
+export const AUTHOR_NAME = "";
+export const AUTHOR_URL = "";
 
 /**
  * PLACEHOLDER default rates, in naira per 1 unit of foreign currency. Not real:
