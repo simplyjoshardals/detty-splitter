@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Bungee, Space_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
 // Display font: words only (DESIGN §1). Never used for numbers or currency symbols.
@@ -10,12 +11,23 @@ const bungee = Bungee({
   display: "swap",
 });
 
-// Body font and ALL numbers/currency symbols. latin-ext carries the ₦ sign.
+// Body font and ALL numbers/currency symbols (the ₦ glyph itself comes from `naira` below).
 const spaceMono = Space_Mono({
   weight: ["400", "700"],
   subsets: ["latin", "latin-ext"],
   variable: "--font-space-mono",
   display: "swap",
+});
+
+// The ₦ sign only (U+20A6, about 1 KB). Space Mono draws its own ₦ short and squat, so at 12px it
+// reads like a "#". This is a subset of Space Grotesk (same family lineage, full-height ₦, both
+// weights), placed before Space Mono in the font stack in globals.css. Licence: app/fonts/.
+const naira = localFont({
+  src: [{ path: "./fonts/naira.woff2", weight: "400 700", style: "normal" }],
+  variable: "--font-naira",
+  display: "swap",
+  adjustFontFallback: false,
+  declarations: [{ prop: "unicode-range", value: "U+20A6" }],
 });
 
 export const metadata: Metadata = {
@@ -27,7 +39,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${bungee.variable} ${spaceMono.variable} h-full antialiased`}
+      className={`${bungee.variable} ${spaceMono.variable} ${naira.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

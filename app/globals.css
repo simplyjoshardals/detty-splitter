@@ -76,8 +76,8 @@
 
 @theme inline {
   --font-display: var(--font-bungee);
-  --font-mono: var(--font-space-mono);
-  --font-sans: var(--font-space-mono);
+  --font-mono: var(--font-naira), var(--font-space-mono);
+  --font-sans: var(--font-naira), var(--font-space-mono);
 
   --color-paper: var(--paper);
   --color-surface: var(--surface);
@@ -100,5 +100,5 @@
 body {
   background: var(--paper);
   color: var(--ink);
-  font-family: var(--font-space-mono), ui-monospace, monospace;
+  font-family: var(--font-naira), var(--font-space-mono), ui-monospace, monospace;
 }

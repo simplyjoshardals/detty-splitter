@@ -46,7 +46,10 @@ The page is a **POS terminal slip that just printed your December debit alert**,
 | Role | Font | `next/font` setup |
 |---|---|---|
 | Display: words only (wordmark, route plates, stamp, section labels, button labels) | **Bungee** (one weight, Regular) | `Bungee`, `weight: '400'`, `subsets: ['latin','latin-ext']`, `variable: '--font-bungee'` |
-| Body and **all numbers and currency symbols** | **Space Mono** (400 and 700) | `Space_Mono`, `weight: ['400','700']`, `subsets: ['latin','latin-ext']`, `variable: '--font-space-mono'` |
+| Body and **all numbers and currency symbols** | **Space Mono** (400 and 700), except the ₦ glyph itself (next row) | `Space_Mono`, `weight: ['400','700']`, `subsets: ['latin','latin-ext']`, `variable: '--font-space-mono'` |
+| The **₦ sign** (U+20A6) only | A one-glyph subset of **Space Grotesk** (400 to 700), `app/fonts/naira.woff2`, about 1 KB | `localFont`, `declarations: [{ prop: 'unicode-range', value: 'U+20A6' }]`, `variable: '--font-naira'`, placed before Space Mono in the font stack |
+
+**Why the ₦ comes from another font (T5.2 review).** Space Mono's own ₦ is drawn short and squat, with heavy bars, so at 12px (the rate labels, the hint prefix, the "₦1,050,000 total ÷ 4" notes) and 14px (line totals) it read like a "#". Space Grotesk descends from Space Mono, and its ₦ is full cap height, so the N and both bars stay readable at every size. It is about 0.12em wider than a mono digit, which is fine for a sign that is never lined up in a column. The file is a subset (one code point, both weights), and the licence (SIL OFL 1.1) sits beside it in `app/fonts/`. Bungee still never draws a currency symbol. Anything that draws text outside the page DOM (the PNG receipt, T7) has to load this font as well, or the ₦ falls back to Space Mono's.
 
 Verified: Bungee is a Google Font by David Jonathan Ross, designed around urban signage, a single Regular weight, SIL OFL. From the Next.js docs: multi-word names use underscores; non-variable fonts **need a weight**; fonts are downloaded at build time and self-hosted; the `variable` option feeds Tailwind.
 
