@@ -21,7 +21,8 @@ const CURRENCY_OPTIONS: readonly SegmentOption<CurrencyCode>[] = CURRENCY_CODES.
 
 /**
  * Display currency (DESIGN §5.5). Display only: every amount on the page is converted from
- * the stored naira, and the tier never changes. T6.1 moves this into the header band.
+ * the stored naira, and the tier never changes. Lives in the header band (T6.1), so it renders
+ * inside the `.on-danfo` colour scope.
  */
 export function CurrencyControl() {
   const { state, dispatch } = useAppState();

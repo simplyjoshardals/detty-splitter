@@ -97,6 +97,19 @@
   --radius-md: var(--r-md);
 }
 
+/*
+ * On-danfo scope (DESIGN §3.1, T6.1): the header band is a light island in both themes.
+ * Yellow does not flip in dark mode, but --ink, --muted, --surface and --focus do, and on
+ * yellow they would give cream borders, 1.7:1 labels and a yellow focus ring on yellow.
+ * Everything inside the band reads these variables, so it needs no per-component overrides.
+ */
+.on-danfo {
+  --ink: var(--danfo-ink); /* 11.8:1 on danfo */
+  --muted: var(--danfo-ink);
+  --surface: #ffffff; /* segments; ink on it is 18.9:1 */
+  --focus: var(--danfo-ink);
+}
+
 body {
   background: var(--paper);
   color: var(--ink);
