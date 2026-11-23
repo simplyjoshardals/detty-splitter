@@ -56,6 +56,10 @@ interface DamageMeterProps {
  *   and the totals keep changing while the receipt is on screen. It is empty until the first
  *   settled edit and announces once per settled edit (`useSettledMessage`).
  *
+ * Layout: the section pads only by the iOS safe-area insets. The 16px gutters sit on the inner
+ * 560px column, the same box model as `main` and `Footer`, so the text lines up with the page
+ * content at every width (gutters outside the column put it 16px left of the page above 592px).
+ *
  * Needs `.on-meter` (globals.css, Stage 4) for the focus colour: the ink ring is invisible on
  * the bar in light mode and the yellow ring would sit on the yellow button in dark mode.
  */
@@ -77,9 +81,9 @@ export function DamageMeter({ targetId = DEFAULT_TARGET_ID }: DamageMeterProps) 
       <section
         aria-labelledby={labelId}
         style={inView ? { visibility: "hidden" } : undefined}
-        className="on-meter sticky bottom-0 z-20 border-t-2 border-transparent bg-meter-bg pt-2 pr-[max(1rem,env(safe-area-inset-right))] pb-[max(0.5rem,env(safe-area-inset-bottom))] pl-[max(1rem,env(safe-area-inset-left))] text-meter-fg dark:border-meter-fg"
+        className="on-meter sticky bottom-0 z-20 border-t-2 border-transparent bg-meter-bg pt-2 pr-[env(safe-area-inset-right)] pb-[max(0.5rem,env(safe-area-inset-bottom))] pl-[env(safe-area-inset-left)] text-meter-fg dark:border-meter-fg"
       >
-        <div className="mx-auto flex w-full max-w-[560px] items-center justify-between gap-3">
+        <div className="mx-auto flex w-full max-w-[560px] items-center justify-between gap-3 px-4">
           <div className="min-w-0">
             {/* The caption wraps below the label on a narrow bar. In the empty state it is the
                 longer "Meter never start" line, so the bar grows by one line there only. */}
