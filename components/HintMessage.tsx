@@ -12,7 +12,8 @@ interface HintMessageProps {
 
 /**
  * The hint line (DESIGN §5.2): icon plus 12px text, so it never relies on colour alone.
- * An empty or invalid revert is `--danger`; a clamp is `--ink`.
+ * A revert is `--danger` (the typed number was thrown away: empty, invalid, and for the rates
+ * out of range or too many decimals); a clamp is `--ink` (the number was adjusted but kept).
  * Starts with the field's name in bold ("Nights: Max is 999, so we adjusted it."), because it is
  * drawn below the whole row and a clamp has no red border to point at the field.
  * Rendered inside the row's reserved `role="status"` slot, never in the flow of a field.
