@@ -85,6 +85,7 @@ Two fonts total, no italics. `display: 'swap'`, automatic fallback adjustment le
 | Success status | `CheckIcon` | Confirmed |
 | See receipt (meter jump) | `ArrowDownIcon` | Confirmed |
 | Reset to preset / rates | `ArrowCounterClockwiseIcon` | Confirmed |
+| Rates panel toggle | `CaretDownIcon` | Confirmed at install (`yarn check:icons`), added in T5.2; turned upside down while the panel is open |
 | "Open in browser" hint | `DoorOpenIcon` | Confirmed |
 | Steppers | `PlusIcon`, `MinusIcon` | Confirmed at install (`yarn check:icons`) |
 | Mode switch: Shared / Per person | `UsersThreeIcon`, `UserIcon` | Confirmed at install (`yarn check:icons`), added in T4.2 |
@@ -217,7 +218,7 @@ Top to bottom on mobile:
 2. **Route plates:** "Pick your route" label and three plates (see §5.3).
 3. **Group row:** group-size stepper, then "Apply to all shared" and "Reset to preset" text buttons, then a status line (§5.9).
 4. **Bucket list:** 5 line items, each with a 32px icon tile.
-5. **Rates:** collapsed "Rates" row; opens inline.
+5. **Rates:** collapsed "Rates" row; opens inline. Until the receipt arrives in T6.3 it sits between the bucket list and the totals (T5.2).
 6. **Printer slot and receipt section:** a black slot bar, then the live receipt hanging from it.
 7. **Actions:** Export receipt (primary), Copy link (secondary), status line.
 8. **CTA card** ("Next stop"): only when enabled and valid.
@@ -229,7 +230,7 @@ Rules:
 - Touch targets at least 44×44px. Inputs 48px tall, **16px minimum text** (prevents iOS focus zoom).
 - **One hint per row (T4.4).** A number field never draws its own hint. The row that holds the fields draws one hint, in one reserved slot **below every control in the row**, so a hint appearing never moves a control the user is about to tap. The latest commit wins. A bucket's slot is two lines (32px, 16px line height) and holds the formula line when there is no hint, so the hint *replaces* the formula. The group row's slot is its status line, also two lines; an action's status replaces a hint. Every hint starts with its field's name in bold (§5.2), because it is not under the field. Any new row of fields (T5.2 rates) follows this, with the slot last.
 - **Group total row (T5.1 review).** Below 560px the label sits above the amount, which is right-aligned; from 560px they share one row, label left and amount right. This is decided by the viewport and not by the amount's length, because with a wrap-when-it-doesn't-fit row the group total changed layout between ₦ (11 characters, wrapped) and $ or £ (10 characters, one line), which moved the stamp by a line on every currency switch and on any edit that changed the length. The cost is one extra line on phones. From 560px the longest label and amount ("Group total · 100 people" and ₦24,975,000,000,000) fit one row, about 450px of 528px; `flex-wrap` stays as a safety net.
-- **Per-person total size (T4.4).** `--t-2xl` (40px) for 11 characters or fewer, `--t-xl` (28px) for 12 or more (`totalSizeToken` in `ResultsPanel.tsx`). Space Mono is about 0.61em wide: 11 characters at 40px is about 269px, inside the 288px column at 320px; 12 would be about 294px. The max-values total (16 characters) at 28px is about 274px. `whitespace-nowrap` plus `overflow-wrap: anywhere` are a safety net only: under `nowrap` an over-long amount overflows rather than splitting its digits.
+- **Per-person total size (T4.4).** `--t-2xl` (40px) for 11 characters or fewer, `--t-xl` (28px) for 12 to 16, `--t-lg` (20px) for 17 or more (`totalSizeToken` in `ResultsPanel.tsx`). Space Mono is about 0.61em wide: 11 characters at 40px is about 269px, inside the 288px column at 320px; 12 would be about 294px. The max-values total in naira (16 characters) at 28px is about 274px. 17 characters at 28px would be about 290px, wider than the column at 320px: `$4,995,000,000.00` is reachable at a rate of 50 with the maximum prices (T5.2), hence the third step. `whitespace-nowrap` plus `overflow-wrap: anywhere` are a safety net only: under `nowrap` an over-long amount overflows rather than splitting its digits.
 
 ---
 
@@ -309,6 +310,8 @@ One `role="status"` line under the actions, with an icon: `CheckIcon` for succes
 
 ### 5.10 Inline panel (rates, export result)
 Expands in place with a dashed top rule. Rates: two inputs ("₦ per $1", "₦ per £1"), "as of <date>" or a "Custom rates" tag, "Reset rates" with `ArrowCounterClockwiseIcon`.
+
+**Built for rates (T5.2).** A section under the bucket list with a dashed top rule. Its toggle is a full-width row, 44px high, inside an `h3`: "Rates" in Bungee on the left, and on the right the tag and `CaretDownIcon` (upside down while open), with `aria-expanded` and `aria-controls`. The tag is always visible, closed or open: plain muted "as of 23 Nov 2026" for the config defaults, or a framed bold "Custom rates" (2px ink border, shape and weight, not colour alone) as soon as either rate differs from the default; it is derived, so editing a rate back to its default brings the date back. The panel opens instantly, with no height animation (so nothing to turn off for reduced motion), and stays in the page while closed (`hidden`). Inside: the two fields side by side (`grid-cols-2`, 16px gap, which fits the 136px halves at 320px: the longest text, `100,000.00`, is about 126px with its padding and border), then "Reset rates" as a text button, then one reserved two-line status slot (`role="status"`, 32px) that holds the field's hint or the reset status, the latest one winning, like a bucket line. Rates take up to 2 decimals (`inputMode="decimal"`). A number outside 50 to 100,000 (0 included) or with more than 2 decimals does not clamp: the old rate stays and an error hint says so. Closing the panel clears the hint and status.
 
 ### 5.11 Notice banner
 Full-width, dashed border, `--muted` text, dismiss button. For the bad-link notice. `role="status"`.
@@ -413,7 +416,11 @@ Standard English with light Nigerian Pidgin, one Pidgin phrase per message at mo
 | Invalid number | "That number no make sense. We kept your old one." |
 | Value clamped (max) | "Max is ₦50,000,000, so we adjusted it." |
 | Value clamped (min) | "Min is {x}, so we adjusted it." |
-| Hint prefix | "{Field}: {hint}", for example "Nights: Max is 999, so we adjusted it." Field is Price, the line's quantity label, Split or Group size. |
+| Rate out of range (kept) | "Use 50 to 100,000. We kept your old number." |
+| Rate too many decimals (kept) | "Max 2 decimals. We kept your old number." |
+| Rates reset | "Rates reset to the defaults." |
+| Rates, nothing to reset | "Rates already at the defaults." |
+| Hint prefix | "{Field}: {hint}", for example "Nights: Max is 999, so we adjusted it." Field is Price, the line's quantity label, Split or Group size, or on the rates panel "₦ per $1" or "₦ per £1". |
 | Bad share link | "We couldn't read that link, so here's a fresh calculation." |
 | Link copied | "Link copied. Drop it in the group chat." |
 | Clipboard blocked | "Copy blocked. Press and hold the link below to copy." |
@@ -422,6 +429,7 @@ Standard English with light Nigerian Pidgin, one Pidgin phrase per message at mo
 | Export failed | "Receipt no gree print. Try again, or press and hold the picture to save." |
 | In-app browser | "Tip: open this page in your browser for the best save and share." |
 | Custom rates tag | "Custom rates" |
+| Default rates tag | "as of {date}", for example "as of 23 Nov 2026" (day without a leading zero, three-letter month) |
 | CTA label | "NEXT STOP" |
 | Footer credit | "Built in Lagos by <name>" |
 | 404 | "Wrong bus. This page no dey here." |

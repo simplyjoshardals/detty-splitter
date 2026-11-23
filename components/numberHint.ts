@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { formatNumberInput, type NumberRange, type ParseResult } from "@/lib/input";
+import {
+  formatNumberInput,
+  type NumberRange,
+  type ParseResult,
+  type RevertReason,
+} from "@/lib/input";
 
 /**
  * What the last commit told the user. `forValue` is the saved number the hint was about:
@@ -7,7 +12,7 @@ import { formatNumberInput, type NumberRange, type ParseResult } from "@/lib/inp
  */
 export type Hint =
   | { kind: "clamped"; bound: "min" | "max"; forValue: number }
-  | { kind: "reverted"; reason: "empty" | "invalid"; forValue: number };
+  | { kind: "reverted"; reason: RevertReason; forValue: number };
 
 export function hintFromResult(result: ParseResult): Hint | null {
   switch (result.status) {
@@ -27,9 +32,19 @@ export function hintText(hint: Hint, range: NumberRange, prefix: string): string
     const name = hint.bound === "max" ? "Max" : "Min";
     return `${name} is ${prefix}${formatNumberInput(limit)}, so we adjusted it.`;
   }
-  return hint.reason === "empty"
-    ? "Nothing there, so we kept your old number."
-    : "That number no make sense. We kept your old one.";
+  switch (hint.reason) {
+    case "empty":
+      return "Nothing there, so we kept your old number.";
+    case "invalid":
+      return "That number no make sense. We kept your old one.";
+    // "range" and "decimals" only come from ranges that revert or take decimals (the rates).
+    case "range":
+      return `Use ${prefix}${formatNumberInput(range.min)} to ${prefix}${formatNumberInput(range.max)}. We kept your old number.`;
+    case "decimals": {
+      const places = range.decimals ?? 0;
+      return `Max ${places} ${places === 1 ? "decimal" : "decimals"}. We kept your old number.`;
+    }
+  }
 }
 
 /** What a field needs from its row to show its hint in the row's shared slot. */

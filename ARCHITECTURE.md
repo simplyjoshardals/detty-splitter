@@ -276,7 +276,7 @@ detty-splitter/
 No `src/` folder. `app/` is the stock `create-next-app` folder (`favicon.ico`, `globals.css`, `layout.tsx`, `page.tsx`), and the other folders are siblings of it at the project root. Per the Next.js docs, `components/` and `lib/` have no special meaning and live outside `app/` here, which the docs list as a valid strategy ("store project files outside of `app`"). When you run `create-next-app`, answer **No** to "Use `src/` directory?". Make sure Tailwind picks up classes in `components/` too (Tailwind v4 detects sources automatically; on v3 list the folders in the config).
 
 Rules of placement:
-- `lib/calc`, `lib/money`, `lib/input`, `lib/share` must not import React. This keeps them testable and reusable by the receipt renderer.
+- `lib/calc`, `lib/money`, `lib/input`, `lib/rates`, `lib/share` must not import React. This keeps them testable and reusable by the receipt renderer.
 - Components never contain pricing numbers; those live in `data/`.
 - Every environment variable is read in `config/` only.
 - Tier thresholds and taglines live in `data/` so you can tune them (O1) without touching logic.

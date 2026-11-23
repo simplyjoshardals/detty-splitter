@@ -85,10 +85,10 @@ interface AppState {
 | `headcount` | integer | 1 to 100 | Clamp up to 1, never 0 (prevents divide-by-zero) |
 | `groupSize` | integer | 1 to 100 | Clamp |
 | `currency` | enum | `NGN` / `USD` / `GBP` | Display only: `setCurrency` writes nothing else, so ₦ values, rates and the tier never move. An unknown code is rejected (ignored by the reducer, rejected by the decoder) |
-| `rates.ngnPerUsd`, `ngnPerGbp` | number, at most 2 decimals | 50 to 100,000 | Clamp. Never 0 or negative (prevents divide-by-zero) |
+| `rates.ngnPerUsd`, `ngnPerGbp` | number, at most 2 decimals | 50 to 100,000 | The rate field rejects an out-of-range number: it shows a hint and keeps the old rate (T5.2; clamping a typo like 15 into 50 would look plausible). The reducer (`setRate`) and the link decoder clamp. Never 0 or negative (prevents divide-by-zero) |
 | `presetId` | enum | `budget` / `soft` / `baller` | |
 
-Input-field rules: users may type commas or spaces; strip them, then parse. Empty or non-numeric input keeps the previous value rather than writing `NaN`.
+Input-field rules: users may type commas or spaces; strip them, then parse. Empty or non-numeric input keeps the previous value rather than writing `NaN`. Rates also take one `.` and at most 2 decimals (more is rejected, never rounded); commas are always thousands separators, never decimals.
 
 ### 2.3 Bucket semantics
 

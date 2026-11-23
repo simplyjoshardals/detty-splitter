@@ -62,7 +62,9 @@ interface FieldDraft { text: string | null; lastGood: number }
 type ParseResult =
   | { status: 'ok'; value: number }
   | { status: 'clamped'; value: number; bound: 'min' | 'max' }
-  | { status: 'reverted'; value: number; reason: 'empty' | 'invalid' }
+  | { status: 'reverted'; value: number; reason: 'empty' | 'invalid' | 'decimals' | 'range' }
+// 'decimals' (too many digits after the point) and 'range' (outside min..max when the range says
+// onOutOfRange: 'revert') only come from ranges with `decimals`, i.e. the rates (T5.2).
 ```
 
 `ReceiptView` stays as defined in DATA_MODEL.md §6. The UI never passes raw state to the renderer.
@@ -106,7 +108,7 @@ Keep the client boundary as low as practical: static copy (footer, headings) can
 
 ### 2.2 State
 
-- `useReducer` + context in `state/`. Actions: select preset (also "Reset to preset": the same action with the current preset id), set bucket number (price, quantity, headcount), set bucket mode, set group size, apply group size to shared, set currency, set rate, load state (from link or storage). `setCurrency` (T5.1) changes only `currency`; an unknown code is ignored and an unchanged value returns the same state object, like the other actions.
+- `useReducer` + context in `state/`. Actions: select preset (also "Reset to preset": the same action with the current preset id), set bucket number (price, quantity, headcount), set bucket mode, set group size, apply group size to shared, set currency, set rate, reset rates, load state (from link or storage). `setCurrency` (T5.1) changes only `currency`; an unknown code is ignored and an unchanged value returns the same state object, like the other actions. `setRate` (T5.2) writes one of the two rates, clamped into 50 to 100,000 (so 0 is impossible) and ignores a value that is not finite or has more than 2 decimals; `resetRates` restores `DEFAULT_RATES` and nothing else.
 - **Hydration rule:** the first client render must match the server HTML (the default scenario). After mount, an effect applies hash, else localStorage, else leaves the default. Result: link receivers see the defaults for a moment before their numbers swap in. This is a small, known flash; accept it, and mark the results region `aria-busy` for that frame.
 - Input drafts (`FieldDraft`) live inside the field component, so typing "1,5" never writes a half-parsed number into AppState.
 
@@ -116,7 +118,7 @@ None. No network calls after first load other than the analytics script. No cach
 
 ### 2.4 Forms and validation
 
-No form library. Each numeric field uses the same `parseNumberInput(text, range, lastGood)` from `lib/input`, returning `ParseResult`. Ranges (`RANGES`) come from DATA_MODEL.md §2.2. On blur or Enter: clamp, revert to `lastGood` if empty or invalid, and show the hint from §9 of DESIGN.md. The field only reports the hint (`hint`, `onHintChange`, `hintId` props). The row that holds the fields owns it (`useRowHint`) and draws one hint in a reserved slot below its controls, starting with the field's name (DESIGN §4, §5.2), so a hint never moves a control the user is about to tap.
+No form library. Each numeric field uses the same `parseNumberInput(text, range, lastGood)` from `lib/input`, returning `ParseResult`. Ranges (`RANGES`) come from DATA_MODEL.md §2.2. On blur or Enter: clamp, revert to `lastGood` if empty or invalid, and show the hint from §9 of DESIGN.md. A range can add `decimals` (a decimal point, rates only) and `onOutOfRange: 'revert'`, which keeps `lastGood` with a hint instead of clamping; the two rate fields use both (`RANGES.rate`). The field only reports the hint (`hint`, `onHintChange`, `hintId` props). The row that holds the fields owns it (`useRowHint`) and draws one hint in a reserved slot below its controls, starting with the field's name (DESIGN §4, §5.2), so a hint never moves a control the user is about to tap.
 
 ### 2.5 Export architecture (important)
 
@@ -132,7 +134,7 @@ No form library. Each numeric field uses the same `parseNumberInput(text, range,
 
 | Layer | Tool | What |
 |---|---|---|
-| Unit | Vitest | `lib/calc`, `lib/money`, `lib/share` (all 20 bad links, round trip), tier lookup, `parseNumberInput` |
+| Unit | Vitest | `lib/calc`, `lib/money`, `lib/rates`, `lib/share` (all 20 bad links, round trip), tier lookup, `parseNumberInput` |
 | Component | Vitest + React Testing Library | BucketEditor (mode switch, headcount, clamp hint), CurrencyToggle, ShareBar (copied/denied), CtaCard (hidden when flag off or URL invalid). Query by role and label, no snapshots |
 | End to end | Playwright, one flow | Default → edit a bucket → switch currency → copy link → open link in a fresh page → numbers match → export triggers a download |
 | Accessibility | axe check inside the Playwright flow (**VERIFY** current package/version) plus a manual keyboard pass | No violations on the main page; whole flow by keyboard |

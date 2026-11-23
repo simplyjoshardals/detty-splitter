@@ -53,7 +53,10 @@ function deletionOf(event: Event): "backward" | "forward" | null {
  *   after the digit it was after, so it never jumps.
  * - The number is committed on blur or Enter only, so a half-typed value like "1,5" can
  *   never reach AppState. Empty or invalid text reverts to the saved number with a hint.
- *   Too big or too small is clamped, with a hint (not an error).
+ *   Too big or too small is clamped, with a hint (not an error), unless the range says
+ *   `onOutOfRange: "revert"` (the rates): then the saved number is kept, with an error hint.
+ * - A range with `decimals` (the rates) also takes one ".", kept as typed while the part
+ *   before it is regrouped.
  * - The hint is owned and drawn by the row (DESIGN §4); this field only reports it.
  */
 export function NumberField({
@@ -83,6 +86,7 @@ export function NumberField({
     if (document.activeElement === input) input.setSelectionRange(caret, caret);
   }, [draft]);
 
+  const decimals = range.decimals ?? 0;
   const text = draft ?? formatNumberInput(value);
 
   function commit(rawText: string): ParseResult {
@@ -101,7 +105,7 @@ export function NumberField({
     const input = event.currentTarget;
     const raw = input.value;
     const caret = input.selectionStart ?? raw.length;
-    const edit = applyDraftEdit(text, raw, caret, deletionOf(event.nativeEvent));
+    const edit = applyDraftEdit(text, raw, caret, deletionOf(event.nativeEvent), decimals);
     pendingCaret.current = edit.caret;
     if (edit.text === text && raw !== edit.text) {
       // The edit changed nothing after reformatting (a second "0" at the start), so React
@@ -152,7 +156,9 @@ export function NumberField({
           ref={inputRef}
           id={id}
           type="text"
-          inputMode="numeric"
+          // The numeric keypad has no decimal point on iOS, so a field with decimals asks for
+          // the decimal one.
+          inputMode={decimals > 0 ? "decimal" : "numeric"}
           enterKeyHint="done"
           autoComplete="off"
           autoCorrect="off"

@@ -33,7 +33,15 @@ export const CTA_URL: string | null = parseHttpsUrl(
 
 /**
  * PLACEHOLDER default rates, in naira per 1 unit of foreign currency. Not real:
- * 1,500 is the DATA_MODEL example and the GBP figure is made up. Replace both from a
- * real source before launch (DATA_MODEL §0 decision 5). The "as of" date arrives in T5.2.
+ * 1,500 is the DATA_MODEL example and the GBP figure is made up. Replace both, and
+ * RATES_AS_OF, from a real source before launch (DATA_MODEL §0 decision 5).
+ * Each must stay inside RANGES.rate, with at most 2 decimals (tests/rates.test.ts checks).
  */
 export const DEFAULT_RATES: Rates = { ngnPerUsd: 1500, ngnPerGbp: 2000 };
+
+/**
+ * PLACEHOLDER: the date DEFAULT_RATES were read from the real source, as an ISO date
+ * (YYYY-MM-DD). The UI shows it as "as of 23 Nov 2026" until a rate is edited. Set it
+ * together with DEFAULT_RATES before launch; today's date only keeps the UI honest in dev.
+ */
+export const RATES_AS_OF = "2026-11-23";

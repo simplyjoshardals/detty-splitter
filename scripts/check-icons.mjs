@@ -29,6 +29,7 @@ const REQUIRED = [
   "WarningIcon",
   "UsersThreeIcon",
   "UserIcon",
+  "CaretDownIcon",
 ];
 
 const ENTRIES = ["@phosphor-icons/react/ssr", "@phosphor-icons/react"];

@@ -3,6 +3,7 @@ import {
   RANGES,
   applyDraftEdit,
   caretAfterDigits,
+  clampDecimal,
   clampInteger,
   countDigitsBefore,
   formatNumberInput,
@@ -26,6 +27,7 @@ describe("RANGES (DATA_MODEL §2.2)", () => {
     expect(RANGES.quantity).toEqual({ min: 0, max: 999 });
     expect(RANGES.headcount).toEqual({ min: 1, max: 100 });
     expect(RANGES.groupSize).toEqual({ min: 1, max: 100 });
+    expect(RANGES.rate).toEqual({ min: 50, max: 100000, decimals: 2, onOutOfRange: "revert" });
   });
 });
 
@@ -354,5 +356,196 @@ describe("applyDraftEdit: deleting a comma deletes the neighbouring digit", () =
 
   it("ignores a separator delete when there is no digit to take (caret at the start)", () => {
     expect(applyDraftEdit("1,500", "1500", 0, "backward")).toEqual({ text: "1,500", caret: 0 });
+  });
+});
+// Exchange rates (T5.2): two decimals, and out of range keeps the old rate instead of clamping.
+describe("parseNumberInput: rates (2 decimals, out of range reverts)", () => {
+  const RATE = RANGES.rate;
+  const OLD = 1500;
+  const parseRate = (text: string): ParseResult => parseNumberInput(text, RATE, OLD);
+  const reverted = (reason: "empty" | "invalid" | "decimals" | "range"): ParseResult => ({
+    status: "reverted",
+    value: OLD,
+    reason,
+  });
+
+  const OK_CASES: ReadonlyArray<[string, number]> = [
+    ["1500", 1500],
+    ["1,537.37", 1537.37],
+    ["1537.5", 1537.5],
+    ["1537.50", 1537.5],
+    ["1 999.99", 1999.99],
+    ["1500.", 1500], // a trailing point is just unfinished typing
+    ["50", 50], // the bounds themselves are fine
+    ["50.00", 50],
+    ["100,000", 100000],
+    ["100000.00", 100000],
+    ["0050.5", 50.5],
+    ["1500.55", 1500.55],
+  ];
+  it.each(OK_CASES)("parses %j as %d", (text, value) => {
+    expect(parseRate(text)).toEqual({ status: "ok", value });
+  });
+
+  it("is exact for 2-decimal values that floating point struggles with", () => {
+    for (const text of ["1500.55", "1999.99", "1537.37", "50.07", "99999.99"]) {
+      const result = parseRate(text);
+      expect(result.status).toBe("ok");
+      expect(result.value).toBe(Number(text));
+    }
+  });
+
+  it("rate 0 and anything under the minimum keep the old rate", () => {
+    for (const text of ["0", "0.00", "00", "49", "49.99", ".5", "0.5"]) {
+      expect(parseRate(text), text).toEqual(reverted("range"));
+    }
+  });
+
+  it("anything over the maximum keeps the old rate", () => {
+    for (const text of ["100,000.01", "100001", "99999999999999999999", "1".repeat(40)]) {
+      expect(parseRate(text), text).toEqual(reverted("range"));
+    }
+  });
+
+  it("rejects more than 2 decimals instead of rounding", () => {
+    for (const text of ["1500.555", "1500.001", "1500.000", "49.999"]) {
+      expect(parseRate(text), text).toEqual(reverted("decimals"));
+    }
+  });
+
+  it("reverts empty and non-numbers like every other field", () => {
+    expect(parseRate("")).toEqual(reverted("empty"));
+    expect(parseRate(" , ")).toEqual(reverted("empty"));
+    for (const text of ["abc", "-1500", "+1500", "1e3", "1.2.3", ".", "1,5.5.", "₦1500", "1500,5x"]) {
+      expect(parseRate(text), text).toEqual(reverted("invalid"));
+    }
+  });
+
+  it("treats a comma as a thousands separator, never a decimal mark", () => {
+    // A comma-decimal keyboard typing "1500,5" gives 15005 (known limit, README/DESIGN).
+    expect(parseRate("1500,5")).toEqual({ status: "ok", value: 15005 });
+    expect(parseRate("1,5")).toEqual(reverted("range")); // 15
+  });
+
+  it("never gives back NaN, whatever is typed", () => {
+    for (const text of ["", "x", ".", "..", "1..2", "--5", "Infinity", "NaN", "0x1F"]) {
+      const result = parseRate(text);
+      expect(Number.isNaN(result.value), text).toBe(false);
+    }
+  });
+
+  it("leaves whole-number ranges exactly as they were (a point is still invalid)", () => {
+    expect(parsePrice("1.5")).toEqual({ status: "reverted", value: LAST_GOOD, reason: "invalid" });
+    expect(parseNumberInput("1.5", RANGES.quantity, 3)).toEqual({
+      status: "reverted",
+      value: 3,
+      reason: "invalid",
+    });
+  });
+
+  it("still clamps in a decimals range that doesn't ask to revert", () => {
+    const range: NumberRange = { min: 1, max: 10, decimals: 1 };
+    expect(parseNumberInput("99.5", range, 5)).toEqual({ status: "clamped", value: 10, bound: "max" });
+    expect(parseNumberInput("0.5", range, 5)).toEqual({ status: "clamped", value: 1, bound: "min" });
+    expect(parseNumberInput("2.5", range, 5)).toEqual({ status: "ok", value: 2.5 });
+  });
+});
+
+describe("clampDecimal (the reducer's second line of defence for rates)", () => {
+  it("keeps in-range values with up to 2 decimals exactly", () => {
+    expect(clampDecimal(1500, RANGES.rate)).toBe(1500);
+    expect(clampDecimal(1500.55, RANGES.rate)).toBe(1500.55);
+    expect(clampDecimal(50, RANGES.rate)).toBe(50);
+    expect(clampDecimal(100000, RANGES.rate)).toBe(100000);
+  });
+
+  it("always clamps into the range, so 0 and negatives can never get through", () => {
+    expect(clampDecimal(0, RANGES.rate)).toBe(50);
+    expect(clampDecimal(-5, RANGES.rate)).toBe(50);
+    expect(clampDecimal(49.99, RANGES.rate)).toBe(50);
+    expect(clampDecimal(100000.01, RANGES.rate)).toBe(100000);
+    expect(clampDecimal(Number.MAX_VALUE, RANGES.rate)).toBe(100000);
+  });
+
+  it("returns null for NaN, Infinity and more decimals than allowed", () => {
+    expect(clampDecimal(Number.NaN, RANGES.rate)).toBeNull();
+    expect(clampDecimal(Number.POSITIVE_INFINITY, RANGES.rate)).toBeNull();
+    expect(clampDecimal(Number.NEGATIVE_INFINITY, RANGES.rate)).toBeNull();
+    expect(clampDecimal(1500.555, RANGES.rate)).toBeNull();
+    expect(clampDecimal(1500.001, RANGES.rate)).toBeNull();
+  });
+});
+
+describe("decimal drafts: formatting a saved rate and typing one", () => {
+  it("formatNumberInput shows decimals only when there are some", () => {
+    expect(formatNumberInput(1500)).toBe("1,500");
+    expect(formatNumberInput(1500.5)).toBe("1,500.5");
+    expect(formatNumberInput(1537.37)).toBe("1,537.37");
+    expect(formatNumberInput(100000)).toBe("100,000");
+  });
+
+  it("isNumericDraft takes one point followed by digits when decimals are on", () => {
+    expect(isNumericDraft("1,500.55", 2)).toBe(true);
+    expect(isNumericDraft("1500.", 2)).toBe(true);
+    expect(isNumericDraft(".5", 2)).toBe(true);
+    expect(isNumericDraft("1.5.5", 2)).toBe(false);
+    expect(isNumericDraft("1.5,5", 2)).toBe(false);
+    expect(isNumericDraft("1.5", 0)).toBe(false); // whole-number fields are unchanged
+  });
+
+  const type = (text: string, key: string) => applyDraftEdit(text, text + key, text.length + 1, null, 2);
+
+  it("types 1,537.37 key by key, caret always at the end", () => {
+    let text = "";
+    for (const key of "1537.37") {
+      const raw = text + key;
+      const edit = applyDraftEdit(text, raw, raw.length, null, 2);
+      text = edit.text;
+      expect(edit.caret).toBe(text.length);
+    }
+    expect(text).toBe("1,537.37");
+  });
+
+  it("keeps a typed point, and the caret stays after it", () => {
+    expect(type("1,500", ".")).toEqual({ text: "1,500.", caret: 6 });
+    expect(type("", ".")).toEqual({ text: ".", caret: 1 });
+  });
+
+  it("regroups only the part before the point, and leaves the fraction as typed", () => {
+    // "1,500.5" with a digit typed at the start (caret 1 after typing).
+    expect(applyDraftEdit("1,500.5", "91,500.5", 1, null, 2)).toEqual({ text: "91,500.5", caret: 1 });
+    expect(applyDraftEdit("999.5", "9,999.5", 5, null, 2)).toEqual({ text: "9,999.5", caret: 5 });
+  });
+
+  it("keeps the caret in the fraction when typing there", () => {
+    // "1,500.5" and a "2" typed right after the point.
+    expect(applyDraftEdit("1,500.5", "1,500.25", 7, null, 2)).toEqual({ text: "1,500.25", caret: 7 });
+  });
+
+  it("drops leading zeros before the point but keeps 0.5", () => {
+    expect(applyDraftEdit("0", "05", 2, null, 2)).toEqual({ text: "5", caret: 1 });
+    expect(applyDraftEdit("0", "0.", 2, null, 2)).toEqual({ text: "0.", caret: 2 });
+    expect(applyDraftEdit("0.", "0.5", 3, null, 2)).toEqual({ text: "0.5", caret: 3 });
+  });
+
+  it("deleting the point is a normal edit, not a separator delete", () => {
+    expect(applyDraftEdit("1,500.5", "1,5005", 5, "backward", 2)).toEqual({ text: "15,005", caret: 5 });
+  });
+
+  it("Backspace over a comma still deletes the neighbouring digit with decimals on", () => {
+    expect(applyDraftEdit("1,234.5", "1234.5", 1, "backward", 2)).toEqual({ text: "234.5", caret: 0 });
+  });
+
+  it("leaves a second point or letters as typed, so blur can report them", () => {
+    expect(applyDraftEdit("1.5", "1.5.", 4, null, 2)).toEqual({ text: "1.5.", caret: 4 });
+    expect(applyDraftEdit("1", "1a", 2, null, 2)).toEqual({ text: "1a", caret: 2 });
+  });
+
+  it("does not cut off a third decimal while typing (blur reports it)", () => {
+    expect(applyDraftEdit("1,500.55", "1,500.555", 9, null, 2)).toEqual({ text: "1,500.555", caret: 9 });
+  });
+
+  it("without decimals a point is still left as typed", () => {
+    expect(applyDraftEdit("", "1.5", 3, null)).toEqual({ text: "1.5", caret: 3 });
   });
 });

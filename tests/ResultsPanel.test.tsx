@@ -239,14 +239,22 @@ describe("totalSizeToken", () => {
     expect(totalSizeToken("₦12,345,678")).toBe("--t-2xl"); // 11 characters
   });
 
-  it("drops to 28px at 12 characters or more", () => {
+  it("drops to 28px from 12 characters up to 16", () => {
     expect(totalSizeToken("₦123,456,789")).toBe("--t-xl"); // 12 characters
-    expect(totalSizeToken("₦249,750,000,000")).toBe("--t-xl"); // the max-values total
+    expect(totalSizeToken("₦249,750,000,000")).toBe("--t-xl"); // the max-values total, 16 characters
+  });
+
+  it("drops to 20px from 17 characters, so the largest total at a rate of 50 fits at 320px", () => {
+    expect(totalSizeToken("$4,995,000,000.00")).toBe("--t-lg"); // 17 characters
+    expect(totalSizeToken("£4,995,000,000.00")).toBe("--t-lg");
+    expect(totalSizeToken("$499,500,000,000.00")).toBe("--t-lg");
   });
 
   it("counts ₦ as one character, not by UTF-16 units", () => {
     expect(totalSizeToken("\u20A6".repeat(11))).toBe("--t-2xl");
     expect(totalSizeToken("\u20A6".repeat(12))).toBe("--t-xl");
+    expect(totalSizeToken("\u20A6".repeat(16))).toBe("--t-xl");
+    expect(totalSizeToken("\u20A6".repeat(17))).toBe("--t-lg");
   });
 });
 

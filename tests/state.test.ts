@@ -443,3 +443,100 @@ describe("setCurrency", () => {
     expect(reset.currency).toBe("GBP");
   });
 });
+describe("setRate", () => {
+  const setRate = (state: AppState, rate: unknown, value: number) =>
+    // The cast stands in for hostile input (a decoded link, a bad caller) that types can't stop.
+    appReducer(state, { type: "setRate", rate, value } as { type: "setRate"; rate: "ngnPerUsd"; value: number });
+
+  it("changes only the one rate that was set", () => {
+    const base = createInitialState();
+    const usd = setRate(base, "ngnPerUsd", 1537.37);
+    expect(usd.rates).toEqual({ ngnPerUsd: 1537.37, ngnPerGbp: DEFAULT_RATES.ngnPerGbp });
+    expect({ ...usd, rates: base.rates }).toEqual(base);
+
+    const gbp = setRate(base, "ngnPerGbp", 1999.99);
+    expect(gbp.rates).toEqual({ ngnPerUsd: DEFAULT_RATES.ngnPerUsd, ngnPerGbp: 1999.99 });
+  });
+
+  it("returns the same state object when the rate is unchanged", () => {
+    const base = createInitialState();
+    expect(setRate(base, "ngnPerUsd", DEFAULT_RATES.ngnPerUsd)).toBe(base);
+    const custom = setRate(base, "ngnPerGbp", 2100);
+    expect(setRate(custom, "ngnPerGbp", 2100)).toBe(custom);
+  });
+
+  it("clamps into 50..100,000, so rate 0 can never be stored", () => {
+    const base = createInitialState();
+    expect(setRate(base, "ngnPerUsd", 0).rates.ngnPerUsd).toBe(50);
+    expect(setRate(base, "ngnPerUsd", -100).rates.ngnPerUsd).toBe(50);
+    expect(setRate(base, "ngnPerGbp", 49.99).rates.ngnPerGbp).toBe(50);
+    expect(setRate(base, "ngnPerGbp", 1e12).rates.ngnPerGbp).toBe(100000);
+  });
+
+  it.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, 1500.555])(
+    "ignores %j, never writes it",
+    (bad) => {
+      const base = createInitialState();
+      expect(setRate(base, "ngnPerUsd", bad)).toBe(base);
+    },
+  );
+
+  it.each(["ngnPerEur", "USD", "", null, undefined, 7, {}])("ignores the rate key %j", (bad) => {
+    const base = createInitialState();
+    expect(setRate(base, bad, 1600)).toBe(base);
+  });
+
+  it("changes the dollar total and leaves the naira values and the tier alone", () => {
+    const base = { ...createInitialState(), currency: "USD" as const };
+    const next = setRate(base, "ngnPerUsd", 3000);
+    const before = calculate(base, TIERS);
+    const after = calculate(next, TIERS);
+    expect(after.perPersonMinor).toBeLessThan(before.perPersonMinor);
+    expect(after.tier).toBe(before.tier);
+    expect(next.buckets).toBe(base.buckets);
+  });
+
+  it("is kept by selectPreset, so Reset to preset keeps custom rates", () => {
+    const custom = setRate(createInitialState(), "ngnPerUsd", 1600.5);
+    const reset = appReducer(custom, { type: "selectPreset", presetId: custom.presetId });
+    expect(reset.rates).toEqual(custom.rates);
+  });
+
+  it("does not mutate the previous state or the config defaults", () => {
+    const frozen = deepFreeze(createInitialState());
+    setRate(frozen, "ngnPerUsd", 1700);
+    expect(DEFAULT_RATES).toEqual({ ngnPerUsd: 1500, ngnPerGbp: 2000 });
+  });
+});
+
+describe("resetRates", () => {
+  const edited = () =>
+    appReducer(
+      appReducer(createInitialState(), { type: "setRate", rate: "ngnPerUsd", value: 1600 }),
+      { type: "setRate", rate: "ngnPerGbp", value: 2100 },
+    );
+
+  it("puts both rates back to the config defaults", () => {
+    expect(appReducer(edited(), { type: "resetRates" }).rates).toEqual(DEFAULT_RATES);
+  });
+
+  it("returns the same state object when the rates are already the defaults", () => {
+    const base = createInitialState();
+    expect(appReducer(base, { type: "resetRates" })).toBe(base);
+  });
+
+  it("changes nothing but the rates, currency and preset edits included", () => {
+    const state = { ...edited(), currency: "GBP" as const, groupSize: 9 };
+    const next = appReducer(state, { type: "resetRates" });
+    expect({ ...next, rates: state.rates }).toEqual(state);
+  });
+
+  it("hands out a copy, so editing a rate later can't change the config defaults", () => {
+    const next = appReducer(edited(), { type: "resetRates" });
+    expect(next.rates === DEFAULT_RATES).toBe(false);
+  });
+
+  it("does not mutate the previous state", () => {
+    appReducer(deepFreeze(edited()), { type: "resetRates" });
+  });
+});

@@ -1,14 +1,23 @@
 /**
  * App state (DATA_MODEL.md §2). Plain TypeScript, no React, so it can be tested directly.
  * `selectPreset`, `setBucketNumber`, `setBucketMode`, `setGroupSize`,
- * `applyGroupSizeToShared` and `setCurrency` exist so far. The rate and load actions arrive
- * in Slices 5 and 8, together with their clamping.
+ * `applyGroupSizeToShared`, `setCurrency`, `setRate` and `resetRates` exist so far. The load
+ * actions arrive in Slice 8, together with their clamping.
  */
 import { DEFAULT_RATES } from "@/config";
 import { DEFAULT_PRESET_ID, PRESETS, type Preset } from "@/data/presets";
-import { RANGES, clampInteger } from "@/lib/input";
+import { RANGES, clampDecimal, clampInteger } from "@/lib/input";
 import { isCurrencyCode } from "@/lib/money";
-import type { AppState, Bucket, BucketId, CurrencyCode, Mode, PresetId } from "@/lib/types";
+import { ratesAreCustom } from "@/lib/rates";
+import type {
+  AppState,
+  Bucket,
+  BucketId,
+  CurrencyCode,
+  Mode,
+  PresetId,
+  Rates,
+} from "@/lib/types";
 
 /** Copies preset values into fresh bucket objects (nothing is shared with PRESETS). */
 function bucketsFromPreset(preset: Preset): AppState["buckets"] {
@@ -68,7 +77,9 @@ export type AppAction =
   | { type: "setBucketMode"; bucketId: BucketId; mode: Mode }
   | { type: "setGroupSize"; value: number }
   | { type: "applyGroupSizeToShared" }
-  | { type: "setCurrency"; currency: CurrencyCode };
+  | { type: "setCurrency"; currency: CurrencyCode }
+  | { type: "setRate"; rate: keyof Rates; value: number }
+  | { type: "resetRates" };
 
 // Every action type needs a case. The `never` assignment in `default` turns a forgotten
 // case into a compile error.
@@ -120,6 +131,21 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       // never written, like an unknown mode.
       if (!isCurrencyCode(action.currency) || action.currency === state.currency) return state;
       return { ...state, currency: action.currency };
+    }
+    case "setRate": {
+      // Only the two known rates are written. The field rejects an out-of-range number before
+      // it gets here (RANGES.rate, T5.2); this is the second line of defence (DATA_MODEL §2.2):
+      // clamp into 50..100,000, so 0 or a negative rate can never be stored, and ignore a value
+      // that isn't finite or has more than 2 decimals.
+      if (action.rate !== "ngnPerUsd" && action.rate !== "ngnPerGbp") return state;
+      const next = clampDecimal(action.value, RANGES.rate);
+      if (next === null || next === state.rates[action.rate]) return state;
+      return { ...state, rates: { ...state.rates, [action.rate]: next } };
+    }
+    case "resetRates": {
+      // Back to the config defaults. Nothing else changes, and an unchanged state is returned as is.
+      if (!ratesAreCustom(state.rates, DEFAULT_RATES)) return state;
+      return { ...state, rates: { ...DEFAULT_RATES } };
     }
     default: {
       const unreachable: never = action;

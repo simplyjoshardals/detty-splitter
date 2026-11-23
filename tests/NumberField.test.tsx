@@ -295,3 +295,42 @@ describe("NumberField: clamping", () => {
     expect(screen.getByRole("status").textContent).toBe("");
   });
 });
+
+describe("NumberField: a range with decimals (the rates)", () => {
+  const RATE = { range: RANGES.rate, prefix: "", label: "Rate", initial: 1500 } as const;
+
+  it("asks for the decimal keypad and shows a saved rate with its decimals", () => {
+    const { input } = setup({ ...RATE, initial: 1537.5 });
+    expect(input.inputMode).toBe("decimal");
+    expect(input.value).toBe("1,537.5");
+  });
+
+  it("types a decimal rate, keeps the point and commits the exact number", async () => {
+    const { user, input, onCommit } = setup(RATE);
+    await replaceText(user, input, "1537.37");
+    expect(input.value).toBe("1,537.37");
+    await user.tab();
+    expect(onCommit).toHaveBeenCalledExactlyOnceWith(1537.37);
+  });
+
+  it("keeps the old rate for an out-of-range number and says so, without committing", async () => {
+    const { user, input, onCommit } = setup(RATE);
+    await replaceText(user, input, "49");
+    await user.tab();
+    expect(onCommit).not.toHaveBeenCalled();
+    expect(input.value).toBe("1,500");
+    expect(screen.getByRole("status").textContent).toContain("Use 50 to 100,000. We kept your old number.");
+  });
+
+  it("reports a third decimal instead of rounding it", async () => {
+    const { user, input, onCommit } = setup(RATE);
+    await replaceText(user, input, "1500.555");
+    await user.tab();
+    expect(onCommit).not.toHaveBeenCalled();
+    expect(screen.getByRole("status").textContent).toContain("Max 2 decimals. We kept your old number.");
+  });
+
+  it("leaves whole-number fields on the numeric keypad", () => {
+    expect(setup().input.inputMode).toBe("numeric");
+  });
+});
