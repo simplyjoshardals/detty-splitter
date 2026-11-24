@@ -222,16 +222,17 @@ Illustrative full example (the worked example above, in USD, with the made-up �
 #v1-s-U-4-150000-190000-150000.7.s.4-100000.3.p.4-800000.2.s.4-60000.7.s.4-40000.7.p.4
 ```
 
-Allowed characters: digits, lowercase letters `b s f p`, uppercase `N U G`, `.` and `-`. Nothing else.
+Allowed characters: digits, lowercase letters `v b s f p` (`v` is the version marker), uppercase `N U G`, `.` and `-`. Nothing else.
 
 ### 4.2 Size
 
-Worst case per bucket is `50000000.999.s.100` (18 characters). Five of those plus separators plus the header is about 130 characters, and with a typical origin the full URL stays under about 200 characters. That is short enough that **no compression is needed**. Confirm with a real WhatsApp paste (Risk 3).
+Worst case per bucket is `50000000.999.s.100` (18 characters). Five of those plus separators plus the header is 124 characters with the leading `#` (the tests check it stays under 130), and with the site URL in front the full link is about 157 characters, under the 200 limit. That is short enough that **no compression is needed**. Confirm with a real WhatsApp paste (Risk 3).
 
 ### 4.3 Encoding rules
 
 - The encoder always **rebuilds the string from validated state**. It never echoes anything it read from a link.
 - Round-trip property: `decode(encode(state))` equals `state`.
+- The encoder returns the hash **with** its leading `#` and clamps every number into its range first, so what it writes always decodes. The decoder accepts the hash with or without the `#`, and the length cap counts the `#`.
 - The link is generated **when the user taps "Copy link"**, not on every keystroke. The app does not rewrite the URL while editing, which avoids history clutter and in-app-browser quirks.
 - Load precedence: **hash, then localStorage, then default scenario**.
 
@@ -243,13 +244,15 @@ Treat the hash as hostile input.
 2. If its length is over 300 characters, reject.
 3. Check the character allow-list. Any other character means reject.
 4. Split on `-`. Version must be exactly `v1` and the field count must be exactly 11. Otherwise reject.
-5. Parse each numeric field with a strict digit-only pattern and a maximum digit count. Reject non-digits, signs, decimals, exponents, empty strings and whitespace.
+5. Parse each numeric field with a strict pattern: digits only, no leading zeros (a lone `0` is fine), and a maximum digit count per field (price 12, quantity 6, headcount 6, group 6, rate 10). Every cap is above the legal maximum, so a hand-edited number still clamps in step 8 while an absurd one is rejected. Reject non-digits, signs, decimals, exponents, empty strings, whitespace and leading zeros. Because `-` and `.` are the separators, a sign or a decimal point shows up as a field-count problem (`bad_structure`) rather than a bad number.
 6. Enum fields must match exactly (`b/s/f`, `N/U/G`, `s/p`).
 7. Each bucket must split on `.` into exactly 4 fields.
 8. **Structural problems reject the whole link. Out-of-range numbers are clamped** to §2.2 limits (so a hand-edited ₦99 billion becomes the maximum).
 9. On any rejection, load the default scenario and show a small, non-blocking notice ("Couldn't read that link, here's a fresh one").
 10. Parsed values are only ever shown as text or drawn on a canvas. Never inject them as HTML.
 11. Unknown versions (`v2` and beyond, from the future) are rejected the same way.
+
+Checks run in this order, which fixes the code a link with several problems gets: empty, length, allow-list, version, field counts (top level, then every bucket), then enums and numbers.
 
 ### 4.5 Versioning
 
@@ -333,20 +336,22 @@ Hard rule: **never send amounts, headcounts, rates or the share string.** Event 
 | 4 | Valid link with one bucket removed | Reject |
 | 5 | Valid link with an extra 12th field | Reject |
 | 6 | Bucket with 3 or 5 dot-fields | Reject |
-| 7 | Price `-100000` | Reject (sign not allowed) |
-| 8 | Price `1e9` or `1.5` | Reject |
-| 9 | Price `99999999999999999999` | Reject (digit cap) or clamp to maximum |
+| 7 | Price `-100000` | Reject (`bad_structure`: the minus splits off an extra field) |
+| 8 | Price `1e9` or `1.5` | Reject (`1e9` is `bad_chars`, `1.5` is `bad_structure`) |
+| 9 | Price `99999999999999999999` | Reject (`bad_value`, over the 12-digit cap). An 11-digit price clamps to the maximum |
 | 10 | Headcount `0` | Clamp to 1 |
 | 11 | Group size `0` or `1000` | Clamp to 1 or 100 |
 | 12 | Rate `0` | Clamp to the minimum (never divide by zero) |
-| 13 | Mode `x`, currency `X`, preset `z` | Reject |
+| 13 | Mode `x`, currency `X`, preset `z` | Reject (`bad_chars`; an allowed character from the wrong table, such as preset `p`, is `bad_value`) |
 | 14 | `#v1-<script>alert(1)</script>` and `#v1-%3Cscript%3E` | Reject (character allow-list); nothing is rendered as HTML |
 | 15 | 5,000-character hash | Reject (length cap) |
-| 16 | Valid link with leading zeros (`0150000`) | Accept as 150000, or reject; pick one and keep it consistent |
+| 16 | Valid link with leading zeros (`0150000`) | Reject (`bad_value`). Decided: one state has one canonical link |
 | 17 | Unicode, emoji, spaces, newlines in the hash | Reject |
-| 18 | Truncated link (cut off mid-bucket, as WhatsApp might) | Reject |
-| 19 | Valid link, uppercase/lowercase swapped in enum fields | Reject (exact match) |
+| 18 | Truncated link (cut off mid-bucket, as WhatsApp might) | Reject (`bad_structure` or `bad_value`). Known gap: a cut that leaves a shorter but valid last number (a final headcount `10` cut to `1`) cannot be detected without a check character; accepted for v1 |
+| 19 | Valid link, uppercase/lowercase swapped in enum fields | Reject (`bad_chars`: the allow-list is exact) |
 | 20 | Link opened with localStorage blocked | Works from hash alone |
+
+`decodeShare` returns the code; loading the default scenario and showing the notice is T8.2. `tests/share.test.ts` asserts the exact code for every case above.
 
 ### 9.2 Calculation (use the worked example in §2.5 as the golden case)
 
@@ -365,7 +370,7 @@ Hard rule: **never send amounts, headcounts, rates or the share string.** Event 
 
 Full shapes are in UI_PLAN.md §1. Summary of what the UI needs from this data layer:
 
-- **Decode result codes** the UI can tell apart: `empty`, `too_long`, `bad_chars`, `bad_version`, `bad_structure`, `bad_value`, and `ok` with a list of clamped fields (to show clamp hints). All rejection codes show the same notice (§4.4 step 9).
+- **Decode result codes** the UI can tell apart: `empty`, `too_long`, `bad_chars`, `bad_version`, `bad_structure`, `bad_value`, and `ok` with a list of clamped fields in link order (`FieldName`: `groupSize`, `ngnPerUsd`, `ngnPerGbp` or `<bucketId>.<unitPriceNgn|quantity|headcount>`, to show clamp hints). All rejection codes show the same notice (§4.4 step 9).
 - **Export outcomes:** `shared`, `downloaded`, `inline`, `cancelled` (silent), `failed` with a reason (`font`, `draw`, `blob`, `unknown`).
 - **Field drafts:** each numeric input holds its own text while typing and only writes a parsed, clamped number into AppState on blur or Enter. A half-typed value ("1,5") never reaches AppState. Empty or invalid input reverts to the last good value.
 - **Receipt view:** unchanged (§6). The renderer auto-shrinks the largest amounts to fit the canvas width, so the `max-values` case never clips.
@@ -377,7 +382,6 @@ Full shapes are in UI_PLAN.md §1. Summary of what the UI needs from this data l
 
 - **O1:** preset numbers and tier thresholds (your price research).
 - Default exchange rates and their "as of" date (set from a real source before launch).
-- Leading zeros in links: accept or reject (test 16).
 - Whether "Copy link" should also offer the Web Share sheet for the URL itself (nice to have, not MVP).
 
 Next: **Prompt 4** (frontend audit and design direction). It will need this file, ARCHITECTURE.md and REQUIREMENTS.md.

@@ -22,7 +22,7 @@ There is **no backend**. The "contract" is the set of typed boundaries between t
 | `bad_chars` | Character outside the allow-list | Notice |
 | `bad_version` | Not `v1` | Notice |
 | `bad_structure` | Wrong field count or bucket field count | Notice |
-| `bad_value` | Non-digit, wrong enum, over digit cap | Notice |
+| `bad_value` | Non-digit, leading zero, empty number, wrong enum, over digit cap | Notice |
 | `ok` (with `clamped: FieldName[]`) | Valid, some numbers clamped | Load, show a clamp hint on those fields |
 
 All rejected codes show the same user-facing notice. They are kept distinct so tests can assert each path.
@@ -44,6 +44,8 @@ All rejected codes show the same user-facing notice. They are kept distinct so t
 ### 1.2 Typed boundaries (shapes only)
 
 ```ts
+type FieldName = 'groupSize' | 'ngnPerUsd' | 'ngnPerGbp' | `${BucketId}.${'unitPriceNgn' | 'quantity' | 'headcount'}`
+
 type DecodeResult =
   | { ok: true; state: AppState; clamped: FieldName[] }
   | { ok: false; code: 'empty' | 'too_long' | 'bad_chars' | 'bad_version' | 'bad_structure' | 'bad_value' }
