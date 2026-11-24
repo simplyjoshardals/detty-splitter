@@ -4,6 +4,8 @@
  * THROWAWAY (T2.1, repointed at the real renderer in T7.2): export spike. Pre-renders the
  * receipt PNG with `lib/receipt`, then offers Share (pre-built blob, no await between tap and
  * share()) and Download. The scenario switch shows the golden example and the max-values case.
+ * The texture switch (T7.3) turns the ink-stamp speckles on or off, so render time can be
+ * compared on the same phone. This page calls `renderReceipt` directly, not the pre-render cache.
  */
 import { useEffect, useMemo, useState } from "react";
 import { DEFAULT_RATES } from "@/config";
@@ -102,13 +104,14 @@ export function SpikeClient() {
   const [lastAction, setLastAction] = useState("none yet");
   const [attempt, setAttempt] = useState(0);
   const [scenario, setScenario] = useState<ScenarioId>("golden");
+  const [texture, setTexture] = useState(true);
   const view = useMemo(() => buildReceiptView(SCENARIOS[scenario].state), [scenario]);
 
   useEffect(() => {
     let cancelled = false;
     let objectUrl: string | null = null;
 
-    void renderReceipt(view).then((result) => {
+    void renderReceipt(view, { texture }).then((result) => {
       if (cancelled) return;
       const hasShare = "share" in navigator;
 
@@ -143,7 +146,7 @@ export function SpikeClient() {
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [attempt, view]);
+  }, [attempt, view, texture]);
 
   function handleRetry(): void {
     setState({ status: "rendering" });
@@ -154,6 +157,11 @@ export function SpikeClient() {
     if (next === scenario) return;
     setState({ status: "rendering" });
     setScenario(next);
+  }
+
+  function handleTexture(): void {
+    setState({ status: "rendering" });
+    setTexture((on) => !on);
   }
 
   // Deliberately NOT async: share() must start inside the click, with no await before it.
@@ -201,7 +209,7 @@ export function SpikeClient() {
   if (state.status === "ready") {
     rows.push([
       "Render",
-      `${state.diagnostics.renderMs} ms, ${(state.diagnostics.blobBytes / 1024).toFixed(0)} KB PNG`,
+      `${state.diagnostics.renderMs} ms, ${(state.diagnostics.blobBytes / 1024).toFixed(0)} KB PNG (stamp texture ${texture ? "on" : "off"}, ${SCENARIOS[scenario].label})`,
     ]);
   }
   rows.push(["Render attempts", String(attempt + 1)]);
@@ -230,6 +238,18 @@ export function SpikeClient() {
             {id === scenario ? " ✓" : ""}
           </button>
         ))}
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        <button
+          type="button"
+          role="switch"
+          aria-checked={texture}
+          className={BUTTON}
+          onClick={handleTexture}
+        >
+          Stamp texture: {texture ? "on ✓" : "off"}
+        </button>
       </div>
 
       <div className="flex flex-wrap gap-3">

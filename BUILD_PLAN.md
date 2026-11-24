@@ -21,7 +21,8 @@
 
 ## 1. Slices and tasks
 
-### Slice 1: Scaffold, tokens, fonts, icons, deploy (1.5h) *(UI_PLAN S1)*
+### Slice 1: Scaffold, tokens, fonts, icons, deploy (1.5h) _(UI_PLAN S1)_
+
 Goal: a live `.pages.dev` URL showing the design tokens, so every later slice ships to a real device.
 
 - [x] **T1.1 Scaffold the project** (0.5h)
@@ -45,7 +46,8 @@ Goal: a live `.pages.dev` URL showing the design tokens, so every later slice sh
   - Depends on: T1.1, T1.2.
   - Done notes: deployed with Cloudflare Pages (Pages tab, Git import, preset Next.js (Static HTML Export), `yarn build`, output `out`); live at https://detty-splitter.pages.dev and `_headers` confirmed with `curl.exe -I`. Node 22.23.4 and Yarn 4.12.0 were detected automatically, so no version pins were needed. The first build failed because Yarn ran in Plug'n'Play mode and Turbopack could not resolve `next`; fixed by committing `.yarnrc.yml` (`nodeLinker: node-modules`). The `SITE_URL` placeholder already matched the real URL, so no change was needed.
 
-### Slice 2 ⚠: Export spike on real devices (1.0h) *(UI_PLAN S0)*
+### Slice 2 ⚠: Export spike on real devices (1.0h) _(UI_PLAN S0)_
+
 Goal: learn now whether canvas export, Web Share and the fallbacks work where your audience is.
 
 - [x] **T2.1 Build the spike page** (0.5h)
@@ -59,14 +61,14 @@ Goal: learn now whether canvas export, Web Share and the fallbacks work where yo
   - Depends on: T2.1.
   - Matrix (tested 21 Nov 2026 on the live `/spike`; Android was Android 10, Chrome 157). The spike always pre-renders the blob, so "Share ok" also means the pre-rendered blob shares immediately.
 
-    | Environment | Renders OK | Share w/ file | Download | Press-hold save | Notes |
-    |---|---|---|---|---|---|
-    | iPhone Safari | ok | ok | ok | ok | download prompt appears |
-    | Android Chrome | ok | ok | ok | not tested | first run failed on fonts, see decision 5 |
-    | WhatsApp in-app | n/a | n/a | n/a | n/a | no in-app browser; links open in the default browser |
-    | Instagram in-app | ok | ok | partial | ok | download opens the full image, no save prompt |
-    | TikTok in-app | ok | ok | partial | ok | same as Instagram |
-    | X in-app | ok | ok | partial | ok | same as Instagram |
+    | Environment      | Renders OK | Share w/ file | Download | Press-hold save | Notes                                                |
+    | ---------------- | ---------- | ------------- | -------- | --------------- | ---------------------------------------------------- |
+    | iPhone Safari    | ok         | ok            | ok       | ok              | download prompt appears                              |
+    | Android Chrome   | ok         | ok            | ok       | not tested      | first run failed on fonts, see decision 5            |
+    | WhatsApp in-app  | n/a        | n/a           | n/a      | n/a             | no in-app browser; links open in the default browser |
+    | Instagram in-app | ok         | ok            | partial  | ok              | download opens the full image, no save prompt        |
+    | TikTok in-app    | ok         | ok            | partial  | ok              | same as Instagram                                    |
+    | X in-app         | ok         | ok            | partial  | ok              | same as Instagram                                    |
 
   - Decisions:
     1. Primary path: Share with the file, using the pre-rendered blob (worked in every environment tested).
@@ -77,7 +79,8 @@ Goal: learn now whether canvas export, Web Share and the fallbacks work where yo
 
 > Delete the `/spike` route before launch (it's on the Slice 11 checklist). Since T7.2 it runs the real renderer (`lib/receipt`), so it is also where the exported PNG can be looked at until T7.3/T8.
 
-### Slice 3: First paint, defaults, read-only results (2.0h) *(UI_PLAN S2)*
+### Slice 3: First paint, defaults, read-only results (2.0h) _(UI_PLAN S2)_
+
 Goal: the smallest working version of the core feature, deployed: real numbers and the stamp on first paint.
 
 - [x] **T3.1 Calculation core with tests** (0.75h)
@@ -97,7 +100,8 @@ Goal: the smallest working version of the core feature, deployed: real numbers a
   - Also: delete the throwaway `components/DevTestBlock.tsx` and its use in `app/page.tsx`; re-measure first-load JS and compare with the 172.2 KB bare-page baseline.
   - Done notes: golden numbers confirmed on screen (₦1,347,500 per person, ₦5,390,000 for the group), checked at 360 / 768 / 1280px and in light and dark mode; layout shift measured at 0 locally and on the deployed site. `DevTestBlock` deleted. First-load JS is 179.7 KB gzipped (184,049 bytes): the 172.2 KB bare-page floor plus about 7.5 KB for the app code, data and 5 icons. That is still over the ~150 KB guess, so the T2.2 decision stands (keep Next.js, judge by real phone load time). The footer reads only "Estimates only, not quotes." until editing exists, the page is one centred column at every width until the live receipt (Slice 6), and formula lines show ₦ prices until T5.1.
 
-### Slice 4: Editing (3.25h) *(UI_PLAN S3)*
+### Slice 4: Editing (3.25h) _(UI_PLAN S3)_
+
 Goal: every number editable, every mode switchable, safely.
 
 - [x] **T4.1 Number input with draft handling** (1.0h)
@@ -124,9 +128,10 @@ Goal: every number editable, every mode switchable, safely.
   - Also: T4.1 already built the hint (icon, `role="status"`, `aria-describedby`), so audit it rather than rebuild. A hint pushes the content below it down by about 33px, so a button directly under a field can miss a tap; either reserve the line or let the hint replace the formula line. Check caret behaviour on a real Gboard and iOS Safari.
   - Also (from T4.3): the group-size stepper sits directly above "Apply to all shared" and "Reset to preset", so a hint under the stepper (typed 0, or text that isn't a number) pushes the two buttons down about 33px at the moment the user taps one. Fix it with the hint decision below, and test it by typing an invalid group size and tapping Apply straight away.
   - Also (from T4.2 review): (1) the per-person total at max values breaks mid-number at 360px ("₦249,750,000," then "000"), because the 40px text is about 390px wide in a 328px column. Plan: a small pure function picks `--t-2xl` for 11 characters or fewer and `--t-xl` for 12 or more, with `whitespace-nowrap` and `overflow-wrap: anywhere` kept only as a safety net; check 320 and 360px with max values, and note it in DESIGN §4 and §11. (2) A long stepper hint ("That number no make sense. We kept your old one.") wraps to four lines in the 144px quantity column from 480px up; consider one full-width hint row under the price and quantity row. (3) At 360px a shared line is about 450px tall (four stacked controls); revisit with the sticky damage meter, and only if it still feels long. (4) Five solid ink "Shared | Per person" bars are the heaviest element in the list (per DESIGN §5.5); revisit only if they compete with the totals.
-  - Done notes: Hints moved from the fields to the rows. `NumberField` and `Stepper` take `hint`, `onHintChange` and `hintId` and draw nothing under themselves; `useRowHint` (in `numberHint.ts`) holds one hint per row and drops it while rendering when its saved number changes; new `HintMessage` draws it, starting with the field's name ("Nights: Max is 999, so we adjusted it."), because the hint now sits below the whole row. A bucket's hint takes the formula line's place in a reserved two-line slot below all controls (bucket padding 16px above, 8px below); the group size hint uses the group status slot, now two lines, and an action's status replaces it. Fixes review item (2): hints no longer wrap in the 144px quantity column. Per-person total: `totalSizeToken` gives `--t-2xl` for 11 characters or fewer and `--t-xl` for 12 or more; checked in a browser at 320 and 360px with max values (one line, no overflow). Every textbox has a visible label (test) and all inputs are 16px, so no iOS focus zoom. Review item (4) fixed: the selected "Shared | Per person" segment is now a thick inner frame, bold text and a `fill` icon, not a solid ink block (DESIGN §5.5). The focused stepper box is raised above its buttons, so the focus ring is no longer covered. Checked in a real browser: tapping "Apply to all shared" right after an invalid group size lands the first time, and no layout shifts when a hint appears. iOS Safari: digits typed in the middle of a price go in at the caret, same goes for the Gboard caret behaviour. Deferred: review item (3), the sticky meter did not exist until T6.2 (it does now; re-check this item with the real bar). Known and left: at 320px "Per person" wraps to two lines in the mode control, and "Table nights" with the invalid-number hint wraps to three lines. New tests: hint wiring and field names in `ResultsPanel` and `TripControls`, "Apply lands after an invalid group size", `totalSizeToken`, visible labels.  257 tests pass.
+  - Done notes: Hints moved from the fields to the rows. `NumberField` and `Stepper` take `hint`, `onHintChange` and `hintId` and draw nothing under themselves; `useRowHint` (in `numberHint.ts`) holds one hint per row and drops it while rendering when its saved number changes; new `HintMessage` draws it, starting with the field's name ("Nights: Max is 999, so we adjusted it."), because the hint now sits below the whole row. A bucket's hint takes the formula line's place in a reserved two-line slot below all controls (bucket padding 16px above, 8px below); the group size hint uses the group status slot, now two lines, and an action's status replaces it. Fixes review item (2): hints no longer wrap in the 144px quantity column. Per-person total: `totalSizeToken` gives `--t-2xl` for 11 characters or fewer and `--t-xl` for 12 or more; checked in a browser at 320 and 360px with max values (one line, no overflow). Every textbox has a visible label (test) and all inputs are 16px, so no iOS focus zoom. Review item (4) fixed: the selected "Shared | Per person" segment is now a thick inner frame, bold text and a `fill` icon, not a solid ink block (DESIGN §5.5). The focused stepper box is raised above its buttons, so the focus ring is no longer covered. Checked in a real browser: tapping "Apply to all shared" right after an invalid group size lands the first time, and no layout shifts when a hint appears. iOS Safari: digits typed in the middle of a price go in at the caret, same goes for the Gboard caret behaviour. Deferred: review item (3), the sticky meter did not exist until T6.2 (it does now; re-check this item with the real bar). Known and left: at 320px "Per person" wraps to two lines in the mode control, and "Table nights" with the invalid-number hint wraps to three lines. New tests: hint wiring and field names in `ResultsPanel` and `TripControls`, "Apply lands after an invalid group size", `totalSizeToken`, visible labels. 257 tests pass.
 
-### Slice 5: Currency and rates (1.0h) *(UI_PLAN S4)*
+### Slice 5: Currency and rates (1.0h) _(UI_PLAN S4)_
+
 - [x] **T5.1 Currency control and display conversion** (0.5h)
   - Build: three-option control with Phosphor currency icons and text labels; all amounts converted for display only.
   - Done when: switching ₦/$/£ never changes the tier or stored ₦ values; displayed total equals the sum of displayed lines.
@@ -139,7 +144,8 @@ Goal: every number editable, every mode switchable, safely.
   - Part A done (logic): `NumberRange` gained optional `decimals` and `onOutOfRange` (`"clamp"` by default, or `"revert"`), and `RANGES.rate` is 50 to 100,000 with 2 decimals and `"revert"`. `parseNumberInput` is decimal-aware and exact (it works in hundredths, so `1,500.55` is 1500.55); more than 2 decimals reverts with reason `decimals`, out of range reverts with reason `range`, and whole-number fields behave exactly as before. `clampDecimal` is the reducer's guard. The draft helpers take a `decimals` argument: a typed point stays, only the part before it is regrouped, and the caret counts the point so it never jumps. Reducer: `setRate` (clamps, so 0 can't be stored; ignores NaN, Infinity, more than 2 decimals and unknown keys) and `resetRates`. New `lib/rates` (`ratesAreCustom`, derived and never stored; `formatAsOfDate`, hand-written so server and client match) and `RATES_AS_OF` in `config/`. **Decision:** the field keeps the old rate for an out-of-range number (this Done-when, DESIGN §6) instead of clamping, so a typo like 15 doesn't become a plausible 50; DATA_MODEL §2.2 now says so, and the reducer and link decoder still clamp. 390 tests pass (314 before, plus 76 new); ESLint clean. **Placeholders:** `DEFAULT_RATES` and `RATES_AS_OF` are still made up; set both from a real source before launch. Part B below.
   - Part B done (UI): new `components/RatesPanel.tsx`, rendered by `ResultsPanel` between the bucket list and the totals (the DESIGN §4 order until the receipt arrives in T6.3). A toggle row with the tag always visible ("as of 23 Nov 2026", or a framed "Custom rates"), then two fields, "Reset rates" and one reserved two-line status slot; layout and behaviour are written up in DESIGN §5.10. `NumberField` passes `decimals` to the draft helpers and uses `inputMode="decimal"` for ranges with decimals. `hintText` is now a switch with copy for `range` ("Use 50 to 100,000. We kept your old number.") and `decimals` ("Max 2 decimals. We kept your old number."); both are in DESIGN §9, with the reset statuses. `totalSizeToken` gained a third step, `--t-lg` (20px) from 17 characters, which closes the T5.1 known item. New icon `CaretDownIcon` (added to `check-icons.mjs` and the DESIGN §2 map). The panel stays mounted while closed (`hidden`), so the closed `labels.test` count is still 14 and the open count is 16. Tests: new `tests/RatesPanel.test.tsx`, plus additions to `NumberField`, `ResultsPanel` and `labels` tests; 418 pass (390 after Part A, plus 28), ESLint clean, `yarn check:icons` OK. **Decisions:** the panel opens with no animation; closing it clears its hint and status; the errors keep the existing convention (red border, hint text, `aria-describedby`, no `aria-invalid`). **Verified locally:** all yarn suites pass, and the screenshot review (360px closed, open, with the custom tag, with an error hint and in dark mode; 320px with the 17-character total at 20px; 1280px open) found nothing to fix. **Hint colour rule, written down in DESIGN §5.2:** red means the typed number was thrown away (a revert: empty, invalid, and for the rates out of range or too many decimals), ink means it was adjusted and kept (a clamp), so a price above its maximum is ink while a rate above its maximum is red. **Fixed after the review:** at 12px Space Mono's ₦ read almost like a "#" (rate labels, hint prefix, line notes, price prefixes), because the glyph is drawn short and squat. A one-glyph subset of Space Grotesk (`app/fonts/naira.woff2`, about 1 KB, OFL licence beside it) now draws just U+20A6, loaded with `next/font/local` and `unicode-range` and placed before Space Mono in the font stack (DESIGN §1); a small test guards the file. The receipt PNG export in T7 must load the same font. **Known limit:** a comma-decimal keyboard types `1500,5`, read as 15005 (commas are always thousands separators).
 
-### Slice 6: Danfo header, damage meter, live receipt (1.75h) *(UI_PLAN S5)*
+### Slice 6: Danfo header, damage meter, live receipt (1.75h) _(UI_PLAN S5)_
+
 - [x] **T6.1 Danfo band header, stripe, footer** (0.5h)
   - Done when: header band and stripe render in light and dark; currency control sits in the band; footer note present; optional "Built in Lagos by <name>" only when `AUTHOR_NAME` and `AUTHOR_URL` are set.
   - Depends on: T5.1.
@@ -157,7 +163,8 @@ Goal: every number editable, every mode switchable, safely.
   - From T6.2 (damage meter): the receipt needs `id="receipt"` and `tabIndex={-1}`, and the meter's `<section>` gets `min-[1280px]:hidden` once the desktop sticky column exists (DESIGN §4, §5.7).
   - Done notes: UI. Built together with T7.1, which it needed first (the AUTH line and the receipt text come from the view model). **New files:** `components/Receipt.tsx`, `components/totalSize.ts` (`totalSizeToken`, moved from `ResultsPanel` with the steps shortened by one character, see DESIGN §4), tests `Receipt`, `TierStamp`, `totalSize`, `receipt-css`. **Changed:** `TierStamp` (thump on a badge change only, now a client component), `ResultsPanel` (the totals and the stamp moved into the receipt; it keeps the lines and the rates), `app/page.tsx` (two columns from 1280px, sticky receipt), `DamageMeter` (`min-[1280px]:hidden`), `app/globals.css` (`.on-receipt` scope, `stamp-thump` inside `prefers-reduced-motion: no-preference`), and the tests that read totals (`TripControls`, `CurrencyControl` now render `<Receipt />`; the per-person golden check moved to `Receipt.test.tsx`; `ResultsPanel.test` lost the `totalSizeToken` block, now `totalSize.test.ts`). **Decisions:** formulas always in naira (DESIGN §5.13); the receipt is at most 380px wide at every width; the stamp thump is keyed on the badge, so the contract has no tier id; `.on-receipt` was added to DESIGN §3.1 because the dark-mode stamp and muted text were about 2.5:1 on cream. **Not run:** the repo and `node_modules` were not available to Claude, so vitest, `tsc` and ESLint were not run. The pure tests (`receiptView`, `totalSize`, `receipt-css`, `meter-contrast`) were run through a small stand-in runner and pass; the DOM tests (`Receipt`, `TierStamp`, the edited `TripControls`, `CurrencyControl`, `ResultsPanel`, `DamageMeter`) were only read through. **Screenshot review (360 / 768 / 1280, light and dark, 1280×720, stress):** found and fixed, (1) at 1280×720 about a third of the sticky receipt was out of reach: new `StickyColumn` (DESIGN §4); (2) the meter hid as soon as the top of the receipt showed, leaving a stretch with neither the meter nor the totals in view: the meter now hides on `#receipt-totals` with an 88px bottom root margin (`DamageMeter` `watchId`, `useTargetFound`, `useTargetInView` `rootMargin`), while "See receipt" still jumps to `#receipt`; (3) with maximum prices the long amounts squeezed labels into three lines with a lone "/": a long amount now drops under its label; (4) lone words ("WON'T.", "planning.") on wrapped lines: `text-balance`. **Known and accepted:** on mobile the receipt is far below the route plates, so the stamp's thump is not seen when a plate is tapped; the tier is not on the meter (DESIGN §5.7).
 
-### Slice 7 ⚠: Canvas receipt renderer (2.25h) *(UI_PLAN S6)*
+### Slice 7 ⚠: Canvas receipt renderer (2.25h) _(UI_PLAN S6)_
+
 - [x] **T7.1 `ReceiptView` builder** (0.5h)
   - Build: pure function from state to the display-ready `ReceiptView` (DATA_MODEL §6) including `balanceLine`, `authCode`, `ratesNote`, `siteUrl`.
   - Done when: unit tests cover custom rates note, auth code stability (same input, same code), formatted amounts equal the on-screen values.
@@ -177,7 +184,7 @@ Goal: every number editable, every mode switchable, safely.
     - [x] **Stage 1: speckle generator.** New `lib/receipt/speckle.ts` (pure: `mulberry32`, `seedFromAuthCode`, `makeSpeckles(seed, width, height, count?)`, constants `SPECKLE_COUNT` 200, `SPECKLE_MIN_R` 1, `SPECKLE_MAX_R` 4) and `tests/speckle.test.ts`. Reported by the author after Stage 4: all yarn suites pass, which includes `tests/speckle.test.ts` (Claude could not run it from the Repomix). Speckle coordinates are local to the stamp's unrotated box (x 0..width, y 0..height from its top-left corner) and each whole circle is inside the box. Decision: the `authCode` to seed conversion (`seedFromAuthCode`) lives here, not in `layout.ts` as first sketched, so it is pure and tested; any value that is not 1 to 8 hex digits gives seed 0 instead of NaN. No existing file changed.
     - [x] **Stage 2: layout seed and renderer texture.** `layout.ts`: the `stamp` op gains `seed: number` (`seedFromAuthCode(view.authCode)`). `render.ts`: `drawStamp` paints the flat stamp, then erases `makeSpeckles(seed, width, height)` on an offscreen layer the size of the stamp's box and draws that layer rotated onto the receipt; `renderReceipt(view, options?: { texture?: boolean })`, default `true`. Extended the canvas stub in `tests/receiptRender.test.ts` (`arc`, `fill`, `drawImage`, `globalCompositeOperation`, and a fresh canvas and context per `createElement`) without changing existing assertions; added layout and render tests (stable seed; same view draws the same arcs, another view different arcs; `texture: false` draws none).
       - **Done notes:** files changed: `lib/receipt/layout.ts`, `lib/receipt/render.ts`, `tests/receiptLayout.test.ts`, `tests/receiptRender.test.ts`. The flat drawing is now `strokeAndFillStamp` (shared by both paths, drawn around the origin), `drawFlatStamp` (the old save, translate, rotate, draw, restore, so the flat output is unchanged) and `drawTexturedStamp`; `drawStamp(ctx, op, color, families, texture)` picks one. `RenderOptions` is exported from `render.ts` for Stage 3 and the spike. **Decisions:** (1) the offscreen layer is the stamp box plus a 4px margin on every side (`STAMP_LAYER_MARGIN`), so the 6px outer stroke, which sticks out 3px, is not clipped; speckle coordinates (local to the unrotated box) are offset by the margin; (2) the layer is drawn unrotated and the whole layer is rotated when it is composited, so `destination-out` only ever touches the layer, never the receipt; (3) if the layer has no 2D context, the stamp is drawn flat and the render still succeeds (no new failure reason); (4) the speckles are 200 circles filled with `#000` in `destination-out` mode, so the colour is irrelevant and only the alpha matters; (5) the layer is created with `document.createElement("canvas")`, because `OffscreenCanvas` is not available in every in-app browser from the T2.2 matrix.
-      - **Checks:** `layout` and `render` tests (90 tests across `receiptLayout` and `receiptRender`, including the 8 new ones) pass under real vitest 5.1.1 in a scratch copy with stand-in shims for `calc`, `money`, `rates`, `config` and `data` (the real ones are not in the Repomix), and a strict `tsc` shows no errors in `layout.ts`, `render.ts` or the two test files. `tests/speckle.test.ts` was not in the Repomix, so it was not re-run. **Reported by the author after Stage 4:** all yarn suites pass against the real repo (`yarn test`, `yarn tsc --noEmit`, `yarn lint`; totals not recorded here), which covers the real ESLint and the full test suite for this stage. **Still to verify (author):** a browser look at the stamp on `/spike` (Stage 5 adds the texture switch; until then the stamp is always textured). 
+      - **Checks:** `layout` and `render` tests (90 tests across `receiptLayout` and `receiptRender`, including the 8 new ones) pass under real vitest 5.1.1 in a scratch copy with stand-in shims for `calc`, `money`, `rates`, `config` and `data` (the real ones are not in the Repomix), and a strict `tsc` shows no errors in `layout.ts`, `render.ts` or the two test files. `tests/speckle.test.ts` was not in the Repomix, so it was not re-run. **Reported by the author after Stage 4:** all yarn suites pass against the real repo (`yarn test`, `yarn tsc --noEmit`, `yarn lint`; totals not recorded here), which covers the real ESLint and the full test suite for this stage. **Still to verify (author):** a browser look at the stamp on `/spike` (Stage 5 adds the texture switch; until then the stamp is always textured).
     - [x] **Stage 3: pre-render controller.** New `lib/receipt/prerender.ts` (no React): `createPrerender({ load, debounceMs = 500 })`, `load` defaults to `() => import("./render")` and is the only reference to the renderer; `start()`, `update(view)`, `getSnapshot()`, `subscribe()`; snapshot `idle | waiting | rendering | ready{blob, diagnostics} | failed{reason}` (reason is a render reason or `"load"`); first render right after the import with no debounce, later edits wait 500 ms after the last one, an unchanged view is skipped, the blob is cleared as soon as the view changes, a late result for an older view is dropped, a failed import is not memoised; module singleton for T9.1. Tests with fake timers and a fake `load` in `tests/prerender.test.ts`.
       - **Done notes:** files changed: new `lib/receipt/prerender.ts` and new `tests/prerender.test.ts` (15 tests); nothing else. API: `createPrerender({ load?, debounceMs? })` returns `{ start, update, getSnapshot, subscribe }`; the module singleton is `prerender`. Snapshot: `idle | waiting | rendering | ready (status plus the renderer's blob and diagnostics) | failed { reason }`, reason is `RenderResult`'s failure reason or `"load"`. The renderer types are `import type` only, so `load` (default `() => import("./render")`) is the only runtime reference to the renderer. **Decisions:** (1) only the very first render skips the debounce (the flag is set when a render starts, not when it ends, so edits during the first render are still debounced); (2) an unchanged view is detected by `JSON.stringify(view)`, and then nothing changes (the snapshot object stays the same); (3) before `start()`, `update` only remembers the view and the snapshot stays `idle`; `start()` then moves to `waiting` and imports; (4) a failed import leaves nothing memoised, so the next `start()` or `update` imports again (whether the browser re-fetches the chunk is bundler-dependent and not verified); (5) a renderer that throws, against its contract, becomes `failed` with reason `"unknown"`; (6) the `ready` snapshot is the render result spread plus `status`, so it carries whatever fields the renderer returns on success, including `ok: true`; (7) `getSnapshot` returns the same object until something changes, so it is safe for `useSyncExternalStore` in Stage 4 (it is also valid as the server snapshot, because a new controller is `idle`).
       - **Checks:** `tests/prerender.test.ts` passes (15 of 15) under real vitest 5.1.1 in a scratch copy, and a strict `tsc` shows no errors in `prerender.ts` or the test. `lib/receipt/render.ts` and `view.ts` are not in this Repomix, so the scratch copy used **stand-ins** with the shapes from DATA_MODEL §6 and the T7.2 notes (`RenderResult = { ok: true; blob: Blob; diagnostics } | { ok: false; reason; message }`). **Now Verified:** `yarn tsc --noEmit` against the real `render.ts` (the success branch must have `blob` and `diagnostics`, the failure branch `reason`; `ReceiptView` must be exported from `lib/receipt/view.ts`), `yarn test`, `yarn lint`. The tests build their views with a cast (`as ReceiptView`) and the success result with `as RenderSuccess`, so they do not depend on the exact extra fields. (all yarn suites passed)
@@ -185,12 +192,15 @@ Goal: every number editable, every mode switchable, safely.
       - **Done notes:** files changed: new `components/ReceiptPrerender.tsx` (exports `ReceiptPrerender`, `PRERENDER_ROOT_MARGIN` = `"800px"`, `IDLE_START_DELAY_MS` = 200), new `tests/receiptPrerender.test.tsx` (12 tests), and `app/page.tsx` (import, `<ReceiptPrerender />` as the first child of `AppStateProvider` so the damage meter stays the last child, and two sentences in the doc comment). `Receipt.tsx` and `prerender.ts` are untouched. **Decisions:** (1) the watching reuses the existing `useTargetInView("receipt", "800px")` from `components/meterHooks.ts` instead of a second observer; it needs nothing from `prerender.ts`; (2) the update effect is declared before the start effect, so the first view is already known when `start()` runs; (3) `start()` is called every time the receipt comes into range, because the controller ignores repeat calls itself; there is no "stop" when it leaves; (4) the idle fallback runs only when `IntersectionObserver` is undefined: `requestIdleCallback` if it exists, else a 200 ms `setTimeout`, both cancelled on unmount; (5) the component imports only `prerender` and `view`, never `render` or `layout`, so the renderer stays a separate chunk; (6) a second `buildReceiptView` call per state change (one here, one in `Receipt.tsx`) is accepted, as planned.
 
       - **Checks:** `tests/receiptPrerender.test.tsx` (12) and `tests/prerender.test.ts` (15) pass under real vitest 5.1.1 in a scratch copy, and a strict `tsc` shows no errors in `ReceiptPrerender.tsx` or the new test. `components/meterHooks.ts`, `config`, `lib/input` and `lib/rates` are not in the Repomix, so the scratch copy used stand-ins; the `useTargetInView` stand-in passes the real `tests/meterHooks.test.ts` (15 of 15), which is the contract this component relies on. The test mocks the controller (`vi.mock("@/lib/receipt/prerender")`) and uses a fake `IntersectionObserver`. **Reported by the author after Stage 4:** all yarn suites pass against the real repo (`yarn test`, `yarn tsc --noEmit`, `yarn lint`; totals not recorded here), so the real `meterHooks.ts` works with the component. **Still to verify (Stage 6, author):** in a browser, the render chunk is requested only when the receipt is within about 800px, and it is not in the initial scripts after `yarn build`.
-    - [ ] **Stage 5: spike switch.** `app/spike/SpikeClient.tsx`: "Texture on/off" switch so render time can be compared on the same phone, golden and max-values.
+
+    - [x] **Stage 5: spike switch.** `app/spike/SpikeClient.tsx`: "Texture on/off" switch so render time can be compared on the same phone, golden and max-values.
+      - **Done notes:** only `app/spike/SpikeClient.tsx` changed. A `texture` state (default on) is passed to `renderReceipt(view, { texture })` and added to the render effect's dependencies, so each toggle re-renders (status goes back to "Printing…", like the scenario switch). The switch is a `role="switch"` button with `aria-checked`. The "Render" diagnostics row now names the texture state and scenario, e.g. "212 ms, 180 KB PNG (stamp texture on, Golden example)". The spike still calls `renderReceipt` directly, not `prerender`, so the lazy-chunk rule is unaffected. No new tests (throwaway page). **Reported by the author:** all yarn suites pass (`yarn test`, `yarn tsc --noEmit`, `yarn lint`; totals not recorded here). **Still to record (author, Android):** render time with texture off vs on, golden and max-values, on the same phones as T7.2 (about 200 ms without texture), and a visual check that the speckled stamp differs from the flat one.
     - [ ] **Stage 6: docs and verification notes.** T7.3 done notes here (replace this tracker with them), "Built in T7.3" in DESIGN §7.1 (and the "flat until then" wording in the §7 stamp row and the "T7.3 adds the speckles" sentence in §7), file tree in ARCHITECTURE (`speckle.ts`, `prerender.ts`, `ReceiptPrerender.tsx`), the `lib/receipt/*` row in UI_PLAN §2.5 if the wording needs it. Author to record: first-load JS unchanged (render chunk not in the page's initial scripts after `yarn build`), and render time with texture off vs on on the same mid-range phones as T7.2 (about 200 ms without texture).
     - **Not in this slice:** retry (T9.2), the export handler (T9.1), rotation jitter (optional in DESIGN), pausing the render when the tab is hidden.
-    - **Stopped at:** Stage 4 complete. Next: Stage 5 (`app/spike/SpikeClient.tsx`: a "Texture on/off" switch that passes `renderReceipt(view, { texture })` so render time can be compared on the same phone, golden and max-values; `RenderOptions` is exported from `lib/receipt/render.ts`). The spike calls `renderReceipt` directly, not through `prerender`. Then Stage 6 (docs and verification notes, as listed above). Do not import `render.ts` or `layout.ts` anywhere outside `prerender.ts` and the spike, or the chunk stops being lazy in the app. Checks run for Stage 1 to 3: see their notes above.
+      - **Stopped at:** Stage 5 complete. Next: Stage 6 (docs and verification notes, as listed above: T7.3 done notes replace this tracker, "Built in T7.3" in DESIGN §7.1 plus the "flat until then" and "T7.3 adds the speckles" wording in §7, file tree in ARCHITECTURE, the UI_PLAN §2.5 row if needed). The Stage 6 verification numbers come from the author: first-load JS unchanged after `yarn build` (render chunk not in the page's initial scripts) and the Stage 5 render times. Do not import `render.ts` or `layout.ts` anywhere outside `prerender.ts` and the spike, or the chunk stops being lazy in the app.
 
-### Slice 8 ⚠: Share link, resume, notice (1.75h) *(UI_PLAN S7)*
+### Slice 8 ⚠: Share link, resume, notice (1.75h) _(UI_PLAN S7)_
+
 - [ ] **T8.1 Encode/decode with the 20 bad-link tests** (1.0h)
   - Build: `lib/share` per DATA_MODEL §4 (grammar, allow-list, length cap, strict parsing, clamping, decode result codes).
   - Done when: **all 20 cases in DATA_MODEL §9.1 pass** (default scenario, never throws), round trip holds for the 3 presets and the worst case, link under about 200 characters.
@@ -200,7 +210,8 @@ Goal: every number editable, every mode switchable, safely.
   - Done when: a link opened in a fresh tab reproduces the numbers; works with `localStorage` blocked; the worst-case link pasted into WhatsApp opens identically on two devices.
   - Depends on: T8.1, T5.2.
 
-### Slice 9 ⚠: Export UX and fallbacks (1.25h) *(UI_PLAN S8)*
+### Slice 9 ⚠: Export UX and fallbacks (1.25h) _(UI_PLAN S8)_
+
 - [ ] **T9.1 Export handler chain** (0.75h)
   - Build: click handler using the pre-built blob: `canShare` then `share`, else download anchor, else inline image; cancel (`AbortError`) is silent; if the blob isn't ready, show "Printing…" and ask for another tap.
   - Done when: **no `await` of rendering sits between the tap and `share()`**; matches the decisions recorded in T2.2 on every device in the matrix.
@@ -210,7 +221,8 @@ Goal: every number editable, every mode switchable, safely.
   - Done when: each outcome (shared, downloaded, inline, cancelled, each failure reason) shows the right message; blocked download falls to the inline image.
   - Depends on: T9.1.
 
-### Slice 10: CTA, OG image, meta, analytics (1.0h) *(UI_PLAN S9)*
+### Slice 10: CTA, OG image, meta, analytics (1.0h) _(UI_PLAN S9)_
+
 - [ ] **T10.1 Flag-controlled CTA card** (0.4h)
   - Done when: card renders only when the flag is exactly `true` **and** the URL parses as `https:`; no leftover gap otherwise; `rel="noopener noreferrer sponsored"` and disclosure line when set; component tests cover on, off, invalid URL.
   - Depends on: T6.3.
@@ -223,7 +235,8 @@ Goal: every number editable, every mode switchable, safely.
   - Done when: events fire once per action; no amounts, headcounts, rates or share strings are ever sent; the app works with the script blocked.
   - Depends on: T9.2, T8.2.
 
-### Slice 11: Polish, accessibility, QA, launch prep (2.0h) *(UI_PLAN S10)*
+### Slice 11: Polish, accessibility, QA, launch prep (2.0h) _(UI_PLAN S10)_
+
 - [ ] **T11.1 Sleekness pass and screenshots** (0.75h)
   - Done when: DESIGN.md §11 checklist walked; screenshots at 360 / 768 / 1280 in light and dark reviewed; nothing generic or cheap-looking left from the checklist.
 - [ ] **T11.2 Accessibility and end-to-end** (0.75h)
@@ -244,16 +257,16 @@ Goal: every number editable, every mode switchable, safely.
 
 Riskiest and least-familiar work comes first, while changing course is cheap.
 
-| Task | Why it's risky | What to do if it goes wrong |
-|---|---|---|
-| **T1.2 Fonts and icons** | ₦ glyph may be missing from Space Mono; icon names unconfirmed; subset behaviour assumed | Swap the mono; swap missing icons; both are one-line changes |
-| **T1.3 Cloudflare deploy** | Pages vs Workers wording, Node version, first-time setup | Time-box to 1h; switch to another static host rather than debug |
-| **T2.x Export spike** | Canvas, fonts, Web Share and in-app browsers are the least predictable part (no authoritative docs for in-app browsers) | Fall back to inline "press and hold" as the main path there |
-| **T7.2 / T7.3 Renderer and pre-render** | Auto-fit text, font timing, render speed on weak phones | Drop the ink texture first; keep the flat stamp |
-| **T8.1 Share codec** | Strict validation is fiddly; WhatsApp mangling of links | The 20-case test table catches most of it; shorten the format only if the length test fails |
-| **T9.1 Gesture handling** | `share()` needs transient activation (W3C spec); iOS has been reported to drop it after async work | Pre-render (already in the plan); if it still fails, "tap again when ready" |
-| **T4.1 Number input** | Caret jumping while formatting separators | Format on blur only if live formatting can't be made stable |
-| **T11.3 CSP** | Can break fonts, Umami or Next's inline scripts | Add last, test, loosen; ship without CSP rather than ship broken |
+| Task                                    | Why it's risky                                                                                                          | What to do if it goes wrong                                                                 |
+| --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| **T1.2 Fonts and icons**                | ₦ glyph may be missing from Space Mono; icon names unconfirmed; subset behaviour assumed                                | Swap the mono; swap missing icons; both are one-line changes                                |
+| **T1.3 Cloudflare deploy**              | Pages vs Workers wording, Node version, first-time setup                                                                | Time-box to 1h; switch to another static host rather than debug                             |
+| **T2.x Export spike**                   | Canvas, fonts, Web Share and in-app browsers are the least predictable part (no authoritative docs for in-app browsers) | Fall back to inline "press and hold" as the main path there                                 |
+| **T7.2 / T7.3 Renderer and pre-render** | Auto-fit text, font timing, render speed on weak phones                                                                 | Drop the ink texture first; keep the flat stamp                                             |
+| **T8.1 Share codec**                    | Strict validation is fiddly; WhatsApp mangling of links                                                                 | The 20-case test table catches most of it; shorten the format only if the length test fails |
+| **T9.1 Gesture handling**               | `share()` needs transient activation (W3C spec); iOS has been reported to drop it after async work                      | Pre-render (already in the plan); if it still fails, "tap again when ready"                 |
+| **T4.1 Number input**                   | Caret jumping while formatting separators                                                                               | Format on blur only if live formatting can't be made stable                                 |
+| **T11.3 CSP**                           | Can break fonts, Umami or Next's inline scripts                                                                         | Add last, test, loosen; ship without CSP rather than ship broken                            |
 
 ---
 
@@ -275,24 +288,25 @@ Riskiest and least-familiar work comes first, while changing course is cheap.
 
 ## 4. Time estimate per slice
 
-| Slice | Hours | If it overruns, cut |
-|---|---|---|
-| 1 Scaffold, tokens, deploy | 1.5 | nothing; it's the foundation |
-| 2 Export spike | 1.0 | nothing; it gates the design |
-| 3 First paint | 2.0 | nothing |
-| 4 Editing | 3.25 | "Apply to all shared" and "Reset to preset" (0.3h) |
-| 5 Currency and rates | 1.0 | nothing |
-| 6 Header, meter, live receipt | 1.75 | stamp animation (0.15h), desktop two-column layout (0.4h) |
-| 7 Canvas renderer | 2.25 | ink texture (0.4h) |
-| 8 Share link | 1.75 | local save and resume (0.3h) |
-| 9 Export UX | 1.25 | nothing |
-| 10 CTA, OG, analytics | 1.0 | analytics beyond `receipt_export` (0.2h) |
-| 11 Polish and QA | 2.0 | print-feed animation and haptic (0.35h, never built unless time) |
-| **Build total** | **18.75** | |
-| R1 research + C1 copy | 2.0 | R1 can't be skipped; C1 can be trimmed |
-| **Everything** | **about 20.75** | |
+| Slice                         | Hours           | If it overruns, cut                                              |
+| ----------------------------- | --------------- | ---------------------------------------------------------------- |
+| 1 Scaffold, tokens, deploy    | 1.5             | nothing; it's the foundation                                     |
+| 2 Export spike                | 1.0             | nothing; it gates the design                                     |
+| 3 First paint                 | 2.0             | nothing                                                          |
+| 4 Editing                     | 3.25            | "Apply to all shared" and "Reset to preset" (0.3h)               |
+| 5 Currency and rates          | 1.0             | nothing                                                          |
+| 6 Header, meter, live receipt | 1.75            | stamp animation (0.15h), desktop two-column layout (0.4h)        |
+| 7 Canvas renderer             | 2.25            | ink texture (0.4h)                                               |
+| 8 Share link                  | 1.75            | local save and resume (0.3h)                                     |
+| 9 Export UX                   | 1.25            | nothing                                                          |
+| 10 CTA, OG, analytics         | 1.0             | analytics beyond `receipt_export` (0.2h)                         |
+| 11 Polish and QA              | 2.0             | print-feed animation and haptic (0.35h, never built unless time) |
+| **Build total**               | **18.75**       |                                                                  |
+| R1 research + C1 copy         | 2.0             | R1 can't be skipped; C1 can be trimmed                           |
+| **Everything**                | **about 20.75** |                                                                  |
 
 ### Cut ladder (apply from the top when behind; about 2.1h in total)
+
 1. Print-feed animation and Android haptic (0.35h)
 2. Ink-stamp speckle texture, keep the flat stamp (0.4h)
 3. Local save and resume (0.3h)
@@ -305,12 +319,12 @@ Riskiest and least-familiar work comes first, while changing course is cheap.
 
 ### Suggested schedule (assumes about 5 to 6h per day; adjust to your real availability)
 
-| Day | Plan | Hours | Checkpoint at end of day |
-|---|---|---|---|
-| **Sat Nov 21** | Slices 1, 2, R1, Slice 3 | about 5.5 | Live URL; spike matrix filled in and export path decided; first-paint page deployed |
-| **Sun Nov 22** | Slices 4, 5, 6 | about 6.0 | Fully editable calculator with currency, meter and live receipt, usable on a phone. **Scope freeze** |
-| **Mon Nov 23** | Slices 7, 8, 9 | about 5.25 | Edit, copy link, open elsewhere, export a real receipt on devices. **Seed it to 10 to 20 people in 3 to 4 group chats** (Risk 5) |
-| **Tue Nov 24** | Slices 10, 11, C1, launch | about 4.0 | Polished, CSP tested, real numbers in; launch posts out |
+| Day            | Plan                      | Hours      | Checkpoint at end of day                                                                                                         |
+| -------------- | ------------------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| **Sat Nov 21** | Slices 1, 2, R1, Slice 3  | about 5.5  | Live URL; spike matrix filled in and export path decided; first-paint page deployed                                              |
+| **Sun Nov 22** | Slices 4, 5, 6            | about 6.0  | Fully editable calculator with currency, meter and live receipt, usable on a phone. **Scope freeze**                             |
+| **Mon Nov 23** | Slices 7, 8, 9            | about 5.25 | Edit, copy link, open elsewhere, export a real receipt on devices. **Seed it to 10 to 20 people in 3 to 4 group chats** (Risk 5) |
+| **Tue Nov 24** | Slices 10, 11, C1, launch | about 4.0  | Polished, CSP tested, real numbers in; launch posts out                                                                          |
 
 If Saturday ends without the spike decision, stop and fix that before Sunday's slices, because Slices 7 and 9 depend on it.
 
@@ -318,12 +332,12 @@ If Saturday ends without the spike decision, stop and fix that before Sunday's s
 
 ## 5. Demo milestones
 
-| After | What you should be able to screen-record |
-|---|---|
-| **Slice 3** | First paint at 360px: danfo header, real numbers, stamp. Share it with one friend for a gut check |
-| **Slice 5** | Editing and switching currency, the "it's instant" clip |
+| After       | What you should be able to screen-record                                                                                             |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| **Slice 3** | First paint at 360px: danfo header, real numbers, stamp. Share it with one friend for a gut check                                    |
+| **Slice 5** | Editing and switching currency, the "it's instant" clip                                                                              |
 | **Slice 9** | The full loop: edit, copy link, open on a second phone, export a receipt, post it. This is your launch video and your portfolio demo |
-| **Launch** | Post the real receipt plus the clip; add the live URL to your portfolio and README |
+| **Launch**  | Post the real receipt plus the clip; add the live URL to your portfolio and README                                                   |
 
 ---
 
