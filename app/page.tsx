@@ -2,6 +2,7 @@ import { DamageMeter } from "@/components/DamageMeter";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { Receipt } from "@/components/Receipt";
+import { ReceiptPrerender } from "@/components/ReceiptPrerender";
 import { ResultsPanel } from "@/components/ResultsPanel";
 import { StickyColumn } from "@/components/StickyColumn";
 import { TripControls } from "@/components/TripControls";
@@ -16,11 +17,13 @@ import { AppStateProvider } from "@/state/AppStateProvider";
  * From 1280px `main` is two columns: the calculator (480px) and the receipt (380px), 48px apart,
  * with the receipt column sticky; the meter hides itself at that width. Below 1280px it is one
  * column and the receipt follows the rates. The receipt is one element in the page, so its id is
- * unique and the meter's "See receipt" jump always finds it.
+ * unique and the meter's "See receipt" jump always finds it. `ReceiptPrerender` renders nothing; it keeps
+ * the PNG pre-render in step with the state (T7.3), and sits first so the meter stays the last child.
  */
 export default function Home() {
   return (
     <AppStateProvider>
+      <ReceiptPrerender />
       <Header />
       <main className="mx-auto w-full max-w-[560px] flex-1 px-4 py-6 min-[1280px]:grid min-[1280px]:max-w-[940px] min-[1280px]:grid-cols-[minmax(0,480px)_minmax(0,380px)] min-[1280px]:items-start min-[1280px]:gap-12">
         <div>
