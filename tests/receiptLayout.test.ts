@@ -165,6 +165,17 @@ describe("layoutReceipt: bands and content", () => {
     }
   });
 
+  it("keeps the per-person amount clear of its label at every size", () => {
+    for (const view of [GOLDEN_VIEW, maxView("NGN", 4), maxView("USD", 4)]) {
+      const texts = textOps(layoutOrFail(view));
+      const label = texts.find((op) => op.text === "PER PERSON");
+      const amount = texts.find((op) => op.text === view.perPersonTotal);
+      if (!label || !amount) throw new Error("per-person texts missing");
+      // Cap height is about 72% of the size; keep at least 28px between it and the label.
+      expect(amount.y - label.y).toBeGreaterThanOrEqual(amount.font.size * 0.72 + 28 - 1);
+    }
+  });
+
   it("uses spare height on a short receipt but never crosses the bottom band", () => {
     const result = layoutReceipt(GOLDEN_VIEW, WIDE);
     if (!result.ok) throw new Error(result.message);

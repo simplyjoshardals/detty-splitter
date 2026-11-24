@@ -286,7 +286,8 @@ function build(view: ReceiptView, measure: Measure, extra: number): LayoutResult
   text("PER PERSON", PAD_X, y, mono(700, 34), "ink", "left");
   const perPerson = fitFontSize(view.perPersonTotal, "mono", 700, CONTENT_W, 92, measure);
   if (!perPerson.fits) problems.push(`"${view.perPersonTotal}" is wider than ${CONTENT_W}px at ${MIN_TEXT_PX}px`);
-  y += GAP.perPersonAmount;
+  // The step scales with the size, so a large amount never crowds its label.
+  y += Math.max(GAP.perPersonAmount, Math.round(perPerson.size * 0.72) + 28);
   text(view.perPersonTotal, CANVAS_WIDTH - PAD_X, y, mono(700, perPerson.size), "ink", "right");
   y += GAP.group;
   y = labelAndAmount(`GROUP (${view.groupSize})`, mono(700, 34), view.groupTotal, 44, y);
