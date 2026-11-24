@@ -95,6 +95,15 @@ describe("the receipt", () => {
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
   });
 
+  it("marks the totals block, which the meter watches to know when to hide", () => {
+    renderReceipt();
+    const totals = document.getElementById("receipt-totals");
+    expect(totals).toBeTruthy();
+    expect(receipt().contains(totals)).toBe(true);
+    expect(within(totals as HTMLElement).getByText("PER PERSON")).toBeTruthy();
+    expect(within(totals as HTMLElement).getByText("GROUP (4)")).toBeTruthy();
+  });
+
   it("lists the five lines with the label, the formula and your share", () => {
     renderReceipt();
     const items = within(receipt()).getAllByRole("listitem");

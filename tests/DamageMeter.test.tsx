@@ -94,6 +94,15 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
+function renderMeterWatching(watchId: string) {
+  render(
+    <AppStateProvider>
+      <Controls />
+      <DamageMeter watchId={watchId} />
+    </AppStateProvider>,
+  );
+}
+
 function renderMeter() {
   render(
     <AppStateProvider>
@@ -225,6 +234,30 @@ describe("hiding while the receipt is on screen", () => {
     // display stays as it was; only visibility changes, so the page does not shift.
     expect(hiddenBar?.style.visibility).toBe("hidden");
     expect(hiddenBar?.style.display).toBe("");
+  });
+
+  it("hides on the watched element, not on the whole receipt, when watchId is given", () => {
+    addReceipt();
+    const totals = document.createElement("div");
+    totals.id = "receipt-totals";
+    document.body.append(totals);
+    renderMeterWatching("receipt-totals");
+    // One observer, on the totals: the receipt itself is only the jump target.
+    expect(FakeIntersectionObserver.instances).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "See receipt" })).toBeTruthy();
+
+    act(() => latestObserver()?.emit(true));
+    expect(screen.queryByRole("region", { name: "DAMAGE METER" })).toBeNull();
+    act(() => latestObserver()?.emit(false));
+    expect(bar()).toBeTruthy();
+  });
+
+  it("stays visible when the watched element is missing, even with a receipt to jump to", () => {
+    addReceipt();
+    renderMeterWatching("not-there");
+    expect(FakeIntersectionObserver.instances).toHaveLength(0);
+    expect(bar()).toBeTruthy();
+    expect(screen.getByRole("button", { name: "See receipt" })).toBeTruthy();
   });
 
   it("never hides when there is no receipt", () => {

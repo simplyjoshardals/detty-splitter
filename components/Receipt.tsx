@@ -23,6 +23,7 @@ const TOTAL_SIZE_CLASS: Record<TotalSizeToken, string> = {
  *   focuses (DESIGN §4). The ring is drawn outside the paper, on the page.
  * - It is a fixed-cream object in both themes: the `on-receipt` scope (globals.css) gives it
  *   the `--receipt-*` colours.
+ * - The totals block has `id="receipt-totals"`: the meter hides while that is on screen.
  * - Nothing here is a live region: the meter announces the totals once an edit has settled.
  * - Always the same height class of content (five lines, a stamp block that reserves two
  *   lines), so a tier change never moves the page.
@@ -61,22 +62,24 @@ export function Receipt() {
 
           <ul className="border-t border-dashed border-rule">
             {view.lines.map((line) => (
+              // The label and your share share a row while the label has about 10rem; a long
+              // amount drops under the label instead of squeezing it into three lines.
               <li
                 key={line.label}
-                className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 border-b border-dashed border-rule py-2"
+                className="flex flex-wrap items-baseline gap-x-3 border-b border-dashed border-rule py-2"
               >
-                <span className="text-[length:var(--t-sm)] leading-5">{line.label}</span>
-                <span className="whitespace-nowrap text-right font-mono text-[length:var(--t-base)] font-bold leading-5">
+                <span className="min-w-0 grow basis-40 text-[length:var(--t-sm)] leading-5">{line.label}</span>
+                <span className="ml-auto whitespace-nowrap text-right font-mono text-[length:var(--t-base)] font-bold leading-5">
                   {line.yourShare}
                 </span>
-                <span className="col-span-2 text-[length:var(--t-xs)] leading-4 text-muted [overflow-wrap:anywhere]">
+                <span className="basis-full text-[length:var(--t-xs)] leading-4 text-muted [overflow-wrap:anywhere]">
                   {line.formula}
                 </span>
               </li>
             ))}
           </ul>
 
-          <dl className="flex flex-col gap-3 border-t-4 border-double border-ink pt-4">
+          <dl id="receipt-totals" className="flex flex-col gap-3 border-t-4 border-double border-ink pt-4">
             <div>
               <dt className="font-display text-[length:var(--t-sm)]">PER PERSON</dt>
               {/* Size by length first; nowrap plus overflow-wrap is only the safety net. */}
@@ -103,7 +106,7 @@ export function Receipt() {
           <div className="flex flex-col gap-1 pb-4 text-center">
             <p className="text-[length:var(--t-sm)] font-bold">{view.balanceLine}</p>
             <p className="text-[length:var(--t-xs)] leading-4 text-muted">AUTH: {view.authCode}</p>
-            <p className="text-[length:var(--t-xs)] leading-4 text-muted">{RECEIPT_COPY.customerCopy}</p>
+            <p className="text-balance text-[length:var(--t-xs)] leading-4 text-muted">{RECEIPT_COPY.customerCopy}</p>
             <p className="text-[length:var(--t-xs)] leading-4 text-muted">{view.ratesNote}</p>
           </div>
         </div>

@@ -3,6 +3,7 @@ import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { Receipt } from "@/components/Receipt";
 import { ResultsPanel } from "@/components/ResultsPanel";
+import { StickyColumn } from "@/components/StickyColumn";
 import { TripControls } from "@/components/TripControls";
 import { AppStateProvider } from "@/state/AppStateProvider";
 
@@ -26,12 +27,12 @@ export default function Home() {
           <TripControls />
           <ResultsPanel />
         </div>
-        <div className="mt-6 min-[1280px]:sticky min-[1280px]:top-6 min-[1280px]:mt-0">
+        <StickyColumn>
           <Receipt />
-        </div>
+        </StickyColumn>
       </main>
       <Footer />
-      <DamageMeter />
+      <DamageMeter watchId="receipt-totals" />
     </AppStateProvider>
   );
 }

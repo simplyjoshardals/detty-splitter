@@ -103,7 +103,10 @@ class FakeIntersectionObserver {
   observed: Element[] = [];
   disconnected = false;
 
-  constructor(private readonly callback: IntersectionObserverCallback) {
+  constructor(
+    private readonly callback: IntersectionObserverCallback,
+    readonly options?: IntersectionObserverInit,
+  ) {
     FakeIntersectionObserver.instances.push(this);
   }
 
@@ -153,6 +156,14 @@ describe("useTargetInView", () => {
     expect(result.current).toEqual({ found: true, inView: true });
     act(() => latest()?.emit(false));
     expect(result.current).toEqual({ found: true, inView: false });
+  });
+
+  it("passes the root margin to the observer, and none when it is not given", () => {
+    addTarget("receipt");
+    renderHook(() => useTargetInView("receipt"));
+    expect(latest()?.options).toBeUndefined();
+    renderHook(() => useTargetInView("receipt", "0px 0px -88px 0px"));
+    expect(latest()?.options).toEqual({ rootMargin: "0px 0px -88px 0px" });
   });
 
   it("finds a target that is added after the first render", async () => {

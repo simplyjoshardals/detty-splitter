@@ -6,7 +6,7 @@ import { TIERS } from "@/data/tiers";
 import { calculate } from "@/lib/calc";
 import { formatAmount } from "@/lib/money";
 import { useAppState } from "@/state/AppStateProvider";
-import { useSettledMessage, useTargetInView } from "./meterHooks";
+import { useSettledMessage, useTargetFound, useTargetInView } from "./meterHooks";
 import { meterSizeToken, totalsAnnouncement, type MeterSizeToken } from "./meterText";
 
 /**
@@ -38,9 +38,21 @@ function jumpTo(id: string): void {
   if (target.hasAttribute("tabindex")) target.focus({ preventScroll: true });
 }
 
+/**
+ * The bar ignores its own strip of the screen when it decides whether the totals are visible:
+ * about 68px tall, 84px in the empty state, plus the home-indicator inset (T6.3 review).
+ */
+const BAR_CLEARANCE = "0px 0px -88px 0px";
+
 interface DamageMeterProps {
-  /** Id of the element whose visibility hides the bar and that "See receipt" jumps to. */
+  /** Id of the element that "See receipt" jumps to and focuses. */
   targetId?: string;
+  /**
+   * Id of the element whose visibility hides the bar. Defaults to `targetId`. The page passes
+   * the receipt's totals: the receipt is taller than a phone screen, so hiding the bar as soon
+   * as its top edge appeared left a long stretch with neither the bar nor the totals in view.
+   */
+  watchId?: string;
 }
 
 /**
@@ -66,7 +78,7 @@ interface DamageMeterProps {
  * Needs `.on-meter` (globals.css, Stage 4) for the focus colour: the ink ring is invisible on
  * the bar in light mode and the yellow ring would sit on the yellow button in dark mode.
  */
-export function DamageMeter({ targetId = DEFAULT_TARGET_ID }: DamageMeterProps) {
+export function DamageMeter({ targetId = DEFAULT_TARGET_ID, watchId }: DamageMeterProps) {
   const { state } = useAppState();
   const result = useMemo(() => calculate(state, TIERS), [state]);
   const { currency, groupSize } = state;
@@ -74,7 +86,8 @@ export function DamageMeter({ targetId = DEFAULT_TARGET_ID }: DamageMeterProps) 
   const announced = useSettledMessage(
     totalsAnnouncement(result.perPersonMinor, result.groupTotalMinor, groupSize, currency),
   );
-  const { found, inView } = useTargetInView(targetId);
+  const found = useTargetFound(targetId);
+  const { inView } = useTargetInView(watchId ?? targetId, BAR_CLEARANCE);
   const labelId = useId();
   // DESIGN §9: the empty-state line replaces the caption while there is nothing to pay.
   const caption = result.perPersonMinor === 0 ? "Meter never start. Add a number, oya." : "per person";

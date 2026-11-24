@@ -38,6 +38,19 @@ function subscribeToDom(onChange: () => void): () => void {
 }
 
 /**
+ * Whether the element with this id is on the page, with no observer. False on the server and
+ * on the first client render, then it follows the page (T6.3: the meter needs this alone for
+ * the "See receipt" button, while the bar hides on a different element).
+ */
+export function useTargetFound(id: string): boolean {
+  return useSyncExternalStore(
+    subscribeToDom,
+    () => document.getElementById(id) !== null,
+    () => false,
+  );
+}
+
+/**
  * Whether the element with this id is on the page, and whether any of it is on screen.
  *
  * The receipt does not exist until T6.3, and later it is mounted by another component, so
@@ -49,27 +62,31 @@ function subscribeToDom(onChange: () => void): () => void {
  *   safe side.
  * - `inView` is always false while the element is missing, so a removed target can never leave
  *   the bar hidden.
+ * - `rootMargin` shrinks the area that counts as "on screen" (the usual IntersectionObserver
+ *   option), so the bar can ignore the strip it covers itself.
  */
-export function useTargetInView(id: string): { found: boolean; inView: boolean } {
-  const found = useSyncExternalStore(
-    subscribeToDom,
-    () => document.getElementById(id) !== null,
-    () => false,
-  );
+export function useTargetInView(
+  id: string,
+  rootMargin?: string,
+): { found: boolean; inView: boolean } {
+  const found = useTargetFound(id);
   const [inView, setInView] = useState(false);
 
   useEffect(() => {
     if (!found || typeof IntersectionObserver === "undefined") return;
     const target = document.getElementById(id);
     if (target === null) return;
-    const observer = new IntersectionObserver((entries) => {
-      // Entries come oldest first: the last one is the current state.
-      const latest = entries[entries.length - 1];
-      if (latest !== undefined) setInView(latest.isIntersecting);
-    });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Entries come oldest first: the last one is the current state.
+        const latest = entries[entries.length - 1];
+        if (latest !== undefined) setInView(latest.isIntersecting);
+      },
+      rootMargin === undefined ? undefined : { rootMargin },
+    );
     observer.observe(target);
     return () => observer.disconnect();
-  }, [id, found]);
+  }, [id, found, rootMargin]);
 
   return { found, inView: found && inView };
 }

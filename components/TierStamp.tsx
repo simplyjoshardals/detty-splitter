@@ -38,7 +38,7 @@ export function TierStamp({ badge, tagline }: TierStampProps) {
       >
         {badge}
       </p>
-      <p className="text-center text-[length:var(--t-sm)] text-muted">{tagline}</p>
+      <p className="text-balance text-center text-[length:var(--t-sm)] text-muted">{tagline}</p>
     </div>
   );
 }
