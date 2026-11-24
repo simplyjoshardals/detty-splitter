@@ -16,6 +16,7 @@ import {
   type FontSpec,
   type Measure,
 } from "./layout";
+import { makeSpeckles } from "./speckle";
 import type { ReceiptView } from "./view";
 
 export type RenderFailureReason = "font" | "draw" | "blob" | "unknown";
@@ -34,6 +35,11 @@ export interface RenderDiagnostics {
   fonts: ReadonlyArray<FontDiagnostic>;
   renderMs: number;
   blobBytes: number;
+}
+
+export interface RenderOptions {
+
+  texture?: boolean;
 }
 
 export type RenderResult =
@@ -101,10 +107,14 @@ function cssFont(font: FontSpec, families: Families): string {
   return `${font.weight} ${font.size}px ${families[font.role]}`;
 }
 
-function drawStamp(ctx: CanvasRenderingContext2D, op: StampOp, color: string, families: Families): void {
-  ctx.save();
-  ctx.translate(op.centerX, op.centerY);
-  ctx.rotate(op.angle);
+const STAMP_LAYER_MARGIN = 4;
+
+function strokeAndFillStamp(
+  ctx: CanvasRenderingContext2D,
+  op: StampOp,
+  color: string,
+  families: Families,
+): void {
   ctx.strokeStyle = color;
   ctx.setLineDash([]);
   // Double border: a heavy outer line and a lighter inner one.
@@ -118,10 +128,73 @@ function drawStamp(ctx: CanvasRenderingContext2D, op: StampOp, color: string, fa
   ctx.textBaseline = "middle";
   const top = -(op.lines.length * op.lineHeight) / 2;
   op.lines.forEach((line, i) => ctx.fillText(line, 0, top + op.lineHeight * (i + 0.5)));
+}
+
+function drawFlatStamp(ctx: CanvasRenderingContext2D, op: StampOp, color: string, families: Families): void {
+  ctx.save();
+  ctx.translate(op.centerX, op.centerY);
+  ctx.rotate(op.angle);
+  strokeAndFillStamp(ctx, op, color, families);
   ctx.restore();
 }
 
-function paint(ctx: CanvasRenderingContext2D, ops: ReadonlyArray<DrawOp>, colors: Colors, families: Families): void {
+function drawTexturedStamp(
+  ctx: CanvasRenderingContext2D,
+  op: StampOp,
+  color: string,
+  families: Families,
+): boolean {
+  const layerWidth = Math.ceil(op.width) + STAMP_LAYER_MARGIN * 2;
+  const layerHeight = Math.ceil(op.height) + STAMP_LAYER_MARGIN * 2;
+  const layer = document.createElement("canvas");
+  layer.width = layerWidth;
+  layer.height = layerHeight;
+  const layerCtx = layer.getContext("2d");
+  if (!layerCtx) return false;
+
+  layerCtx.save();
+  layerCtx.translate(layerWidth / 2, layerHeight / 2);
+  strokeAndFillStamp(layerCtx, op, color, families);
+  layerCtx.restore();
+
+  const left = (layerWidth - op.width) / 2;
+  const topEdge = (layerHeight - op.height) / 2;
+  layerCtx.save();
+  layerCtx.globalCompositeOperation = "destination-out";
+  layerCtx.fillStyle = "#000";
+  for (const speckle of makeSpeckles(op.seed, op.width, op.height)) {
+    layerCtx.beginPath();
+    layerCtx.arc(left + speckle.x, topEdge + speckle.y, speckle.r, 0, Math.PI * 2);
+    layerCtx.fill();
+  }
+  layerCtx.restore();
+
+  ctx.save();
+  ctx.translate(op.centerX, op.centerY);
+  ctx.rotate(op.angle);
+  ctx.drawImage(layer, -layerWidth / 2, -layerHeight / 2);
+  ctx.restore();
+  return true;
+}
+
+function drawStamp(
+  ctx: CanvasRenderingContext2D,
+  op: StampOp,
+  color: string,
+  families: Families,
+  texture: boolean,
+): void {
+  if (texture && drawTexturedStamp(ctx, op, color, families)) return;
+  drawFlatStamp(ctx, op, color, families);
+}
+
+function paint(
+  ctx: CanvasRenderingContext2D,
+  ops: ReadonlyArray<DrawOp>,
+  colors: Colors,
+  families: Families,
+  texture: boolean,
+): void {
   for (const op of ops) {
     switch (op.kind) {
       case "rect":
@@ -147,7 +220,7 @@ function paint(ctx: CanvasRenderingContext2D, ops: ReadonlyArray<DrawOp>, colors
         ctx.fillText(op.text, op.x, op.y);
         break;
       case "stamp":
-        drawStamp(ctx, op, colors.stamp, families);
+        drawStamp(ctx, op, colors.stamp, families, texture);
         break;
     }
   }
@@ -157,7 +230,8 @@ function paint(ctx: CanvasRenderingContext2D, ops: ReadonlyArray<DrawOp>, colors
  * Waits for the fonts, draws the receipt and returns a PNG blob.
  * Never throws: every failure comes back as a typed result.
  */
-export async function renderReceipt(view: ReceiptView): Promise<RenderResult> {
+export async function renderReceipt(view: ReceiptView, options: RenderOptions = {}): Promise<RenderResult> {
+  const texture = options.texture ?? true;
   const started = performance.now();
 
   // next/font gives its fonts generated family names, so read them from the CSS variables.
@@ -223,7 +297,7 @@ export async function renderReceipt(view: ReceiptView): Promise<RenderResult> {
     };
     const layout = layoutReceipt(view, measure);
     if (!layout.ok) return fail("draw", `Receipt does not fit: ${layout.message}`, fonts);
-    paint(ctx, layout.ops, colors, families);
+    paint(ctx, layout.ops, colors, families, texture);
     blob = await canvasToBlob(canvas);
   } catch (error) {
     return fail("draw", describeError(error), fonts);

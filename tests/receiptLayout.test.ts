@@ -14,6 +14,7 @@ import {
   type FontSpec,
   type Measure,
 } from "@/lib/receipt/layout";
+import { seedFromAuthCode } from "@/lib/receipt/speckle";
 import { RECEIPT_COPY, buildReceiptView, type ReceiptView } from "@/lib/receipt/view";
 import { GOLDEN, MAX_VALUES } from "./fixtures";
 import type { AppState, CurrencyCode } from "@/lib/types";
@@ -193,6 +194,19 @@ describe("layoutReceipt: bands and content", () => {
     const [stamp] = stampOps(ops);
     expect(stamp?.angle).toBeCloseTo((-4 * Math.PI) / 180, 10);
     expect(stamp?.centerX).toBe(CANVAS_WIDTH / 2);
+  });
+
+  it("gives the stamp a seed from the auth code, stable for the same view", () => {
+    const [stamp] = stampOps(ops);
+    expect(stamp?.seed).toBe(seedFromAuthCode(GOLDEN_VIEW.authCode));
+    expect(stamp?.seed).toBe(parseInt(GOLDEN_VIEW.authCode, 16));
+    expect(stampOps(layoutOrFail(GOLDEN_VIEW))[0]?.seed).toBe(stamp?.seed);
+  });
+
+  it("seeds the stamp differently for a different auth code", () => {
+    const other = { ...GOLDEN_VIEW, authCode: "00000001" };
+    expect(stampOps(layoutOrFail(other))[0]?.seed).toBe(1);
+    expect(stampOps(layoutOrFail(other))[0]?.seed).not.toBe(stampOps(ops)[0]?.seed);
   });
 
   it("uses only the colour roles the tokens provide", () => {

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { renderReceipt } from "@/lib/receipt/render";
+import { SPECKLE_COUNT } from "@/lib/receipt/speckle";
 import { buildReceiptView, type ReceiptView } from "@/lib/receipt/view";
 import { GOLDEN, MAX_VALUES } from "./fixtures";
 
@@ -32,25 +33,35 @@ interface Setup {
   fills: string[];
   /** Names of the CSS variables read. */
   varReads: string[];
+
+  arcs: string[];
+
+  drawImages: number;
+
+  composites: string[];
 }
 
 interface Options {
   vars?: Record<string, string>;
   load?: (spec: string, sample: string) => Promise<unknown[]>;
   context?: "ok" | "missing";
+  layerContext?: "ok" | "missing";
   blob?: "ok" | "null";
   failOnFillText?: boolean;
 }
 
 function stubBrowser(options: Options = {}): Setup {
-  const setup: Setup = { events: [], fontsSet: [], fills: [], varReads: [] };
+  const setup: Setup = { events: [], fontsSet: [], fills: [], varReads: [], arcs: [], drawImages: 0, composites: [] };
   const vars = options.vars ?? CSS_VARS;
-  const ctx = {
+  const makeCtx = () => ({
     set font(value: string) {
       setup.fontsSet.push(value);
     },
     set fillStyle(value: string) {
       setup.fills.push(value);
+    },
+    set globalCompositeOperation(value: string) {
+      setup.composites.push(value);
     },
     strokeStyle: "",
     lineWidth: 0,
@@ -72,17 +83,29 @@ function stubBrowser(options: Options = {}): Setup {
     lineTo: () => undefined,
     stroke: () => undefined,
     strokeRect: () => undefined,
-  };
-  const canvas = {
-    width: 0,
-    height: 0,
-    getContext: () => (options.context === "missing" ? null : ctx),
-    toBlob: (callback: (blob: Blob | null) => void) =>
-      callback(options.blob === "null" ? null : new Blob(["png"], { type: "image/png" })),
+    arc: (x: number, y: number, r: number) => setup.arcs.push(`${x.toFixed(3)},${y.toFixed(3)},${r.toFixed(3)}`),
+    fill: () => undefined,
+    drawImage: () => {
+      setup.drawImages += 1;
+    },
+  });
+  let canvases = 0;
+  const makeCanvas = () => {
+    const ctx = makeCtx();
+    const isLayer = canvases > 0;
+    canvases += 1;
+    return {
+      width: 0,
+      height: 0,
+      getContext: () =>
+        options.context === "missing" || (isLayer && options.layerContext === "missing") ? null : ctx,
+      toBlob: (callback: (blob: Blob | null) => void) =>
+        callback(options.blob === "null" ? null : new Blob(["png"], { type: "image/png" })),
+    };
   };
   vi.stubGlobal("document", {
     documentElement: {},
-    createElement: () => canvas,
+    createElement: () => makeCanvas(),
     fonts: {
       load: (spec: string, sample: string) => {
         setup.events.push(`load ${spec}`);
@@ -182,6 +205,55 @@ describe("renderReceipt: the happy path", () => {
     const view: ReceiptView = buildReceiptView(MAX_VALUES);
     const result = await renderReceipt(view);
     expect(result.ok).toBe(true);
+  });
+});
+
+describe("renderReceipt: the ink-stamp texture", () => {
+  it("erases the speckles on an offscreen layer, never on the receipt canvas", async () => {
+    const setup = stubBrowser();
+    await renderReceipt(VIEW);
+    expect(setup.arcs).toHaveLength(SPECKLE_COUNT);
+    expect(setup.composites).toEqual(["destination-out"]);
+    expect(setup.drawImages).toBe(1);
+  });
+
+  it("draws the same speckles for the same view", async () => {
+    const first = stubBrowser();
+    await renderReceipt(VIEW);
+    const again = stubBrowser();
+    await renderReceipt(VIEW);
+    expect(again.arcs).toEqual(first.arcs);
+  });
+
+  it("draws different speckles for a view with another auth code", async () => {
+    const first = stubBrowser();
+    await renderReceipt(VIEW);
+    const other = stubBrowser();
+    await renderReceipt({ ...VIEW, authCode: VIEW.authCode === "00000001" ? "00000002" : "00000001" });
+    expect(other.arcs).toHaveLength(SPECKLE_COUNT);
+    expect(other.arcs).not.toEqual(first.arcs);
+  });
+
+  it("draws no speckles, and no offscreen layer, when texture is off", async () => {
+    const setup = stubBrowser();
+    const result = await renderReceipt(VIEW, { texture: false });
+    expect(result.ok).toBe(true);
+    expect(setup.arcs).toHaveLength(0);
+    expect(setup.composites).toHaveLength(0);
+    expect(setup.drawImages).toBe(0);
+  });
+
+  it("falls back to the flat stamp when the offscreen layer has no 2D context", async () => {
+    const setup = stubBrowser({ layerContext: "missing" });
+    const result = await renderReceipt(VIEW);
+    expect(result.ok).toBe(true);
+    expect(setup.arcs).toHaveLength(0);
+    expect(setup.drawImages).toBe(0);
+  });
+
+  it("renders the max-values receipt with the texture on", async () => {
+    stubBrowser();
+    expect((await renderReceipt(buildReceiptView(MAX_VALUES))).ok).toBe(true);
   });
 });
 

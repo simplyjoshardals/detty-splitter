@@ -1,3 +1,4 @@
+import { seedFromAuthCode } from "./speckle";
 /**
  * Canvas receipt layout (DESIGN.md §7, T7.2). Pure: a `ReceiptView` and a text measurer go in,
  * a flat list of draw operations comes out. No DOM and no canvas, so a Node test can check
@@ -49,6 +50,8 @@ export type DrawOp =
       lines: readonly string[];
       font: FontSpec;
       lineHeight: number;
+
+      seed: number;
     };
 
 export type LayoutResult =
@@ -316,6 +319,7 @@ function build(view: ReceiptView, measure: Measure, extra: number): LayoutResult
     lines: badgeLines,
     font: badgeFont,
     lineHeight: STAMP_LINE_H,
+    seed: seedFromAuthCode(view.authCode),
   });
   y = boxTop + boxHeight + tilt;
 
