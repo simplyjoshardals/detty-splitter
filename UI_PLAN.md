@@ -195,7 +195,7 @@ Ordered so the riskiest work lands first while it's cheap to change course, then
 - [ ] **S6 ⚠ Canvas receipt renderer, final design** (about 2.25h)
   - Screens/states: S3 → S4 handoff.
   - Pair: `lib/receipt` from `ReceiptView`: danfo bands, POS slip lines, auto-fit large amounts, **seeded ink-stamp texture**, AUTH code, background pre-render with debounce and latest-blob cache.
-  - Acceptance: export for the `max-values` fixture has no clipped digits; text ≥ 30px; colours match tokens; renders in under about 1s on a mid-range phone (**VERIFY** by testing); pre-rendered blob is ready before the user taps in normal use.
+  - Acceptance: export for the `max-values` fixture has no clipped digits; text ≥ 30px; colours match tokens; renders in under about 1s on a mid-range phone (verified in T7.2: about 200 ms, before the T7.3 texture); pre-rendered blob is ready before the user taps in normal use.
 
 - [ ] **S7 ⚠ Share link, resume, notice** (about 1.75h)
   - Screens/states: S1 (loading swap), S6 (notice), clipboard `copied` / `denied`.
