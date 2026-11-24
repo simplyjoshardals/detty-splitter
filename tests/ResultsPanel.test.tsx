@@ -3,7 +3,7 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { Footer } from "@/components/Footer";
-import { ResultsPanel, totalSizeToken } from "@/components/ResultsPanel";
+import { ResultsPanel } from "@/components/ResultsPanel";
 import { AppStateProvider } from "@/state/AppStateProvider";
 
 afterEach(cleanup);
@@ -138,8 +138,7 @@ describe("mode switch in the results panel", () => {
     expect(screen.queryByText("₦262,500")).toBeNull();
     // The unit is now "each", so the per-person line no longer shows a split.
     expect(screen.queryByText("₦1,050,000 total ÷ 4")).toBeNull();
-    // Per person total: 1,347,500 - 262,500 + 1,050,000
-    expect(screen.getByText("₦2,135,000")).toBeTruthy();
+    // The per-person total (1,347,500 - 262,500 + 1,050,000) is on the receipt: see Receipt.test.tsx.
   });
 
   it("golden: events, per person to shared, makes the line ₦75,000", async () => {
@@ -229,32 +228,6 @@ describe("footer", () => {
     expect(screen.getByRole("contentinfo").textContent).toContain(
       "Estimates only, not quotes. Tap any number to edit.",
     );
-  });
-});
-
-describe("totalSizeToken", () => {
-  it("keeps 40px for 11 characters or fewer", () => {
-    expect(totalSizeToken("₦0")).toBe("--t-2xl");
-    expect(totalSizeToken("₦1,347,500")).toBe("--t-2xl");
-    expect(totalSizeToken("₦12,345,678")).toBe("--t-2xl"); // 11 characters
-  });
-
-  it("drops to 28px from 12 characters up to 16", () => {
-    expect(totalSizeToken("₦123,456,789")).toBe("--t-xl"); // 12 characters
-    expect(totalSizeToken("₦249,750,000,000")).toBe("--t-xl"); // the max-values total, 16 characters
-  });
-
-  it("drops to 20px from 17 characters, so the largest total at a rate of 50 fits at 320px", () => {
-    expect(totalSizeToken("$4,995,000,000.00")).toBe("--t-lg"); // 17 characters
-    expect(totalSizeToken("£4,995,000,000.00")).toBe("--t-lg");
-    expect(totalSizeToken("$499,500,000,000.00")).toBe("--t-lg");
-  });
-
-  it("counts ₦ as one character, not by UTF-16 units", () => {
-    expect(totalSizeToken("\u20A6".repeat(11))).toBe("--t-2xl");
-    expect(totalSizeToken("\u20A6".repeat(12))).toBe("--t-xl");
-    expect(totalSizeToken("\u20A6".repeat(16))).toBe("--t-xl");
-    expect(totalSizeToken("\u20A6".repeat(17))).toBe("--t-lg");
   });
 });
 

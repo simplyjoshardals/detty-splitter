@@ -3,6 +3,7 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { CurrencyControl } from "@/components/CurrencyControl";
+import { Receipt } from "@/components/Receipt";
 import { ResultsPanel } from "@/components/ResultsPanel";
 import { AppStateProvider } from "@/state/AppStateProvider";
 
@@ -14,6 +15,7 @@ function setup() {
     <AppStateProvider>
       <CurrencyControl />
       <ResultsPanel />
+      <Receipt />
     </AppStateProvider>,
   );
   const group = screen.getByRole("radiogroup", { name: "Currency" });
@@ -28,9 +30,9 @@ function minorUnits(text: string): number {
   return fraction === undefined ? Number(whole) : Number(whole) * 100 + Number(fraction);
 }
 
-/** The five bucket amounts, read from the rendered list. */
+/** The five bucket amounts, read from the calculator's list (the receipt has its own). */
 function lineAmounts(): string[] {
-  return screen
+  return within(screen.getByRole("region", { name: "Your damage" }))
     .getAllByRole("listitem")
     .map((item) => within(item).getByText(/^[₦$£][\d,]+(\.\d{2})?$/).textContent ?? "");
 }
@@ -91,7 +93,7 @@ describe("CurrencyControl", () => {
       await choose(code);
       const sum = lineAmounts().reduce((total, text) => total + minorUnits(text), 0);
       const perPerson = screen
-        .getAllByText("Per person")
+        .getAllByText("PER PERSON")
         .find((el) => el.tagName === "DT")?.nextElementSibling?.textContent;
       expect(perPerson).toBeTruthy();
       expect(minorUnits(perPerson ?? "")).toBe(sum);

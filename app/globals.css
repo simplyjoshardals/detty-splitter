@@ -124,6 +124,43 @@
 }
 
 /*
+ * On-receipt scope (DESIGN §3.1, T6.3): the on-screen receipt is a cream paper object in both
+ * themes. In dark mode --stamp (#ff6b5e) and --muted (#a29e93) are about 2.5:1 on cream, so the
+ * receipt takes the fixed --receipt-* values instead, the same as the canvas export. --rule is
+ * the light value too, so the dashed rules look the same for everyone. --focus is left alone:
+ * the focus ring is drawn outside the paper, on the page.
+ */
+.on-receipt {
+  --ink: var(--receipt-ink); /* 16.7:1 on the paper */
+  --muted: var(--receipt-muted); /* 6.3:1 */
+  --stamp: var(--receipt-stamp); /* 5.1:1 */
+  --rule: #b9b3a5;
+}
+
+/*
+ * Stamp thump (DESIGN §8, T6.3): scale 1.15 to 1 with a small opacity lift, 180ms, only when the
+ * tier changes. It is defined only for users who have not asked for reduced motion, so under
+ * reduce there is no animation rule at all and the stamp keeps its static rotation. `scale` is
+ * the individual property, so it composes with the stamp's own `rotate` instead of replacing it.
+ */
+@keyframes stamp-thump {
+  from {
+    scale: 1.15;
+    opacity: 0.6;
+  }
+  to {
+    scale: 1;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .stamp-thump {
+    animation: stamp-thump var(--dur-base) var(--ease) both;
+  }
+}
+
+/*
  * Keeps a field that gets focus from landing under the sticky damage meter (WCAG 2.4.11).
  * The bar is about 68px tall, 84px in its empty state, plus the iOS home-indicator inset.
  */

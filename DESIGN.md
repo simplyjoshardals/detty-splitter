@@ -172,6 +172,7 @@ Two fonts total, no italics. `display: 'swap'`, automatic fallback adjustment le
 - Focus: 3px solid `--focus`, 2px offset.
 - **On-danfo scope (T6.1).** The header band carries the class `.on-danfo`, which sets `--ink` and `--muted` to `--danfo-ink`, `--surface` to `#FFFFFF` and `--focus` to `--danfo-ink`. The band is a light island in both themes. Without it, dark mode puts cream segment borders on yellow, 1.7:1 label text (`--muted` is 4.4:1 even in light) and a yellow focus ring on a yellow band. With it: labels and borders 11.8:1, segment text on white 18.9:1, focus ring 11.8:1 on yellow. Any future component placed on a danfo fill (a plate, a button) uses the same class instead of local overrides.
 - **On-meter scope (T6.2).** The damage meter bar carries the class `.on-meter`, which sets `--ink` and `--muted` to `--meter-fg` and `--focus` to `--receipt-paper` (the fixed cream). The bar is black with yellow digits in both themes. Without the scope the ink focus ring (#111) is invisible on the bar in light mode, and the yellow dark-mode ring sits on the yellow "See receipt" button. With it: the ring is 16.7:1 on #111 and 18.6:1 on #000; digits and the button label are 11.8:1 (light) and 13.1:1 (dark); the dark-mode yellow top border is 12.1:1 against the page. The meter's own text and fill read `--meter-fg` and `--meter-bg` directly. `tests/meter-contrast.test.ts` reads these values from `globals.css`, so a colour change there is checked.
+- **On-receipt scope (T6.3).** The on-screen receipt carries the class `.on-receipt`, which sets `--ink`, `--muted` and `--stamp` to the fixed `--receipt-*` values and `--rule` to the light `#B9B3A5`, so the paper looks the same in both themes, like the export. Without it the dark-mode stamp (`#FF6B5E`) and muted text (`#A29E93`) are about 2.5:1 on cream. With it: ink 16.7:1, muted 6.3:1, stamp 5.1:1. `--focus` is deliberately not remapped: the receipt's focus ring is drawn outside the paper, on the page. The danfo bands inside it use `--danfo` and `--danfo-ink`, which do not change with the theme. `tests/receipt-css.test.ts` reads these from `globals.css`.
 
 ### 3.2 Tailwind v4 (CSS-first, no config file)
 
@@ -223,19 +224,20 @@ Top to bottom on mobile:
 2. **Route plates:** "Pick your route" label and three plates (see §5.3).
 3. **Group row:** group-size stepper, then "Apply to all shared" and "Reset to preset" text buttons, then a status line (§5.9).
 4. **Bucket list:** 5 line items, each with a 32px icon tile.
-5. **Rates:** collapsed "Rates" row; opens inline. Until the receipt arrives in T6.3 it sits between the bucket list and the totals (T5.2).
-6. **Printer slot and receipt section:** a black slot bar, then the live receipt hanging from it.
+5. **Rates:** collapsed "Rates" row; opens inline. It sits between the bucket list and the receipt (until T6.3 it sat above the totals, which now live on the receipt).
+6. **Printer slot and receipt section:** a black slot bar, then the live receipt hanging from it. **Built in T6.3:** it holds the per-person and group totals and the tier stamp, so the calculator above it has the lines and the rates only (§5.13).
 7. **Actions:** Export receipt (primary), Copy link (secondary), status line.
 8. **CTA card** ("Next stop"): only when enabled and valid.
 9. **Footer:** estimates note, disclosure when relevant, "Built in Lagos by <name>" (config-driven, hidden if unset).
 
 Rules:
-- **Damage meter (T6.2)** (mobile and tablet) is the sticky bottom bar (§5.7). It is `sticky bottom-0` and the last child of the page, after the footer, so nothing above it moves and the footer stays readable at the end of the page. It pads itself by the iOS safe-area insets on the left, right and bottom (the section takes `env(safe-area-inset-*)`, with `max(8px, …)` at the bottom, and the inner 560px column takes the 16px gutters, so its text lines up with `main` and the footer at every width), which needs `viewportFit: "cover"` in `app/layout.tsx` (page-wide). `html` has `scroll-padding-bottom` (6rem plus the bottom inset) so a focused field never lands under the bar. It is hidden while the receipt section (id `receipt`) is on screen, with `visibility: hidden` and not `display: none`, so the bar keeps its height and the layout never shifts. **Until T6.3 the receipt does not exist:** the bar always shows, "See receipt" is not drawn, and the bar shows at every width (one column at 1280px would otherwise have no meter and no receipt). **T6.3 must:** give the receipt `id="receipt"` and `tabIndex={-1}` (the jump moves focus to it, so focus is not lost when the bar hides), and add `min-[1280px]:hidden` to the bar's `<section>` in `DamageMeter.tsx` once the desktop sticky receipt column exists. The jump is a button that calls `scrollIntoView`, not a `#receipt` link, because the page hash is reserved for share links (DATA_MODEL §4).
+- **Damage meter (T6.2)** (mobile and tablet) is the sticky bottom bar (§5.7). It is `sticky bottom-0` and the last child of the page, after the footer, so nothing above it moves and the footer stays readable at the end of the page. It pads itself by the iOS safe-area insets on the left, right and bottom (the section takes `env(safe-area-inset-*)`, with `max(8px, …)` at the bottom, and the inner 560px column takes the 16px gutters, so its text lines up with `main` and the footer at every width), which needs `viewportFit: "cover"` in `app/layout.tsx` (page-wide). `html` has `scroll-padding-bottom` (6rem plus the bottom inset) so a focused field never lands under the bar. It is hidden while the receipt section (id `receipt`) is on screen, with `visibility: hidden` and not `display: none`, so the bar keeps its height and the layout never shifts. **Built in T6.3:** the receipt carries `id="receipt"` and `tabIndex={-1}` (the jump moves focus to it, so focus is not lost when the bar hides), so "See receipt" is drawn from the first client render, and the bar's `<section>` has `min-[1280px]:hidden`: from 1280px the receipt is the sticky right column and always on screen, so the bar is not drawn there (its live region is a sibling and keeps announcing). The jump is a button that calls `scrollIntoView`, not a `#receipt` link, because the page hash is reserved for share links (DATA_MODEL §4).
+- **Receipt column (T6.3).** The receipt is one element, so its id is unique at every width. It is at most 380px wide and centred at every width (below 1280px it is not stretched to the 560px column: a receipt is narrow). From 1280px `main` is a grid of 480px and 380px with a 48px gap (`max-w-[940px]`, which with the 16px gutters is exactly that), and the receipt's wrapper is `sticky top-6`. **VERIFY at 1280×720:** a sticky column taller than the viewport cannot show its bottom; if the receipt measures taller than about 650px, give the wrapper `max-h` and an inner scroll, or tighten the lines.
 - No modal dialogs in the core flow. Rates and export result expand inline.
 - Touch targets at least 44×44px. Inputs 48px tall, **16px minimum text** (prevents iOS focus zoom).
 - **One hint per row (T4.4).** A number field never draws its own hint. The row that holds the fields draws one hint, in one reserved slot **below every control in the row**, so a hint appearing never moves a control the user is about to tap. The latest commit wins. A bucket's slot is two lines (32px, 16px line height) and holds the formula line when there is no hint, so the hint *replaces* the formula. The group row's slot is its status line, also two lines; an action's status replaces a hint. Every hint starts with its field's name in bold (§5.2), because it is not under the field. Any new row of fields (T5.2 rates) follows this, with the slot last.
-- **Group total row (T5.1 review).** Below 560px the label sits above the amount, which is right-aligned; from 560px they share one row, label left and amount right. This is decided by the viewport and not by the amount's length, because with a wrap-when-it-doesn't-fit row the group total changed layout between ₦ (11 characters, wrapped) and $ or £ (10 characters, one line), which moved the stamp by a line on every currency switch and on any edit that changed the length. The cost is one extra line on phones. From 560px the longest label and amount ("Group total · 100 people" and ₦24,975,000,000,000) fit one row, about 450px of 528px; `flex-wrap` stays as a safety net.
-- **Per-person total size (T4.4).** `--t-2xl` (40px) for 11 characters or fewer, `--t-xl` (28px) for 12 to 16, `--t-lg` (20px) for 17 or more (`totalSizeToken` in `ResultsPanel.tsx`). Space Mono is about 0.61em wide: 11 characters at 40px is about 269px, inside the 288px column at 320px; 12 would be about 294px. The max-values total in naira (16 characters) at 28px is about 274px. 17 characters at 28px would be about 290px, wider than the column at 320px: `$4,995,000,000.00` is reachable at a rate of 50 with the maximum prices (T5.2), hence the third step. `whitespace-nowrap` plus `overflow-wrap: anywhere` are a safety net only: under `nowrap` an over-long amount overflows rather than splitting its digits.
+- **Group total row (T5.1 review, changed in T6.3).** The group total moved onto the receipt: `GROUP (n)` (14px, muted) and the amount (16px, bold, right) share one row at every width, with `flex-wrap` as the safety net. At 320px the 264px text box holds the label (about 77px for `GROUP (4)`) and an amount of up to about 17 characters, so only extreme totals wrap. The T5.1 reason for the stacked row (the stamp moving when ₦ and $ amounts wrapped differently) no longer applies: the stamp is below the row and the row does not wrap for any realistic total.
+- **Per-person total size (T4.4, changed in T6.3).** The total is on the receipt now, sized by `totalSizeToken` in `totalSize.ts`: `--t-2xl` (40px) for 10 characters or fewer, `--t-xl` (28px) for 11 to 15, `--t-lg` (20px) for 16 or more. The receipt's text box is 24px narrower than the old results column (12px of paper padding each side), so at 320px it is 264px. Space Mono is about 0.61em wide: 10 characters at 40px are about 244px (11 would be 269px), 15 at 28px about 256px (16 would be 273px), and the longest amounts (`$4,995,000,000.00` at a rate of 50 with the maximum prices, `₦249,750,000,000`) are about 207px at 20px. `whitespace-nowrap` plus `overflow-wrap: anywhere` are a safety net only: under `nowrap` an over-long amount overflows rather than splitting its digits.
 
 ---
 
@@ -314,6 +316,8 @@ Black bar (`--meter-bg`), 2px yellow top border in dark mode, `--meter-fg` digit
 ### 5.8 Tier stamp
 Red (`--stamp`) double-border stamp, Bungee uppercase, rotated −4° (static), badge name inside. On-screen: crisp vector. On the canvas: speckled ink texture (see §7). Tagline beneath in mono.
 
+**Built in T6.3.** `TierStamp` lives in the receipt (the calculator no longer draws one) and is a client component: it remembers the last badge and, when the badge changes, remounts the stamp with `data-thump` and the class `.stamp-thump` (scale 1.15 to 1 with an opacity lift, 180ms, `--ease`). Nothing runs on first paint or for an edit that stays in the same tier, and the badge is the key, so the receipt contract needs no tier id. The animation is defined only inside `@media (prefers-reduced-motion: no-preference)` and uses the individual `scale` property so it composes with the stamp's `rotate`; under reduce there is no animation rule at all and the stamp keeps its static −4°. `tests/receipt-css.test.ts` checks both facts from `globals.css`. The block reserves two lines, so a tier change never moves the page.
+
 ### 5.9 Status line
 One `role="status"` line under the actions, with an icon: `CheckIcon` for success, `WarningIcon` for errors. No floating toasts.
 
@@ -332,6 +336,10 @@ A yellow route-board plate: small label "NEXT STOP" (Bungee), config-driven titl
 
 ### 5.13 Printer slot and receipt (on screen)
 A black bar (4px radius, 10px high) with the HTML receipt hanging below it (cream paper, 1px shadow only). On desktop the receipt column is sticky.
+
+**Built in T6.3.** `Receipt` (client) reads the state, calls `buildReceiptView` (`lib/receipt/view.ts`, T7.1) and draws only what the view says, so it does no maths and cannot disagree with the PNG. It is a `section` named "Receipt" (visually hidden `h2`) with `id="receipt"` and `tabIndex={-1}`, in the `.on-receipt` scope (§3.1). Top to bottom, as the §7 bands: the slot (10px high, 4px radius, `--receipt-ink`, with a 1px `--rule` border so it shows on the dark page); the paper, inset 8px each side, edged by a 1px `--rule` ring (no blur) because in light mode the paper and the page are the same cream; danfo band with "DETTY DECEMBER 2026" (Bungee 16px) and the black stripe; the four POS header lines (12px); the five lines (label 14px and your share 16px bold on one row, the formula 12px muted below, dashed rules); a double rule; PER PERSON (Bungee 14px) and the amount (§4 sizes); `GROUP (n)`; `STATUS: APPROVED`; the stamp; the balance line (14px bold), `AUTH: <code>`, the customer-copy line and the rates note (12px muted); the danfo band with the site URL (12px bold mono, no stripe, as in §7). The 12px floor replaces the canvas's 30px floor on screen. No icons (§7). It is not a live region: the damage meter announces the totals. Fixed copy (POS lines, status, customer-copy line) is `RECEIPT_COPY` in `lib/receipt/view.ts`, shared with the canvas.
+
+**Lines.** The formula is always in naira (`₦150,000 × 7 ÷ 4`; `₦100,000 × 3` when each person pays), because prices are stored and typed in naira (§5.4); only your share and the totals follow the display currency, and the rates note says which rates were used. A shared line with a split of 1 still reads `÷ 1`, like the calculator's formula line. **Empty state:** all-zero lines show ₦0, the first tier and `STATUS: APPROVED` (the meter carries the "Meter never start" line). **AUTH:** 8 upper-case hex characters from a 32-bit FNV-1a hash of `tier:perPersonMinor:currency`; decoration only (§7.2).
 
 ### 5.14 Skeleton
 One: a reserved 9:16 paper block with dashed lines where the generated PNG appears, so nothing shifts. The page itself paints real defaults, so it needs no skeleton.
@@ -363,7 +371,7 @@ Product-specific: value clamped (hint, snap); custom rates active (tag replaces 
 
 ## 7. The receipt (canvas export): POS slip and debit alert
 
-One portrait format, **1080 × 1920**, drawn from `ReceiptView` (see DATA_MODEL.md §6). Always light paper (`--receipt-*`). The on-screen HTML receipt is styled the same way; the exported PNG is shown in S4 so users see exactly what they post.
+One portrait format, **1080 × 1920**, drawn from `ReceiptView` (see DATA_MODEL.md §6). Always light paper (`--receipt-*`). The on-screen HTML receipt (§5.13) is styled the same way and reads the same `ReceiptView` and `RECEIPT_COPY` (`lib/receipt/view.ts`); the exported PNG is shown in S4 so users see exactly what they post.
 
 | Band (top to bottom) | Content |
 |---|---|
@@ -400,7 +408,7 @@ A short pseudo-code (e.g. 8 characters) derived from the total and tier so it's 
 | What | Animation | Duration / easing |
 |---|---|---|
 | Button press | translate 2px, shadow collapses | 80ms, `--ease` |
-| Stamp reveal on tier change | scale 1.15 → 1, small opacity lift | 180ms, `--ease` |
+| Stamp reveal on tier change (T6.3: not on first paint, not within a tier) | scale 1.15 → 1, small opacity lift | 180ms, `--ease` |
 | **Print feed** (optional) | receipt reveals top to bottom via clip-path when export is tapped | about 400ms, `--ease` |
 | Status line | fade in | 180ms |
 | Inline panels | height auto | 180ms (or instant) |
@@ -447,6 +455,7 @@ Standard English with light Nigerian Pidgin, one Pidgin phrase per message at mo
 | In-app browser | "Tip: open this page in your browser for the best save and share." |
 | Custom rates tag | "Custom rates" |
 | Default rates tag | "as of {date}", for example "as of 23 Nov 2026" (day without a leading zero, three-letter month) |
+| Receipt rates note | "Rates as of 23 Nov 2026" (same date format), or "Custom rates" once either rate differs |
 | CTA label | "NEXT STOP" |
 | Footer credit | "Built in Lagos by <name>" |
 | 404 | "Wrong bus. This page no dey here." |
@@ -461,7 +470,7 @@ Tier badges and taglines live in `data/`, with the new **balance lines** (draft,
 - Visible focus on everything interactive; logical tab order; radios use native arrow keys.
 - Selected states use shape plus icon plus shadow, never colour alone. The mode control uses a thick inner frame, bold text and a `fill` icon.
 - The damage meter and totals are announced through a visually hidden `role="status"` (polite) region after edits settle (600ms with no change), not on every keystroke. Nothing is announced on first load; a burst of edits is announced once, with the last totals; an edit that is reverted inside the window announces nothing. The region sits outside the bar, so it keeps working while the bar is hidden. A route plate, Apply or Reset also sets the group status line (§5.9), so those actions give two polite messages: the status, then the totals.
-- On-screen receipt is real text; the exported image has `alt` text restating the key numbers. The stamp is text, not an image.
+- On-screen receipt is real text, a named region ("Receipt") that takes focus from the meter's jump with a visible ring outside the paper; the exported image has `alt` text restating the key numbers. The stamp is text, not an image.
 - Reduced motion respected (§8). Errors carry text and an icon.
 
 ---

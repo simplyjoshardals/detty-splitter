@@ -60,6 +60,9 @@ interface DamageMeterProps {
  * 560px column, the same box model as `main` and `Footer`, so the text lines up with the page
  * content at every width (gutters outside the column put it 16px left of the page above 592px).
  *
+ * From 1280px the receipt is a sticky column that is always on screen, so the bar is not drawn
+ * (`min-[1280px]:hidden`, T6.3). The live region is a sibling and keeps announcing.
+ *
  * Needs `.on-meter` (globals.css, Stage 4) for the focus colour: the ink ring is invisible on
  * the bar in light mode and the yellow ring would sit on the yellow button in dark mode.
  */
@@ -81,7 +84,7 @@ export function DamageMeter({ targetId = DEFAULT_TARGET_ID }: DamageMeterProps) 
       <section
         aria-labelledby={labelId}
         style={inView ? { visibility: "hidden" } : undefined}
-        className="on-meter sticky bottom-0 z-20 border-t-2 border-transparent bg-meter-bg pt-2 pr-[env(safe-area-inset-right)] pb-[max(0.5rem,env(safe-area-inset-bottom))] pl-[env(safe-area-inset-left)] text-meter-fg dark:border-meter-fg"
+        className="on-meter sticky bottom-0 z-20 min-[1280px]:hidden border-t-2 border-transparent bg-meter-bg pt-2 pr-[env(safe-area-inset-right)] pb-[max(0.5rem,env(safe-area-inset-bottom))] pl-[env(safe-area-inset-left)] text-meter-fg dark:border-meter-fg"
       >
         <div className="mx-auto flex w-full max-w-[560px] items-center justify-between gap-3 px-4">
           <div className="min-w-0">

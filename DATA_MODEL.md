@@ -288,7 +288,13 @@ interface ReceiptView {
 }
 ```
 
-`formula` example: `₦150,000 × 7 ÷ 4`. `ratesNote` is "custom rates" whenever the user's rates differ from `DEFAULT_RATES`, because the "as of" date is then no longer true.
+`formula` example: `₦150,000 × 7 ÷ 4`. It is always in naira (prices are stored in naira); when the line is per person it is `₦100,000 × 3` with no split, and a shared line with a split of 1 reads `÷ 1`. `yourShare`, `perPersonTotal` and `groupTotal` are in the display currency.
+
+`ratesNote` is `Custom rates` whenever the user's rates differ from `DEFAULT_RATES`, because the "as of" date is then no longer true; otherwise `Rates as of 23 Nov 2026` (the same hand-written date format as the rates panel, from `RATES_AS_OF`).
+
+`authCode` is 8 upper-case hex characters: 32-bit FNV-1a of `<tier id>:<perPersonMinor>:<currency>`. It is stable for the same input and is decoration, not an identifier.
+
+**Built in T7.1** as `buildReceiptView(state, options?)` in `lib/receipt/view.ts` (also `authCode` and the constant `RECEIPT_TITLE`). `options` (tiers, default rates, as-of date, site URL) default to the real data and exist for tests. The view deliberately has no tier id: the on-screen stamp keys its "thump" on `badge`, which is unique per tier. The fixed receipt text (POS header lines, `STATUS: APPROVED`, the customer-copy line) is the constant `RECEIPT_COPY` in the same file, not a view field, because it never changes; the screen and the canvas both read it. `view.ts` is imported statically by the on-screen receipt, so the canvas renderer (T7.2) must live in other files of `lib/receipt/` and must not be re-exported from a barrel that `Receipt` imports, or it stops being lazy (UI_PLAN §2.5).
 
 ---
 

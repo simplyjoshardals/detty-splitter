@@ -121,6 +121,14 @@ describe("the bar", () => {
     expect(within(bar()).getByText("₦1,347,500")).toBeTruthy();
   });
 
+  it("is not drawn from 1280px up, where the receipt is a sticky column", () => {
+    renderMeter();
+    // jsdom has no layout, so the breakpoint class itself is what can be checked.
+    expect(bar().className).toContain("min-[1280px]:hidden");
+    // The live region is a sibling, so it keeps announcing while the bar is gone.
+    expect(bar().contains(liveRegion())).toBe(false);
+  });
+
   it("shows the new total on the very next render: no count-up", () => {
     renderMeter();
     press("Budget");

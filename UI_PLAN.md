@@ -102,7 +102,7 @@ type ParseResult =
 | `app/layout.tsx`, `app/page.tsx` | Server components (rendered once at build) | Static shell, fonts, metadata, OG tags, analytics script |
 | `<Calculator />` (everything interactive) | One `'use client'` boundary | All state lives here; still pre-rendered to HTML at build, so first paint shows defaults |
 | `lib/*` | Plain TypeScript, no React | Testable, shared by UI and renderer |
-| `lib/receipt/*` | Loaded with a dynamic `import()` | Keeps first-load JS small |
+| `lib/receipt/*` (the canvas renderer, T7.2) | Loaded with a dynamic `import()` | Keeps first-load JS small. `lib/receipt/view.ts` (the `ReceiptView` builder, T7.1) is the exception: it is small, pure and imported statically by the on-screen receipt |
 
 Keep the client boundary as low as practical: static copy (footer, headings) can stay in server components passed as children.
 
@@ -124,7 +124,7 @@ No form library. Each numeric field uses the same `parseNumberInput(text, range,
 
 `navigator.share()` needs transient user activation, and the W3C spec says it rejects with `NotAllowedError` without it. A WebKit bug report also describes iOS losing the gesture after a few seconds of async work before `share()` (a 2022 report on iOS 15.4.1; I can't confirm current iOS behaviour). So the design avoids async work between the tap and the share:
 
-1. When the receipt section nears the viewport (or on first idle), dynamically import `lib/receipt`.
+1. When the receipt section nears the viewport (or on first idle), dynamically import the canvas renderer in `lib/receipt/` (not `view.ts`, which the page already has).
 2. After the user stops editing (about 500ms debounce), render the PNG **blob in the background** and keep the latest one.
 3. On tap: the click handler immediately calls `canShare` and `share` with the already-built blob, with no `await` of rendering in between. If the blob isn't ready yet, show "Printing…" and **ask the user to tap again** when it's ready, rather than risking a lost gesture.
 4. Fallbacks: download anchor, then inline image with "press and hold to save".

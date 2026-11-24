@@ -26,8 +26,8 @@ export const CTA_URL: string | null = parseHttpsUrl(
  * public by design. Empty means no credit; the footer shows it only when the name is
  * non-empty and the URL is a valid https: URL (see authorCredit in lib/author).
  */
-export const AUTHOR_NAME = "Joshua Bamidele";
-export const AUTHOR_URL = "https://github.com/simplyjoshardals";
+export const AUTHOR_NAME = "";
+export const AUTHOR_URL = "";
 
 /**
  * PLACEHOLDER default rates, in naira per 1 unit of foreign currency. Not real:

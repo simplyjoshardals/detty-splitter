@@ -251,14 +251,15 @@ detty-splitter/
 │  ├─ layout.tsx           # fonts, metadata, OG tags, analytics script
 │  └─ page.tsx             # the single page, composes components
 ├─ components/             # presentational UI: PresetPicker, BucketEditor,
-│                          # ResultsPanel, DamageMeter, CurrencyToggle, ReceiptPreview,
+│                          # ResultsPanel, DamageMeter, CurrencyToggle, Receipt (HTML), TierStamp,
 │                          # CtaCard, ShareBar
 ├─ lib/
 │  ├─ calc/                # pure math: line totals, split, tier lookup
 │  ├─ money/               # currency conversion and formatting
 │  ├─ input/               # number-input parsing, clamping, draft and caret helpers
 │  ├─ share/               # hash encode, decode, validate
-│  ├─ receipt/             # canvas renderer (lazy-loaded)
+│  ├─ receipt/             # view.ts: ReceiptView builder + fixed copy (static, T7.1);
+│  │                       # the canvas renderer (lazy-loaded, T7.2) goes in other files
 │  ├─ export/              # share / download / inline-image fallback chain
 │  ├─ storage/             # safe localStorage wrapper
 │  └─ analytics/           # track() adapter

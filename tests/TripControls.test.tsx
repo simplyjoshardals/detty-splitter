@@ -2,6 +2,7 @@
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { Receipt } from "@/components/Receipt";
 import { ResultsPanel } from "@/components/ResultsPanel";
 import { TripControls } from "@/components/TripControls";
 import { AppStateProvider } from "@/state/AppStateProvider";
@@ -16,6 +17,7 @@ function renderPage() {
     <AppStateProvider>
       <TripControls />
       <ResultsPanel />
+      <Receipt />
     </AppStateProvider>,
   );
 }
@@ -72,7 +74,7 @@ describe("group size", () => {
     const { user } = setup();
     await user.click(screen.getByRole("button", { name: "Increase Group size" }));
     expect(inputValue(groupSizeBox())).toBe("5");
-    expect(screen.getByText("Group total · 5 people")).toBeTruthy();
+    expect(screen.getByText("GROUP (5)")).toBeTruthy();
     expect(screen.getByText("₦6,737,500")).toBeTruthy();
     expect(screen.getByText("₦1,347,500")).toBeTruthy();
     expect(splitValues()).toEqual(["4", "4", "4"]);
