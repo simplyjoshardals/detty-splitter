@@ -257,13 +257,14 @@ detty-splitter/
 │  ├─ calc/                # pure math: line totals, split, tier lookup
 │  ├─ money/               # currency conversion and formatting
 │  ├─ input/               # number-input parsing, clamping, draft and caret helpers
-│  ├─ share/               # hash encode, decode, validate
+│  ├─ share/               # hash encode, decode, validate; load.ts (hash > snapshot > default);
+│  │                       # link.ts (build the link, copy to clipboard)
 │  ├─ receipt/             # view.ts: ReceiptView builder + fixed copy (static, T7.1);
 │  │                       # layout.ts (pure draw ops) + render.ts (canvas shell, lazy-loaded, T7.2)
 │  ├─ export/              # share / download / inline-image fallback chain
-│  ├─ storage/             # safe localStorage wrapper
+│  ├─ storage/             # safe localStorage wrapper (readSnapshot, writeSnapshot)
 │  └─ analytics/           # track() adapter
-├─ state/                  # reducer, actions, context provider
+├─ state/                  # reducer, actions, session (app state + load info), local save, context provider
 ├─ data/                   # presets, tiers and taglines, bucket definitions
 ├─ config/                 # site URL, CTA flag and URL, default rates + as-of date
 ├─ public/                 # og-image.png, _headers
@@ -277,7 +278,7 @@ detty-splitter/
 No `src/` folder. `app/` is the stock `create-next-app` folder (`favicon.ico`, `globals.css`, `layout.tsx`, `page.tsx`), and the other folders are siblings of it at the project root. Per the Next.js docs, `components/` and `lib/` have no special meaning and live outside `app/` here, which the docs list as a valid strategy ("store project files outside of `app`"). When you run `create-next-app`, answer **No** to "Use `src/` directory?". Make sure Tailwind picks up classes in `components/` too (Tailwind v4 detects sources automatically; on v3 list the folders in the config).
 
 Rules of placement:
-- `lib/calc`, `lib/money`, `lib/input`, `lib/rates`, `lib/author`, `lib/share` must not import React. This keeps them testable and reusable by the receipt renderer.
+- `lib/calc`, `lib/money`, `lib/input`, `lib/rates`, `lib/author`, `lib/share`, `lib/storage` must not import React. This keeps them testable and reusable by the receipt renderer.
 - Components never contain pricing numbers; those live in `data/`.
 - Every environment variable is read in `config/` only.
 - Tier thresholds and taglines live in `data/` so you can tune them (O1) without touching logic.

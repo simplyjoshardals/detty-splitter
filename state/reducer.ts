@@ -1,14 +1,15 @@
 /**
  * App state (DATA_MODEL.md §2). Plain TypeScript, no React, so it can be tested directly.
  * `selectPreset`, `setBucketNumber`, `setBucketMode`, `setGroupSize`,
- * `applyGroupSizeToShared`, `setCurrency`, `setRate` and `resetRates` exist so far. The load
- * actions arrive in Slice 8, together with their clamping.
+ * `applyGroupSizeToShared`, `setCurrency`, `setRate`, `resetRates` and `loadState` (a link or
+ * the saved snapshot, T8.2) exist.
  */
 import { DEFAULT_RATES } from "@/config";
 import { DEFAULT_PRESET_ID, PRESETS, type Preset } from "@/data/presets";
 import { RANGES, clampDecimal, clampInteger } from "@/lib/input";
 import { isCurrencyCode } from "@/lib/money";
 import { ratesAreCustom } from "@/lib/rates";
+import { decodeShare, encodeShare } from "@/lib/share";
 import type {
   AppState,
   Bucket,
@@ -79,7 +80,8 @@ export type AppAction =
   | { type: "applyGroupSizeToShared" }
   | { type: "setCurrency"; currency: CurrencyCode }
   | { type: "setRate"; rate: keyof Rates; value: number }
-  | { type: "resetRates" };
+  | { type: "resetRates" }
+  | { type: "loadState"; state: AppState };
 
 // Every action type needs a case. The `never` assignment in `default` turns a forgotten
 // case into a compile error.
@@ -146,6 +148,16 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       // Back to the config defaults. Nothing else changes, and an unchanged state is returned as is.
       if (!ratesAreCustom(state.rates, DEFAULT_RATES)) return state;
       return { ...state, rates: { ...DEFAULT_RATES } };
+    }
+    case "loadState": {
+      // Replaces the whole state with one read from a link or the snapshot. The caller passes
+      // decoder output, and the reducer still sends it through the codec (DATA_MODEL §2.2,
+      // second line of defence): encodeShare clamps every number into range (a non-finite one
+      // becomes the minimum) and decodeShare rebuilds the bucket ids and order, so a state that
+      // was built by hand and is out of range can never be stored. A valid state comes back
+      // equal. If the codec somehow rejects it, the current state is kept.
+      const checked = decodeShare(encodeShare(action.state));
+      return checked.ok ? checked.state : state;
     }
     default: {
       const unreachable: never = action;

@@ -540,3 +540,55 @@ describe("resetRates", () => {
     appReducer(deepFreeze(edited()), { type: "resetRates" });
   });
 });
+
+describe("loadState", () => {
+  it("replaces the whole state with a valid one, equal to what was passed", () => {
+    const loaded = { ...GOLDEN, currency: "GBP" as const, groupSize: 9 };
+    expect(appReducer(createInitialState(), { type: "loadState", state: loaded })).toEqual(loaded);
+  });
+
+  it("keeps the loaded currency and rates, unlike selectPreset", () => {
+    const loaded: AppState = { ...GOLDEN, currency: "USD", rates: { ngnPerUsd: 1234.56, ngnPerGbp: 99 } };
+    const next = appReducer(createInitialState(), { type: "loadState", state: loaded });
+    expect(next.currency).toBe("USD");
+    expect(next.rates).toEqual({ ngnPerUsd: 1234.56, ngnPerGbp: 99 });
+  });
+
+  it("clamps a state built by hand out of range, so nothing illegal is ever stored", () => {
+    const wild: AppState = {
+      ...GOLDEN,
+      groupSize: 0,
+      rates: { ngnPerUsd: 0, ngnPerGbp: Number.NaN },
+      buckets: mapBuckets(GOLDEN, (b) => ({
+        ...b,
+        unitPriceNgn: -5,
+        quantity: 1_000_000,
+        headcount: Number.POSITIVE_INFINITY,
+      })).buckets,
+    };
+    const next = appReducer(createInitialState(), { type: "loadState", state: wild });
+    expect(next.groupSize).toBe(1);
+    expect(next.rates).toEqual({ ngnPerUsd: 50, ngnPerGbp: 50 });
+    for (const bucket of next.buckets) {
+      expect(bucket.unitPriceNgn).toBe(0);
+      expect(bucket.quantity).toBe(999);
+      expect(bucket.headcount).toBe(1);
+    }
+  });
+
+  it("keeps the current state if the loaded one can't be encoded at all", () => {
+    const base = createInitialState();
+    const broken = { ...GOLDEN, presetId: "nope" } as unknown as AppState;
+    expect(appReducer(base, { type: "loadState", state: broken })).toBe(base);
+  });
+
+  it("hands out copies, so editing the result can't touch the state that was passed in", () => {
+    const next = appReducer(createInitialState(), { type: "loadState", state: GOLDEN });
+    expect(next === GOLDEN).toBe(false);
+    expect(next.buckets[0] === GOLDEN.buckets[0]).toBe(false);
+  });
+
+  it("does not mutate the previous state or the loaded one", () => {
+    appReducer(deepFreeze(createInitialState()), { type: "loadState", state: deepFreeze(structuredClone(GOLDEN)) });
+  });
+});

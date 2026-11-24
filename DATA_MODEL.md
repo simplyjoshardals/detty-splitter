@@ -234,7 +234,7 @@ Worst case per bucket is `50000000.999.s.100` (18 characters). Five of those plu
 - Round-trip property: `decode(encode(state))` equals `state`.
 - The encoder returns the hash **with** its leading `#` and clamps every number into its range first, so what it writes always decodes. The decoder accepts the hash with or without the `#`, and the length cap counts the `#`.
 - The link is generated **when the user taps "Copy link"**, not on every keystroke. The app does not rewrite the URL while editing, which avoids history clutter and in-app-browser quirks.
-- Load precedence: **hash, then localStorage, then default scenario**.
+- Load precedence: **hash, then localStorage, then default scenario**. A hash that is present but rejected loads the default scenario, not the snapshot, because the notice says "a fresh calculation" (§4.4 step 9). Only a visit with no hash resumes from storage. Built in T8.2 as `resolveInitialState(hash, stored, fallback)` in `lib/share/load.ts`, which returns the source (`hash`, `storage`, `default`), the state, the clamped fields and the rejection code (null when there was no link, or none worth a notice).
 
 ### 4.4 Decoding and validation (the security boundary)
 
@@ -263,7 +263,10 @@ A new format gets a new version marker (`v2`). Keep a decoder for `v1` as long a
 ## 5. Local persistence (`LastSnapshot`)
 
 - Key: `detty26:v1:last`. Value: the same string the share link uses (reuses the codec, one format to test).
-- Written after meaningful changes (debounced), and read on load only when there is no hash.
+- Written after meaningful changes, debounced: 500 ms after the last change (`SAVE_DELAY_MS`). Read on load only when there is no hash (§4.3).
+- **Nothing is written until the user changes something after loading.** The state the page loaded with is the baseline, so opening a rejected or untouched link never overwrites a saved snapshot, and the default scenario can never be written over it before the resume has run.
+- A pending write is also flushed when the page is hidden (`visibilitychange`, `pagehide`) or the provider unmounts, because a phone can kill the tab before the timer fires.
+- The stored value includes the leading `#`, exactly as `encodeShare` returns it. It is read back through `decodeShare` like any link, so a corrupt, hand-edited or old snapshot is ignored silently (no notice: the notice is for links) and the default loads. It is overwritten by the next edit.
 - Every read and write is in try/catch. In private mode, in-app browsers or when full, the app works without it.
 - Stays on the device. Nothing is sent anywhere.
 - No expiry in MVP. A returning user in January sees their December calculation; acceptable, and "Reset to preset" is the escape hatch.
@@ -351,7 +354,7 @@ Hard rule: **never send amounts, headcounts, rates or the share string.** Event 
 | 19 | Valid link, uppercase/lowercase swapped in enum fields | Reject (`bad_chars`: the allow-list is exact) |
 | 20 | Link opened with localStorage blocked | Works from hash alone |
 
-`decodeShare` returns the code; loading the default scenario and showing the notice is T8.2. `tests/share.test.ts` asserts the exact code for every case above.
+`decodeShare` returns the code; `resolveInitialState` (T8.2) turns any rejection into the default scenario plus the notice, and the provider shows it. `tests/share.test.ts` asserts the exact code for every case above, and `tests/shareLoad.test.ts` checks the load result for each kind of rejection.
 
 ### 9.2 Calculation (use the worked example in §2.5 as the golden case)
 

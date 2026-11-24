@@ -11,5 +11,7 @@ export default defineConfig({
     // .tsx tests opt in to a browser-like DOM with a `// @vitest-environment jsdom` first line;
     // the logic tests stay in plain Node.
     include: ["tests/**/*.test.{ts,tsx}"],
+    // Clears the saved calculation and the URL hash after every browser-like test (T8.2).
+    setupFiles: ["tests/setup.ts"],
   },
 });
