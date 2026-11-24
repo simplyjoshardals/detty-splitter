@@ -259,7 +259,7 @@ detty-splitter/
 │  ├─ input/               # number-input parsing, clamping, draft and caret helpers
 │  ├─ share/               # hash encode, decode, validate
 │  ├─ receipt/             # view.ts: ReceiptView builder + fixed copy (static, T7.1);
-│  │                       # the canvas renderer (lazy-loaded, T7.2) goes in other files
+│  │                       # layout.ts (pure draw ops) + render.ts (canvas shell, lazy-loaded, T7.2)
 │  ├─ export/              # share / download / inline-image fallback chain
 │  ├─ storage/             # safe localStorage wrapper
 │  └─ analytics/           # track() adapter

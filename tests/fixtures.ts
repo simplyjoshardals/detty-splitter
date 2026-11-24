@@ -43,6 +43,25 @@ export const GOLDEN: AppState = {
   ],
 };
 
+/**
+ * The `max-values` stress case: every bucket at the top of its range (₦50,000,000
+ * x 999, nothing split) with a group of 100 and the lowest allowed rates. In naira the per-person
+ * total is ₦249,750,000,000 and the group total ₦24,975,000,000,000.
+ */
+export const MAX_VALUES: AppState = {
+  presetId: "baller",
+  currency: "NGN",
+  groupSize: 100,
+  rates: { ngnPerUsd: 50, ngnPerGbp: 50 },
+  buckets: [
+    makeBucket("stay", 50000000, 999, "shared", 1),
+    makeBucket("events", 50000000, 999, "shared", 1),
+    makeBucket("tables", 50000000, 999, "shared", 1),
+    makeBucket("transport", 50000000, 999, "shared", 1),
+    makeBucket("food", 50000000, 999, "shared", 1),
+  ],
+};
+
 /** Applies fn to each bucket and keeps the fixed five-bucket tuple type. */
 export function mapBuckets(state: AppState, fn: (bucket: Bucket) => Bucket): AppState {
   const [a, b, c, d, e] = state.buckets;

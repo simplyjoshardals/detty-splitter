@@ -4,7 +4,13 @@
  * clamps them and the share-link decoder validates them before they get here.
  */
 import { toMinorUnits } from "@/lib/money";
-import type { AppState, Bucket, BucketId, CurrencyCode, Rates } from "@/lib/types";
+import type {
+  AppState,
+  Bucket,
+  BucketId,
+  CurrencyCode,
+  Rates,
+} from "@/lib/types";
 
 /** The only tier field the math needs. The full Tier (badge, tagline) lives in data/. */
 export interface TierBand {
@@ -29,7 +35,10 @@ export interface CalcResult<T extends TierBand> {
   tier: T;
 }
 
-export type CalcInput = Pick<AppState, "buckets" | "groupSize" | "currency" | "rates">;
+export type CalcInput = Pick<
+  AppState,
+  "buckets" | "groupSize" | "currency" | "rates"
+>;
 
 export function lineTotalNgn(bucket: Bucket): number {
   return bucket.unitPriceNgn * bucket.quantity;
@@ -40,7 +49,11 @@ function shareDivisor(bucket: Bucket): number {
   return bucket.mode === "shared" ? bucket.headcount : 1;
 }
 
-export function calcLine(bucket: Bucket, currency: CurrencyCode, rates: Rates): LineResult {
+export function calcLine(
+  bucket: Bucket,
+  currency: CurrencyCode,
+  rates: Rates,
+): LineResult {
   const total = lineTotalNgn(bucket);
   return {
     id: bucket.id,
@@ -55,18 +68,28 @@ export function calcLine(bucket: Bucket, currency: CurrencyCode, rates: Rates): 
  * below a threshold that the exact total meets (e.g. 100,000/3 + 200,000/3 + 200,000
  * is exactly 300,000), so the comparison is done with exact BigInt fractions.
  */
-export function selectTier<T extends TierBand>(buckets: readonly Bucket[], tiers: readonly T[]): T {
+export function selectTier<T extends TierBand>(
+  buckets: readonly Bucket[],
+  tiers: readonly T[],
+): T {
   const terms = buckets.map((b) => ({
     numerator: BigInt(lineTotalNgn(b)),
     divisor: BigInt(shareDivisor(b)),
   }));
   const common = terms.reduce((product, t) => product * t.divisor, BigInt(1));
-  const scaledTotal = terms.reduce((sum, t) => sum + t.numerator * (common / t.divisor), BigInt(0));
+  const scaledTotal = terms.reduce(
+    (sum, t) => sum + t.numerator * (common / t.divisor),
+    BigInt(0),
+  );
 
   let selected: T | undefined;
   for (const tier of tiers) {
     const qualifies = BigInt(tier.minPerPersonNgn) * common <= scaledTotal;
-    if (qualifies && (selected === undefined || tier.minPerPersonNgn > selected.minPerPersonNgn)) {
+    if (
+      qualifies &&
+      (selected === undefined ||
+        tier.minPerPersonNgn > selected.minPerPersonNgn)
+    ) {
       selected = tier;
     }
   }
@@ -76,8 +99,13 @@ export function selectTier<T extends TierBand>(buckets: readonly Bucket[], tiers
   return selected;
 }
 
-export function calculate<T extends TierBand>(input: CalcInput, tiers: readonly T[]): CalcResult<T> {
-  const lines = input.buckets.map((b) => calcLine(b, input.currency, input.rates));
+export function calculate<T extends TierBand>(
+  input: CalcInput,
+  tiers: readonly T[],
+): CalcResult<T> {
+  const lines = input.buckets.map((b) =>
+    calcLine(b, input.currency, input.rates),
+  );
   const perPersonMinor = lines.reduce((sum, line) => sum + line.shareMinor, 0);
   return {
     lines,

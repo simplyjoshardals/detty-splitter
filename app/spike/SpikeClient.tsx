@@ -1,41 +1,70 @@
 "use client";
 
 /**
- * THROWAWAY (T2.1): export spike. Pre-renders the receipt PNG, then offers
- * Share (pre-built blob, no await between tap and share()) and Download.
+ * THROWAWAY (T2.1, repointed at the real renderer in T7.2): export spike. Pre-renders the
+ * receipt PNG with `lib/receipt`, then offers Share (pre-built blob, no await between tap and
+ * share()) and Download. The scenario switch shows the golden example and the max-values case.
  */
-import { useEffect, useState } from "react";
-import { SITE_URL } from "@/config";
+import { useEffect, useMemo, useState } from "react";
+import { DEFAULT_RATES } from "@/config";
 import {
   renderReceipt,
   type FontDiagnostic,
   type RenderDiagnostics,
   type RenderFailureReason,
-  type SpikeReceiptView,
-} from "./drawReceipt";
+} from "@/lib/receipt/render";
+import { buildReceiptView, type ReceiptView } from "@/lib/receipt/view";
+import type { AppState, Bucket, BucketId, Mode } from "@/lib/types";
 
 const FILE_NAME = "detty-receipt.png";
 
-// DATA_MODEL §2.5 golden example, hard-coded.
-const VIEW: SpikeReceiptView = {
-  title: "Detty December 2026",
-  lines: [
-    { label: "STAY", formula: "₦150,000 × 7 ÷ 4", yourShare: "₦262,500" },
-    { label: "EVENTS", formula: "₦100,000 × 3", yourShare: "₦300,000" },
-    { label: "TABLES", formula: "₦800,000 × 2 ÷ 4", yourShare: "₦400,000" },
-    { label: "TRANSPORT", formula: "₦60,000 × 7 ÷ 4", yourShare: "₦105,000" },
-    { label: "FOOD", formula: "₦40,000 × 7", yourShare: "₦280,000" },
-  ],
-  groupSize: 4,
-  perPersonTotal: "₦1,347,500",
-  groupTotal: "₦5,390,000",
-  balanceLine: "AVAIL BAL: ₦0.00",
-  authCode: "7K2M9QX4",
-  siteUrl: SITE_URL,
-};
+function bucket(id: BucketId, unitPriceNgn: number, quantity: number, mode: Mode, headcount: number): Bucket {
+  return { id, unitPriceNgn, quantity, mode, headcount };
+}
 
-const IMAGE_ALT =
-  "Detty December 2026 receipt: per person ₦1,347,500, group of 4 total ₦5,390,000, status approved.";
+type ScenarioId = "golden" | "max";
+
+const SCENARIOS: Record<ScenarioId, { label: string; state: AppState }> = {
+  // DATA_MODEL §2.5 golden example.
+  golden: {
+    label: "Golden example",
+    state: {
+      presetId: "soft",
+      currency: "NGN",
+      groupSize: 4,
+      rates: DEFAULT_RATES,
+      buckets: [
+        bucket("stay", 150000, 7, "shared", 4),
+        bucket("events", 100000, 3, "perPerson", 4),
+        bucket("tables", 800000, 2, "shared", 4),
+        bucket("transport", 60000, 7, "shared", 4),
+        bucket("food", 40000, 7, "perPerson", 4),
+      ],
+    },
+  },
+  // Every bucket at its limit: the receipt must not clip a digit.
+  max: {
+    label: "Max values",
+    state: {
+      presetId: "baller",
+      currency: "NGN",
+      groupSize: 100,
+      rates: DEFAULT_RATES,
+      buckets: [
+        bucket("stay", 50000000, 999, "shared", 1),
+        bucket("events", 50000000, 999, "shared", 1),
+        bucket("tables", 50000000, 999, "shared", 1),
+        bucket("transport", 50000000, 999, "shared", 1),
+        bucket("food", 50000000, 999, "shared", 1),
+      ],
+    },
+  },
+};
+const SCENARIO_IDS: ScenarioId[] = ["golden", "max"];
+
+function imageAlt(view: ReceiptView): string {
+  return `${view.title} receipt: per person ${view.perPersonTotal}, group of ${view.groupSize} total ${view.groupTotal}, status approved.`;
+}
 
 const BUTTON =
   "inline-flex min-h-11 items-center justify-center border-2 border-ink bg-danfo px-4 py-2 font-display text-base text-danfo-ink disabled:opacity-50";
@@ -72,12 +101,14 @@ export function SpikeClient() {
   const [env, setEnv] = useState<Environment | null>(null);
   const [lastAction, setLastAction] = useState("none yet");
   const [attempt, setAttempt] = useState(0);
+  const [scenario, setScenario] = useState<ScenarioId>("golden");
+  const view = useMemo(() => buildReceiptView(SCENARIOS[scenario].state), [scenario]);
 
   useEffect(() => {
     let cancelled = false;
     let objectUrl: string | null = null;
 
-    void renderReceipt(VIEW).then((result) => {
+    void renderReceipt(view).then((result) => {
       if (cancelled) return;
       const hasShare = "share" in navigator;
 
@@ -112,11 +143,17 @@ export function SpikeClient() {
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [attempt]);
+  }, [attempt, view]);
 
   function handleRetry(): void {
     setState({ status: "rendering" });
     setAttempt((n) => n + 1);
+  }
+
+  function handleScenario(next: ScenarioId): void {
+    if (next === scenario) return;
+    setState({ status: "rendering" });
+    setScenario(next);
   }
 
   // Deliberately NOT async: share() must start inside the click, with no await before it.
@@ -180,6 +217,21 @@ export function SpikeClient() {
         {state.status === "failed" && `Render failed (${state.reason}): ${state.message}`}
       </p>
 
+      <div role="group" aria-label="Scenario" className="flex flex-wrap gap-3">
+        {SCENARIO_IDS.map((id) => (
+          <button
+            key={id}
+            type="button"
+            className={BUTTON}
+            aria-pressed={id === scenario}
+            onClick={() => handleScenario(id)}
+          >
+            {SCENARIOS[id].label}
+            {id === scenario ? " ✓" : ""}
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-wrap gap-3">
         <button
           type="button"
@@ -215,7 +267,7 @@ export function SpikeClient() {
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={state.url}
-          alt={IMAGE_ALT}
+          alt={imageAlt(view)}
           width={1080}
           height={1920}
           className="h-auto w-full border-2 border-border"

@@ -57,7 +57,7 @@ Verified: Bungee is a Google Font by David Jonathan Ross, designed around urban 
 1. **The ₦ sign (U+20A6).** On Google Fonts, that character sits in the `latin-ext` range, not `latin`, which is why both subsets are loaded. I believe this from how Google splits subsets, but I haven't confirmed it for these two fonts. **VERIFY** by rendering `₦1,234,567.89 $ £` in both fonts. Rule that limits the risk: **every number and currency symbol is set in Space Mono**, never Bungee, so only one font has to carry ₦.
 2. **Space Mono's availability and glyphs** (₦, digits). If Space Mono fails the test, swap in another monospace (JetBrains Mono was the v1 choice and is a one-line change).
 
-Two fonts total, no italics. `display: 'swap'`, automatic fallback adjustment left on. The canvas renderer reads the family from the CSS variable and waits for the fonts to load before drawing (**VERIFY** in the spike).
+Two fonts total, no italics. `display: 'swap'`, automatic fallback adjustment left on. The canvas renderer reads the family from the CSS variable and waits for the fonts to load before drawing (verified in the spike, T2.2). Built in T7.2: it loads the first family only of `--font-bungee`, `--font-space-mono` and `--font-naira` (the naira face with the `₦` sample, because its `unicode-range` only downloads for that character), and draws numbers with the stack `naira, space-mono, monospace`, the same order as the page.
 
 ---
 
@@ -376,24 +376,26 @@ One portrait format, **1080 × 1920**, drawn from `ReceiptView` (see DATA_MODEL.
 | Band (top to bottom) | Content |
 |---|---|
 | Safe margin | About 140px top margin for story/reel overlays. **VERIFY** against current Instagram and TikTok safe zones |
-| **Danfo band** | Yellow band with Bungee "DETTY DECEMBER 2026", black stripe below |
+| **Danfo band** | Yellow band (120px) with Bungee "DETTY DECEMBER 2026" (64px, shrinks to fit), black stripe (12px) below |
 | **POS header** | Mono lines: `*** DEBIT ALERT ***`, `MERCHANT: DETTY DEC, LAGOS`, `TXN: DAMAGE CALCULATION`, `CARD: **** SAPA` |
 | Dashed rule | |
 | Line items ×5 | Label (mono 34px), formula (mono 30px, muted), amount right-aligned (mono 700, 40px) |
 | Double rule | |
 | Totals | `PER PERSON` and amount (mono 700, large, **auto-shrinks to fit width**), `GROUP (n)` total |
 | Status | `STATUS: APPROVED` |
-| **Ink stamp** | Tier badge, rotated about −5°, red, double border, **speckled texture** (§7.1), tagline beneath |
+| **Ink stamp** | Tier badge, rotated −4° (as on screen), red, double border, **speckled texture** (§7.1, T7.3; flat until then), tagline beneath |
 | Balance line | `AVAIL BAL: <tier line>` (mono 700, 30px) |
 | Footer lines | `AUTH: <code>`, `CUSTOMER COPY. KEEP YOUR RECEIPT. YOUR ACCOUNT WON'T.`, rates note |
-| **Danfo band (bottom)** | Yellow band with the **site URL** (Space Mono 700, 34px): maximum contrast watermark |
+| **Danfo band (bottom)** | Yellow band (100px) with the **site URL** (Space Mono 700, 34px): maximum contrast watermark |
 | Safe margin | About 140px; the URL band sits above it |
 
 Rules:
-- Any essential text on the canvas is at least **30px**.
+- Any essential text on the canvas is at least **30px**. Auto-fit steps down in 2px steps and stops at 30px; text that still does not fit is a render failure, never a clipped PNG.
 - Colours come from `--receipt-*` tokens, resolved once (a canvas can't read CSS variables directly).
 - All fonts loaded before drawing. All amounts pre-formatted in `ReceiptView`; the renderer does no maths.
 - Use **only fictional, generic** merchant and card text. No real bank or brand names, formats or logos.
+
+**Built in T7.2** (`lib/receipt/layout.ts` and `render.ts`). The layout is a flow, not fixed y positions: each band follows the one above, so a wrapped badge, tagline or customer-copy line pushes everything below it down, and the renderer refuses to draw if the last baseline would come within 24px of the bottom band. The vertical steps are sized for the worst case (two-line badge, two-line tagline, two-line customer copy); when a receipt is shorter, the spare height is spread out (up to 28px at each of four spots: below the lines, above the stamp, above the tagline, above the balance line, always keeping 32px free above the bottom band) so there is no dead band above the URL. Alignment follows the screen: the POS header, status, stamp, balance line and footer lines are centred; line items and the totals have the label on the left and the amount on the right. The five line amounts share one size, the smallest (from 40px down to 30px) at which every row fits beside its label, so the right-hand column is not ragged; if it still does not fit it drops under the label, right-aligned, like the on-screen receipt. The per-person amount starts at 92px and the group amount at 44px. Wrapped text (badge, tagline, customer-copy line) is balanced so a line never ends on one word. The stamp is one flat `stamp` operation (badge in Bungee 44px, double border, −4°); T7.3 adds the speckles to it.
 
 ### 7.1 Ink-stamp texture (canvas)
 Draw the stamp text and border, then erase a few hundred tiny speckles with `destination-out` using a **seeded** random sequence derived from the total, so the same receipt always gets the same stamp. About 200 speckles, radius 1 to 4px. Optional: slight rotation jitter. Keep the text legible (stamp contrast above is 5.1:1).
