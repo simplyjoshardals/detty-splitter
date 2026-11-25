@@ -93,6 +93,7 @@ Two fonts total, no italics. `display: 'swap'`, automatic fallback adjustment le
 | Steppers | `PlusIcon`, `MinusIcon` | Confirmed at install (`yarn check:icons`) |
 | Mode switch: Shared / Per person | `UsersThreeIcon`, `UserIcon` | Confirmed at install (`yarn check:icons`), added in T4.2 |
 | Error / clamp hint | `WarningIcon` | Confirmed (T4.4) |
+| Dismiss (notice banner) | `XIcon` | Added in T8.2; checked by `yarn check:icons` |
 
 **Install-time check (S1):** after installing, list the package's exports and assert every name above exists. Swap any missing one for the nearest icon on phosphoricons.com. I couldn't finish confirming the last three rows and the alternates because some lookups were blocked.
 
@@ -226,7 +227,7 @@ Top to bottom on mobile:
 4. **Bucket list:** 5 line items, each with a 32px icon tile.
 5. **Rates:** collapsed "Rates" row; opens inline. It sits between the bucket list and the receipt (until T6.3 it sat above the totals, which now live on the receipt).
 6. **Printer slot and receipt section:** a black slot bar, then the live receipt hanging from it. **Built in T6.3:** it holds the per-person and group totals and the tier stamp, so the calculator above it has the lines and the rates only (§5.13).
-7. **Actions:** Export receipt (primary), Copy link (secondary), status line.
+7. **Actions:** Export receipt (primary), Copy link (secondary), status line. **Built in T8.2:** only Copy link and its own status line, in `ShareBar`, directly under the receipt and inside the sticky column (16px below it, at most 380px wide and centred like the receipt), so from 1280px it stays on screen with the receipt. T9.1 puts Export receipt above it.
 8. **CTA card** ("Next stop"): only when enabled and valid.
 9. **Footer:** estimates note, disclosure when relevant, "Built in Lagos by <name>" (config-driven, hidden if unset).
 
@@ -251,6 +252,8 @@ Rules:
 | Text | underlined, no border |
 
 Pressed: translate 2px, shadow collapses (80ms). Disabled: 50% ink, no shadow, `aria-disabled`. Loading: label "Printing…", no spinner.
+
+**Secondary, as built (T8.2, Copy link).** Full width of its column, 48px tall, 2px `--ink` border, `--surface` fill, Bungee 14px label with a 20px bold Phosphor icon, no shadow. Pressed: `--danfo` fill with `--danfo-ink` text, like the other controls (nothing to translate, because there is no shadow to collapse). Focus: the standard ring (§3.1).
 
 ### 5.2 Number input
 `inputMode="numeric"` (`"decimal"` for a range with decimals, the rates, T5.2), `type="text"`, 48px tall, 2px `--border`, `--surface` fill, Space Mono 16px right-aligned, currency prefix as a non-editable label in ink and bold (it was muted until the T5.1 review: next to $ and £ amounts a faint ₦ was easy to miss). Separators as you type; caret stable. Empty or invalid reverts on blur. States: default, focus, error (`--danger` border plus hint with icon, `aria-describedby`), clamped (hint, not error), disabled. **Deliberately plain.**
@@ -323,6 +326,8 @@ One `role="status"` line under the actions, with an icon: `CheckIcon` for succes
 
 **Group row status (T4.3, T4.4).** The same pattern under the group row's buttons: always in the page, two lines high (`min-h-8`, 16px lines) even when empty so the list below never shifts, 12px text with `CheckIcon`. It says what a plate tap, "Apply to all shared" or "Reset to preset" just did, and says so when "Apply to all shared" had nothing to change (copy in §9). It clears after 6 seconds. Since T4.4 it also holds the group size hint ("Group size: Min is 1, so we adjusted it."), so the hint never pushes the two buttons down while the user is reaching for one. The latest message wins: an action's status replaces the hint (the status names the number that was kept), and a hint replaces the status. The row's bottom padding is 4px, because this slot supplies the space.
 
+**Share status (T8.2).** The Copy link status sits 4px under the button, always in the page and two lines high (`min-h-8`) even when empty, 12px text, so a message appearing never moves what is below it. Copied: `CheckIcon`, ink, cleared after 2 seconds (a second tap restarts the 2 seconds). Blocked: `WarningIcon`, `--danger`, and it stays until a later tap succeeds, because the link field under it (§5.16) is what the person is using. Copy: §9.
+
 ### 5.10 Inline panel (rates, export result)
 Expands in place with a dashed top rule. Rates: two inputs ("₦ per $1", "₦ per £1"), "as of <date>" or a "Custom rates" tag, "Reset rates" with `ArrowCounterClockwiseIcon`.
 
@@ -330,6 +335,8 @@ Expands in place with a dashed top rule. Rates: two inputs ("₦ per $1", "₦ p
 
 ### 5.11 Notice banner
 Full-width, dashed border, `--muted` text, dismiss button. For the bad-link notice. `role="status"`.
+
+**Built in T8.2.** `LinkNotice` is the first thing in the calculator column, so it is as wide as that column (480px from 1280px, otherwise the page column), above the route plates, with 24px under it. The `role="status"` wrapper is always in the page and empty until a link is rejected, so the text is announced when it appears; empty, it has no height and no margin. The banner arrives in the same render as the fresh numbers (one `hydrated` action), so the page shifts once, at the swap, and never after. Frame: 2px dashed `--border` (not `--rule`, which is for decorative dividers; this frame holds a button), 12px by 8px padding, 14px `--muted` text (6.3:1). Dismiss is a text button in the §5.1 text style with `XIcon` (20px, bold, decorative), 44px tall, right-aligned; on a narrow screen it wraps under the text. Dismissing hides the banner for this visit and leaves the URL alone. Copy: §9.
 
 ### 5.12 CTA card ("Next stop")
 A yellow route-board plate: small label "NEXT STOP" (Bungee), config-driven title and button text, optional disclosure line. Rendered only when the flag is on and the URL is a valid `https:` link.
@@ -348,6 +355,9 @@ One: a reserved 9:16 paper block with dashed lines where the generated PNG appea
 12px muted: "Estimates only, not quotes. Tap any number to edit." Then "Built in Lagos by <name>" (link, optional).
 
 **Built in T6.1.** The credit is a second line, 4px under the note. It shows only when `authorCredit(AUTHOR_NAME, AUTHOR_URL)` is not null (non-blank name, `https:` URL); otherwise the footer is the note alone. "Built in Lagos by" is muted; the name is the link, in ink and underlined (not colour alone), with a 44px tall tap area and the standard focus ring. The footer takes an optional `credit` prop so tests do not mock config.
+
+### 5.16 Read-only link field
+Shown only when the clipboard refuses Copy link (the permission-denied row in §6). It sits 8px under the share status line (§5.9). A visually hidden `<label>` "Share link" and a `readOnly` `<input type="text">`: 48px tall, 2px `--border`, `--surface` fill, Space Mono 16px (the iOS no-zoom floor), left-aligned, standard focus ring, described by the share status line. It is focused and selected when it appears and selected again on every focus or tap, so one long-press copies the whole link. Its value is rebuilt from the current numbers on every render, so an edit after the refusal never leaves an old link in it. A long link scrolls inside the box; it never wraps or widens the column. An input and not a textarea: the link is one unbroken token and a textarea would grow tall.
 
 ---
 

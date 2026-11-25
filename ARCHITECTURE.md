@@ -252,7 +252,7 @@ detty-splitter/
 │  └─ page.tsx             # the single page, composes components
 ├─ components/             # presentational UI: PresetPicker, BucketEditor,
 │                          # ResultsPanel, DamageMeter, CurrencyToggle, Receipt (HTML), TierStamp,
-│                          # CtaCard, ShareBar
+│                          # CtaCard, ShareBar, LinkNotice
 ├─ lib/
 │  ├─ calc/                # pure math: line totals, split, tier lookup
 │  ├─ money/               # currency conversion and formatting

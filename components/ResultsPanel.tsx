@@ -9,15 +9,16 @@ import { RatesPanel } from "./RatesPanel";
 
 /**
  * Results from the app state: the editable line items and the rates panel. The totals and the
- * tier stamp live in the receipt since T6.3 (DESIGN §4).
+ * tier stamp live in the receipt since T6.3 (DESIGN §4). The section is `aria-busy` for the one
+ * frame before the link or saved snapshot is applied (UI_PLAN §2.2, T8.2).
  */
 export function ResultsPanel() {
-  const { state } = useAppState();
+  const { state, hydrated } = useAppState();
   const result = useMemo(() => calculate(state, TIERS), [state]);
   const { currency, rates } = state;
 
   return (
-    <section aria-labelledby="results-heading">
+    <section aria-labelledby="results-heading" aria-busy={!hydrated}>
       <h2 id="results-heading" className="sr-only">
         Your damage
       </h2>

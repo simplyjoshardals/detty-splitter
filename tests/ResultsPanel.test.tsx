@@ -294,3 +294,10 @@ describe("hints in a bucket line", () => {
     expect(within(lineOf(EVENTS)).getByText("Each person pays this")).toBeTruthy();
   });
 });
+
+describe("results region while the link or snapshot loads", () => {
+  it("is not marked busy once the provider has applied the starting state", () => {
+    setup();
+    expect(screen.getByRole("region", { name: "Your damage" }).getAttribute("aria-busy")).toBe("false");
+  });
+});
