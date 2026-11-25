@@ -11,33 +11,27 @@ export const SAVE_DELAY_MS = 500;
  * nothing.
  *
  * - Nothing is written until the user changes something after loading. The loaded state is the
- *   baseline: opening a rejected or untouched link never overwrites a good saved snapshot, and
- *   the default scenario can never be written over it before the resume has run.
+ *   baseline (the latest one, when a link is opened while the page is already showing):
+ *   opening a rejected or untouched link never overwrites a good saved snapshot, and the default
+ *   scenario can never be written over it before the resume has run.
  * - Writes are debounced. A pending write is also flushed when the page is hidden, closed or
  *   unmounted, because a phone can kill the tab before the timer fires.
  * - A failed write is ignored: the app works without persistence.
  */
 export function useLocalSave(
   app: AppState,
-  hydrated: boolean,
+  baseline: AppState | null,
   delayMs: number = SAVE_DELAY_MS,
 ): void {
-  // The state the page was loaded with. Only read and written inside effects.
-  const baseline = useRef<AppState | null>(null);
   // The newest state that has not been written yet.
   const pending = useRef<AppState | null>(null);
 
   useEffect(() => {
-    if (!hydrated) return;
-    if (baseline.current === null) {
-      baseline.current = app;
-      return;
-    }
-    if (app === baseline.current) return;
+    if (baseline === null || app === baseline) return;
     pending.current = app;
     const timer = setTimeout(() => flush(pending), delayMs);
     return () => clearTimeout(timer);
-  }, [app, hydrated, delayMs]);
+  }, [app, baseline, delayMs]);
 
   useEffect(() => {
     const onHidden = () => {

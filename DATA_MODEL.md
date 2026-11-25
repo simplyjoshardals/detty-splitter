@@ -235,6 +235,7 @@ Worst case per bucket is `50000000.999.s.100` (18 characters). Five of those plu
 - The encoder returns the hash **with** its leading `#` and clamps every number into its range first, so what it writes always decodes. The decoder accepts the hash with or without the `#`, and the length cap counts the `#`.
 - The link is generated **when the user taps "Copy link"**, not on every keystroke. The app does not rewrite the URL while editing, which avoids history clutter and in-app-browser quirks.
 - Load precedence: **hash, then localStorage, then default scenario**. A hash that is present but rejected loads the default scenario, not the snapshot, because the notice says "a fresh calculation" (§4.4 step 9). Only a visit with no hash resumes from storage. Built in T8.2 as `resolveInitialState(hash, stored, fallback)` in `lib/share/load.ts`, which returns the source (`hash`, `storage`, `default`), the state, the clamped fields and the rejection code (null when there was no link, or none worth a notice).
+- **A link opened while the page is already showing** (a chat app reusing the tab for a second link: same origin and path, different hash) is a same-document navigation. The page does not reload, so the browser fires `hashchange` and nothing else; the provider listens for it and applies the new link (T8.2 fix). It is resolved with no snapshot: a new link means the link's numbers, or the default and the notice if it is rejected, as on first load. It replaces whatever is on screen, edits included. An emptied hash changes nothing. It is never saved as an edit (§5). Known gap: opening the *same* link again in the same tab fires no event (the URL did not change), so numbers edited since then stay.
 
 ### 4.4 Decoding and validation (the security boundary)
 
@@ -264,7 +265,7 @@ A new format gets a new version marker (`v2`). Keep a decoder for `v1` as long a
 
 - Key: `detty26:v1:last`. Value: the same string the share link uses (reuses the codec, one format to test).
 - Written after meaningful changes, debounced: 500 ms after the last change (`SAVE_DELAY_MS`). Read on load only when there is no hash (§4.3).
-- **Nothing is written until the user changes something after loading.** The state the page loaded with is the baseline, so opening a rejected or untouched link never overwrites a saved snapshot, and the default scenario can never be written over it before the resume has run.
+- **Nothing is written until the user changes something after loading.** The state the page last loaded with (the latest link too, when one is opened while the page is showing, §4.3) is the baseline, so opening a rejected or untouched link never overwrites a saved snapshot, and the default scenario can never be written over it before the resume has run.
 - A pending write is also flushed when the page is hidden (`visibilitychange`, `pagehide`) or the provider unmounts, because a phone can kill the tab before the timer fires.
 - The stored value includes the leading `#`, exactly as `encodeShare` returns it. It is read back through `decodeShare` like any link, so a corrupt, hand-edited or old snapshot is ignored silently (no notice: the notice is for links) and the default loads. It is overwritten by the next edit.
 - Every read and write is in try/catch. In private mode, in-app browsers or when full, the app works without it.

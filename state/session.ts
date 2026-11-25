@@ -6,6 +6,10 @@
  * One "hydrated" action then applies the link or the snapshot, sets `hydrated` and sets the
  * notice, all in one step. The page therefore never renders a loaded state without its notice,
  * or a notice without its loaded state.
+ *
+ * A link can also arrive while the page is already open: a chat app hands the browser a second
+ * link for the same page and the browser only changes the hash. "linkOpened" applies it the
+ * same way, as often as it happens (unlike "hydrated", which is applied once).
  */
 import type { LoadResult } from "@/lib/share/load";
 import type { AppState } from "@/lib/types";
@@ -15,6 +19,11 @@ export interface Session {
   app: AppState;
   /** False on the server and the first client render, true once hash/snapshot were applied. */
   hydrated: boolean;
+  /**
+   * The state the page was last loaded with (the link or snapshot, or the default), or null
+   * before that. The saver writes only what differs from it, so loading is never saved as an edit.
+   */
+  baseline: AppState | null;
   /** True while the "couldn't read that link" notice is showing (a link was rejected). */
   linkNotice: boolean;
 }
@@ -22,10 +31,11 @@ export interface Session {
 export type SessionAction =
   | AppAction
   | { type: "hydrated"; load: LoadResult }
+  | { type: "linkOpened"; load: LoadResult }
   | { type: "dismissNotice" };
 
 export function createSession(): Session {
-  return { app: createInitialState(), hydrated: false, linkNotice: false };
+  return { app: createInitialState(), hydrated: false, baseline: null, linkNotice: false };
 }
 
 export function sessionReducer(session: Session, action: SessionAction): Session {
@@ -40,7 +50,17 @@ export function sessionReducer(session: Session, action: SessionAction): Session
         load.source === "default"
           ? session.app
           : appReducer(session.app, { type: "loadState", state: load.state });
-      return { app, hydrated: true, linkNotice: load.rejected !== null };
+      return { app, hydrated: true, baseline: app, linkNotice: load.rejected !== null };
+    }
+    case "linkOpened": {
+      // The caller resolves with no snapshot, so "default" here means the hash was empty (nothing
+      // to open: keep what is on screen) or it was rejected (a fresh calculation and the notice,
+      // as on first load). A good link replaces whatever is on screen, edits included, and
+      // clears an earlier notice.
+      const { load } = action;
+      if (load.source === "default" && load.rejected === null) return session;
+      const app = appReducer(session.app, { type: "loadState", state: load.state });
+      return { app, hydrated: true, baseline: app, linkNotice: load.rejected !== null };
     }
     case "dismissNotice":
       return session.linkNotice ? { ...session, linkNotice: false } : session;

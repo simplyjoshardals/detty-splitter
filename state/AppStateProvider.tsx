@@ -34,6 +34,10 @@ const AppStateContext = createContext<AppStateContextValue | null>(null);
  * (UI_PLAN §2.2). Right after mount one effect applies the link in the URL hash, else the
  * saved snapshot, else leaves the default (T8.2, `resolveInitialState`). A rejected link keeps
  * the default and raises the notice. Later edits are saved by `useLocalSave`.
+ *
+ * A link opened while the page is already showing (a chat app reusing the tab) only changes the
+ * hash, so the browser fires `hashchange` and does not reload. A second effect applies it. It
+ * ignores the snapshot, because a new link means the person wants that link's numbers.
  */
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const [session, dispatchSession] = useReducer(sessionReducer, undefined, createSession);
@@ -50,7 +54,17 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  useLocalSave(session.app, session.hydrated);
+  useEffect(() => {
+    const onHashChange = () =>
+      dispatchSession({
+        type: "linkOpened",
+        load: resolveInitialState(window.location.hash, null, createInitialState()),
+      });
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
+
+  useLocalSave(session.app, session.baseline);
 
   const dismissLinkNotice = useCallback(() => dispatchSession({ type: "dismissNotice" }), []);
   const { app, hydrated, linkNotice } = session;

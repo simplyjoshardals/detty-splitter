@@ -49,6 +49,14 @@ const advance = (ms: number) => act(() => void vi.advanceTimersByTime(ms));
 const press = (name: string) => fireEvent.click(screen.getByRole("button", { name }));
 
 const NINE = encodeShare({ ...GOLDEN, groupSize: 9 });
+const TWENTY = encodeShare({ ...GOLDEN, groupSize: 20 });
+
+/** What a chat app does to a page that is already open: only the hash changes, no reload. */
+const openLink = (hash: string) =>
+  act(() => {
+    setHash(hash);
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+  });
 
 describe("loading", () => {
   it("shows the default scenario when there is no link and no snapshot", () => {
@@ -185,5 +193,87 @@ describe("saving", () => {
     window.localStorage.setItem(SNAPSHOT_KEY, encodeShare(MAX_VALUES));
     mount();
     expect(read("Group size")).toBe("100");
+  });
+});
+
+describe("a link opened while the page is already showing (A, then B, in the same tab)", () => {
+  it("shows the second link's numbers without a reload", () => {
+    setHash(NINE);
+    mount();
+    expect(read("Group size")).toBe("9");
+    openLink(TWENTY);
+    expect(read("Group size")).toBe("20");
+    openLink(NINE);
+    expect(read("Group size")).toBe("9");
+  });
+
+  it("replaces numbers the person had already edited", () => {
+    setHash(NINE);
+    mount();
+    press("Make it seven");
+    openLink(TWENTY);
+    expect(read("Group size")).toBe("20");
+  });
+
+  it("a bad second link shows the default and the notice, and a good third link clears it", () => {
+    setHash(NINE);
+    mount();
+    openLink("#v1");
+    expect(read("Group size")).toBe("4");
+    expect(read("Link notice")).toBe("true");
+    openLink(TWENTY);
+    expect(read("Group size")).toBe("20");
+    expect(read("Link notice")).toBe("false");
+  });
+
+  it("an emptied hash keeps what is on screen", () => {
+    setHash(NINE);
+    mount();
+    openLink("");
+    expect(read("Group size")).toBe("9");
+    expect(read("Link notice")).toBe("false");
+  });
+
+  it("works with localStorage blocked", () => {
+    vi.stubGlobal(
+      "localStorage",
+      new Proxy({}, { get: () => { throw new Error("blocked"); } }),
+    );
+    setHash(NINE);
+    mount();
+    openLink(TWENTY);
+    expect(read("Group size")).toBe("20");
+  });
+
+  it("opening a link is not an edit: a good snapshot survives a bad or a good link", () => {
+    vi.useFakeTimers();
+    const snapshot = encodeShare({ ...GOLDEN, groupSize: 15 });
+    window.localStorage.setItem(SNAPSHOT_KEY, snapshot);
+    setHash(NINE);
+    mount();
+    openLink("#v1");
+    advance(SAVE_DELAY_MS * 10);
+    expect(saved()).toBe(snapshot);
+    openLink(TWENTY);
+    advance(SAVE_DELAY_MS * 10);
+    expect(saved()).toBe(snapshot);
+  });
+
+  it("an edit after the second link is saved on top of that link's numbers", () => {
+    vi.useFakeTimers();
+    setHash(NINE);
+    mount();
+    openLink(TWENTY);
+    press("Make it seven");
+    advance(SAVE_DELAY_MS);
+    const result = decodeShare(saved() ?? "");
+    expect(result.ok && result.state.groupSize).toBe(7);
+  });
+
+  it("stops listening when the provider unmounts", () => {
+    const remove = vi.spyOn(window, "removeEventListener");
+    const { unmount } = mount();
+    unmount();
+    expect(remove).toHaveBeenCalledWith("hashchange", expect.any(Function));
   });
 });
