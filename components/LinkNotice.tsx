@@ -23,8 +23,8 @@ export function LinkNotice() {
   return (
     <div role="status">
       {linkNotice && (
-        <div className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-1 border-2 border-dashed border-border px-3 py-2 text-[length:var(--t-sm)] text-muted">
-          <p className="min-w-0 flex-1 basis-56">{NOTICE_TEXT}</p>
+        <div className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-2 border-2 border-dashed border-border p-3 text-[length:var(--t-sm)] text-muted">
+          <p className="min-w-0 flex-1 basis-56 text-balance">{NOTICE_TEXT}</p>
           <button type="button" onClick={dismissLinkNotice} className={`${DISMISS_BUTTON} ml-auto`}>
             <XIcon size={20} weight="bold" aria-hidden="true" />
             Dismiss
