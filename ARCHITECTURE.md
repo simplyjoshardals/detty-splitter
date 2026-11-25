@@ -88,7 +88,7 @@ flowchart LR
 | 5 | User toggles currency. Only the display changes. Stored values stay in ₦ (M4). | Browser |
 | 6 | The tier badge is derived from per-person ₦ total (A12) and shown live (S9). | Browser |
 | 7 | **Before the tap:** when the receipt section nears the viewport, the renderer module is fetched; after about 500ms without edits, it loads the font, draws the canvas and caches the latest PNG blob. | Browser |
-| 8 | User taps Export. The click handler uses the **already-built blob** (no awaiting of rendering before `share()`, because `share()` needs transient user activation and iOS has been reported to lose it after async work; see UI_PLAN.md §2.5). If the blob isn't ready yet, show "Printing…" and ask for another tap. The share adapter checks `navigator.canShare({ files })`. If true it opens the share sheet. Otherwise it triggers a download. If that is blocked, it shows the image inline with "press and hold to save". | Browser, OS |
+| 8 | User taps Export. The click handler uses the **already-built blob** (no awaiting of rendering before `share()`, because `share()` needs transient user activation and iOS has been reported to lose it after async work; see UI_PLAN.md §2.5). If the blob isn't ready yet, show "Printing…" and ask for another tap. The share adapter checks `navigator.canShare({ files })`. If true it opens the share sheet. Otherwise it triggers a download. If the anchor download is unsupported or throws, it shows the image inline with "press and hold to save" (a browser that silently refuses a download cannot be detected, so that case is not caught). | Browser, OS |
 | 9 | `track("receipt_export")` is called (if an analytics tool is configured). | Browser → third party |
 
 No network call is made in steps 2–8 after the first load.
@@ -261,7 +261,8 @@ detty-splitter/
 │  │                       # link.ts (build the link, copy to clipboard)
 │  ├─ receipt/             # view.ts: ReceiptView builder + fixed copy (static, T7.1);
 │  │                       # layout.ts (pure draw ops) + render.ts (canvas shell, lazy-loaded, T7.2)
-│  ├─ export/              # share / download / inline-image fallback chain
+│  ├─ export/              # share / download / inline-image fallback chain (index.ts, T9.1);
+│  │                       # browser.ts: the navigator and anchor-download wrappers
 │  ├─ storage/             # safe localStorage wrapper (readSnapshot, writeSnapshot)
 │  └─ analytics/           # track() adapter
 ├─ state/                  # reducer, actions, session (app state + load info), local save, context provider

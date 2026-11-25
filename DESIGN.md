@@ -83,7 +83,7 @@ Two fonts total, no italics. `display: 'swap'`, automatic fallback adjustment le
 | Preset: Soft Life Standard | `ConfettiIcon` | Confirmed |
 | Preset: Full IJGB / Baller Mode | `CrownSimpleIcon` | Confirmed |
 | Currency control | `CurrencyNgnIcon`, `CurrencyDollarIcon`, `CurrencyGbpIcon` | Confirmed |
-| Export receipt | `ReceiptIcon` | Page exists (found in search) |
+| Export receipt | `ReceiptIcon` | Used in T9.1 (`ExportButton`); confirm with `yarn check:icons` |
 | Copy link | `CopyIcon` | Confirmed |
 | Success status | `CheckIcon` | Confirmed |
 | See receipt (meter jump) | `ArrowDownIcon` | Confirmed |
@@ -227,7 +227,7 @@ Top to bottom on mobile:
 4. **Bucket list:** 5 line items, each with a 32px icon tile.
 5. **Rates:** collapsed "Rates" row; opens inline. It sits between the bucket list and the receipt (until T6.3 it sat above the totals, which now live on the receipt).
 6. **Printer slot and receipt section:** a black slot bar, then the live receipt hanging from it. **Built in T6.3:** it holds the per-person and group totals and the tier stamp, so the calculator above it has the lines and the rates only (§5.13).
-7. **Actions:** Export receipt (primary), Copy link (secondary), status line. **Built in T8.2:** only Copy link and its own status line, in `ShareBar`, directly under the receipt and inside the sticky column (16px below it, at most 380px wide and centred like the receipt), so from 1280px it stays on screen with the receipt. T9.1 puts Export receipt above it.
+7. **Actions:** Export receipt (primary), Copy link (secondary), status line. **Built in T8.2:** only Copy link and its own status line, in `ShareBar`, directly under the receipt and inside the sticky column (16px below it, at most 380px wide and centred like the receipt), so from 1280px it stays on screen with the receipt. **Built in T9.1:** `ExportButton` sits above Copy link in the same column (16px under the receipt, same width), with its own status slot and, only when needed, the inline image panel (§5.10).
 8. **CTA card** ("Next stop"): only when enabled and valid.
 9. **Footer:** estimates note, disclosure when relevant, "Built in Lagos by <name>" (config-driven, hidden if unset).
 
@@ -254,6 +254,8 @@ Rules:
 Pressed: translate 2px, shadow collapses (80ms). Disabled: 50% ink, no shadow, `aria-disabled`. Loading: label "Printing…", no spinner.
 
 **Secondary, as built (T8.2, Copy link).** Full width of its column, 48px tall, 2px `--ink` border, `--surface` fill, Bungee 14px label with a 20px bold Phosphor icon, no shadow. Pressed: `--danfo` fill with `--danfo-ink` text, like the other controls (nothing to translate, because there is no shadow to collapse). Focus: the standard ring (§3.1).
+
+**Primary, as built (T9.1, Export receipt).** Full width of its column (at most 380px), 48px tall, `--danfo` fill, `--danfo-ink` text, 2px `--ink` border, `--shadow-hard`, Bungee 16px label with a 20px bold `ReceiptIcon`. While the PNG is not ready (pre-render idle, waiting or rendering) the label reads "Printing…" and the button is `aria-disabled` (50% opacity, no shadow), not `disabled`, so a tap still reaches the handler and is answered with "tap again". A failed pre-render does not dim it: the tap reports the failure. Pressed: the shadow drops to 1px and, unless the user asked for reduced motion, the button moves 2px (80ms). Focus: the standard ring (§3.1). The label changes with the pre-render, so it flips to "Printing…" after every edit until the new PNG is ready; the button's size never changes.
 
 ### 5.2 Number input
 `inputMode="numeric"` (`"decimal"` for a range with decimals, the rates, T5.2), `type="text"`, 48px tall, 2px `--border`, `--surface` fill, Space Mono 16px right-aligned, currency prefix as a non-editable label in ink and bold (it was muted until the T5.1 review: next to $ and £ amounts a faint ₦ was easy to miss). Separators as you type; caret stable. Empty or invalid reverts on blur. States: default, focus, error (`--danger` border plus hint with icon, `aria-describedby`), clamped (hint, not error), disabled. **Deliberately plain.**
@@ -328,10 +330,14 @@ One `role="status"` line under the actions, with an icon: `CheckIcon` for succes
 
 **Share status (T8.2).** The Copy link status sits 4px under the button, always in the page and two lines high (`min-h-8`) even when empty, 12px text, so a message appearing never moves what is below it. Copied: `CheckIcon`, ink, cleared after 2 seconds (a second tap restarts the 2 seconds). Blocked: `WarningIcon`, `--danger`, and it stays until a later tap succeeds, because the link field under it (§5.16) is what the person is using. Copy: §9.
 
+**Export status (T9.1).** The same slot, 4px under the Export button, always in the page and two lines high, 12px text. "Printing… tap again in a moment." when a tap came before the PNG was ready; it turns into "Receipt ready. Go and post am." (`CheckIcon`) when the PNG arrives, and only then, so nobody who did not tap is told anything on every edit. Shared and saved: `CheckIcon`. Failed: `WarningIcon`, `--danger`. A cancelled share is silent and clears the line. Every message except the "tap again" one is about one set of numbers, so it clears as soon as any number changes. Copy: §9. T9.2 adds the in-app hint and Retry.
+
 ### 5.10 Inline panel (rates, export result)
 Expands in place with a dashed top rule. Rates: two inputs ("₦ per $1", "₦ per £1"), "as of <date>" or a "Custom rates" tag, "Reset rates" with `ArrowCounterClockwiseIcon`.
 
 **Built for rates (T5.2).** A section under the bucket list with a dashed top rule. Its toggle is a full-width row, 44px high, inside an `h3`: "Rates" in Bungee on the left, and on the right the tag and `CaretDownIcon` (upside down while open), with `aria-expanded` and `aria-controls`. The tag is always visible, closed or open: plain muted "as of 23 Nov 2026" for the config defaults, or a framed bold "Custom rates" (2px ink border, shape and weight, not colour alone) as soon as either rate differs from the default; it is derived, so editing a rate back to its default brings the date back. The panel opens instantly, with no height animation (so nothing to turn off for reduced motion), and stays in the page while closed (`hidden`). Inside: the two fields side by side (`grid-cols-2`, 16px gap, which fits the 136px halves at 320px: the longest text, `100,000.00`, is about 126px with its padding and border), then "Reset rates" as a text button, then one reserved two-line status slot (`role="status"`, 32px) that holds the field's hint or the reset status, the latest one winning, like a bucket line. Rates take up to 2 decimals (`inputMode="decimal"`). A number outside 50 to 100,000 (0 included) or with more than 2 decimals does not clamp: the old rate stays and an error hint says so. Closing the panel clears the hint and status.
+
+**Built for the export image (T9.1).** Shown only when sharing and the download both fail (`inline` outcome). It sits 8px under the export status line, with a dashed `--rule` top rule and 12px of padding, and holds the PNG as an `<img>` 240px wide (centred, at most the column width) in a reserved 9:16 box with a 2px `--ink` border, so decoding never shifts the page. The caption is the status line above it ("Press and hold the picture to save."). The picture comes from the blob that was ready at the tap and gets `alt` text restating the key numbers ("Receipt: ₦1,347,500 per person, ₦5,390,000 for 4 people."; T9.2 owns the final wording). It disappears, and its object URL is freed, when any number changes or the page unmounts. Saving the picture saves the full 1080×1920 file, not the 240px preview.
 
 ### 5.11 Notice banner
 Full-width, dashed border, `--muted` text, dismiss button. For the bad-link notice. `role="status"`.
@@ -373,7 +379,7 @@ Shown only when the clipboard refuses Copy link (the permission-denied row in §
 | Offline | ✔ fully works | ✔ | ✔ | ✔ local | ✔ link fails in browser | – | – |
 | Permission-denied | ✔ storage blocked: no resume | – | – | ✔ clipboard denied → select-and-copy; share cancelled → silent; download blocked → inline image | – | – | – |
 
-Product-specific: value clamped (hint, snap); custom rates active (tag replaces date); tier changed (stamp "thump"); CTA hidden (no gap); in-app browser detected (`DoorOpenIcon` hint, inline image first); Web Share unsupported (download, then inline image); export in progress ("Printing…", disabled); link copied (status line about 2s).
+Product-specific: value clamped (hint, snap); custom rates active (tag replaces date); tier changed (stamp "thump"); CTA hidden (no gap); in-app browser detected (`DoorOpenIcon` hint only; the export chain does not change, T2.2 decision 4); Web Share unsupported (download, then inline image); export in progress ("Printing…", disabled); link copied (status line about 2s).
 
 **S7 (404):** "Wrong bus. This page no dey here." plus a primary button back to `/`.
 
@@ -466,6 +472,11 @@ Standard English with light Nigerian Pidgin, one Pidgin phrase per message at mo
 | Export in progress | "Printing…" |
 | Export ready | "Receipt ready. Go and post am." |
 | Export failed | "Receipt no gree print. Try again, or press and hold the picture to save." |
+| Export failed (T9.1, until Retry in T9.2) | "Receipt no gree print. Change any number to try again." (there is no picture to hold when drawing failed) |
+| Export tapped too early | "Printing… tap again in a moment." |
+| Export shared | "Receipt shared." |
+| Export saved (download) | "Receipt saved. Check your downloads." |
+| Export inline image | "Press and hold the picture to save." |
 | In-app browser | "Tip: open this page in your browser for the best save and share." |
 | Custom rates tag | "Custom rates" |
 | Default rates tag | "as of {date}", for example "as of 23 Nov 2026" (day without a leading zero, three-letter month) |

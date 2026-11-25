@@ -32,6 +32,7 @@ All rejected codes show the same user-facing notice. They are kept distinct so t
 | Outcome | UI |
 |---|---|
 | `rendering` | Button reads "Printing…" |
+| `not_ready` (tap before the blob exists) | Status "Printing…" and a request to tap again. Built in T9.1: it is the handler's result, `rendering` above is the button label |
 | `ready` (blob available) | Primary button is instant, status "Receipt ready" |
 | `shared` | Success status |
 | `cancelled` (`AbortError`) | Silent, no error |
@@ -55,6 +56,11 @@ type ExportOutcome =
   | { status: 'shared' | 'downloaded' | 'inline'; method: ExportMethod }
   | { status: 'cancelled' }
   | { status: 'failed'; reason: 'font' | 'draw' | 'blob' | 'unknown' }
+
+// what the tap handler returns (T9.1, lib/export). 'not_ready': there is no blob yet, so the
+// UI says "Printing…" and asks for another tap. A pre-render 'load' failure (the renderer
+// chunk did not import) is reported as reason 'unknown'.
+type ExportResult = ExportOutcome | { status: 'not_ready' }
 
 // field draft held by the input component while typing (not in AppState):
 // the typed text, or null when the field isn't focused. lastGood is the saved prop value.
@@ -132,12 +138,16 @@ No form library. Each numeric field uses the same `parseNumberInput(text, range,
 4. Fallbacks: download anchor, then inline image with "press and hold to save".
 5. **VERIFY** on real iPhone, Android, and in-app browsers (Day 1 spike).
 
+**Built in T9.1 (Part A):** `exportReceipt()` in `lib/export/index.ts` (browser wrappers in `browser.ts`). It is deliberately not `async`: it reads `prerender.getSnapshot()`, builds the `File`, and calls `canShare` then `share()` in the same tick as the tap; only the promise `share()` returns is awaited. Chain: `canShare({ files })` true, then `share()`; `AbortError` gives `cancelled` and does not fall through; any other rejection, a throwing or missing `canShare`, or no `File` support goes to the download anchor; an unsupported or throwing anchor gives `inline` (no URL: the component builds and revokes its own). If the blob is not ready it returns `not_ready` and calls `prerender.start()`, so a tap before the pre-render began cannot say "Printing…" forever; a `load` failure also calls `start()` to retry the import. Nothing throws or rejects. The saved file is named `detty-splitter-receipt.png`. Matching T2.2 decisions 1 to 3 on real devices is checked by the author (see BUILD_PLAN T9.1).
+
+**Built in T9.1 (Part B):** `components/ExportButton.tsx` (client, above `ShareBar` in the sticky column). It reads the pre-render with `useSyncExternalStore` (server snapshot `idle`) only for the button label and the "ready" message; the tap calls `exportReceipt()` with nothing awaited first. `aria-disabled`, not `disabled`, while the PNG is not ready, so the tap still gets the "tap again" answer. The result (shared, saved, inline, failed) belongs to one set of numbers and is dropped when they change; a result that arrives after they changed is ignored. The inline image is built from the blob that was ready at the tap and its object URL is revoked when it is hidden or on unmount. DESIGN §5.1, §5.9, §5.10 and §9 have the look and the copy.
+
 ### 2.6 UI testing
 
 | Layer | Tool | What |
 |---|---|---|
 | Unit | Vitest | `lib/calc`, `lib/money`, `lib/rates`, `lib/share` (all 20 bad links, round trip), tier lookup, `parseNumberInput` |
-| Component | Vitest + React Testing Library | BucketEditor (mode switch, headcount, clamp hint), CurrencyToggle, ShareBar (copied/denied), CtaCard (hidden when flag off or URL invalid). Query by role and label, no snapshots |
+| Component | Vitest + React Testing Library | BucketEditor (mode switch, headcount, clamp hint), CurrencyToggle, ShareBar (copied/denied), ExportButton (not ready, ready, shared, cancelled, downloaded, inline, failed), CtaCard (hidden when flag off or URL invalid). Query by role and label, no snapshots |
 | End to end | Playwright, one flow | Default → edit a bucket → switch currency → copy link → open link in a fresh page → numbers match → export triggers a download |
 | Accessibility | axe check inside the Playwright flow (**VERIFY** current package/version) plus a manual keyboard pass | No violations on the main page; whole flow by keyboard |
 | Devices | Manual | Receipt export on real devices (cannot be automated reliably) |
@@ -207,7 +217,7 @@ Ordered so the riskiest work lands first while it's cheap to change course, then
 - [ ] **S8 ⚠ Export UX and fallbacks** (about 1.25h)
   - Screens/states: S4 (rendering, ready, shared, cancelled, downloaded, inline, failed), in-app browser hint.
   - Pair: `lib/export` fallback chain, status line messages, inline "press and hold to save" image with alt text.
-  - Acceptance: share cancel is silent; blocked download falls to inline image; in-app browser hint appears where applicable; every failure shows a retry; the click handler contains no `await` before `share()`.
+  - Acceptance: share cancel is silent; an unsupported or throwing download falls to the inline image (a refused download cannot be detected); in-app browser hint appears where applicable; every failure shows a retry; the click handler contains no `await` before `share()`.
 
 - [ ] **S9 CTA card, OG/meta, analytics** (about 1.0h)
   - Screens/states: S5 (hidden / shown), page metadata.

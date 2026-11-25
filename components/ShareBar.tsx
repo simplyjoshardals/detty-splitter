@@ -17,8 +17,8 @@ interface CopyStatus {
 }
 
 /**
- * Copy link (DESIGN §4 item 7, §5.9, §5.16). It sits under the receipt until T9.1 adds
- * "Export receipt" above it.
+ * Copy link (DESIGN §4 item 7, §5.9, §5.16). It sits under the receipt, below "Export receipt"
+ * (`ExportButton`, T9.1).
  *
  * The link is built inside the tap handler and handed straight to the clipboard, because
  * browsers only allow a clipboard write during the tap. When the write is refused, a read-only

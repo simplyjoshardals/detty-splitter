@@ -1,4 +1,5 @@
 import { DamageMeter } from "@/components/DamageMeter";
+import { ExportButton } from "@/components/ExportButton";
 import { Footer } from "@/components/Footer";
 import { Header } from "@/components/Header";
 import { LinkNotice } from "@/components/LinkNotice";
@@ -23,8 +24,9 @@ import { AppStateProvider } from "@/state/AppStateProvider";
  * the PNG pre-render in step with the state (T7.3), and sits first so the meter stays the last child.
  *
  * `LinkNotice` is the first thing in the calculator column: an empty live region that raises the
- * bad-link banner, and takes no space until it does (T8.2). `ShareBar` (Copy link) hangs under the
- * receipt, inside the sticky column, so on desktop it stays on screen with the receipt.
+ * bad-link banner, and takes no space until it does (T8.2). `ExportButton` (T9.1) and `ShareBar`
+ * (Copy link) hang under the receipt, in that order, inside the sticky column, so on desktop they
+ * stay on screen with the receipt.
  */
 export default function Home() {
   return (
@@ -39,6 +41,7 @@ export default function Home() {
         </div>
         <StickyColumn>
           <Receipt />
+          <ExportButton />
           <ShareBar />
         </StickyColumn>
       </main>
