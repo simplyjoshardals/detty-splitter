@@ -17,9 +17,12 @@
  * - Nothing here throws: failures are values in the snapshot.
  * - `retry()` (T9.2) runs a failed view again at once, with no debounce, and does nothing in any
  *   other state. Without it a failed draw is stuck: `start()` skips the loaded renderer and
- *   `update()` skips an unchanged view.
+ *   `update()` skips an unchanged view. A retried render also asks the renderer to bring failed
+ *   fonts back (`reloadFonts`): the browser never retries a font on its own, so without that a
+ *   font failure would fail again at once, even with the network back. Ordinary renders are
+ *   called with the view alone.
  */
-import type { RenderResult } from "./render";
+import type { RenderOptions, RenderResult } from "./render";
 import type { ReceiptView } from "./view";
 
 type RenderSuccess = Extract<RenderResult, { ok: true }>;
@@ -36,7 +39,7 @@ export type PrerenderSnapshot =
   | { status: "failed"; reason: PrerenderFailureReason };
 
 export interface RenderModule {
-  renderReceipt: (view: ReceiptView) => Promise<RenderResult>;
+  renderReceipt: (view: ReceiptView, options?: RenderOptions) => Promise<RenderResult>;
 }
 
 export interface PrerenderOptions {
@@ -53,8 +56,9 @@ export interface Prerender {
   update: (view: ReceiptView) => void;
   /**
    * Try the current view again after a failure (T9.2). If the renderer never imported it is
-   * imported again, otherwise the view is drawn again at once. Does nothing unless the snapshot
-   * is `failed`, so a stray tap cannot start a second render.
+   * imported again, otherwise the view is drawn again at once, with the failed fonts brought
+   * back first. Does nothing unless the snapshot is `failed`, so a stray tap cannot start a
+   * second render.
    */
   retry: () => void;
   getSnapshot: () => PrerenderSnapshot;
@@ -75,6 +79,8 @@ export function createPrerender(options: PrerenderOptions = {}): Prerender {
   let renderer: RenderModule | null = null;
   /** True once any render has started; only the very first render skips the debounce. */
   let renderStarted = false;
+  /** Set by `retry()`; the next render asks the renderer to bring failed fonts back. */
+  let reloadFonts = false;
 
   let currentView: ReceiptView | null = null;
   let currentKey: string | null = null;
@@ -97,10 +103,14 @@ export function createPrerender(options: PrerenderOptions = {}): Prerender {
   async function render(view: ReceiptView, forGeneration: number): Promise<void> {
     if (renderer === null || forGeneration !== generation) return;
     renderStarted = true;
+    const retrying = reloadFonts;
+    reloadFonts = false;
     publish({ status: "rendering" });
     let result: RenderResult | null = null;
     try {
-      result = await renderer.renderReceipt(view);
+      result = await (retrying
+        ? renderer.renderReceipt(view, { reloadFonts: true })
+        : renderer.renderReceipt(view));
     } catch {
       result = null; // renderReceipt never throws by contract; belt and braces
     }
@@ -181,6 +191,7 @@ export function createPrerender(options: PrerenderOptions = {}): Prerender {
         ensureLoaded();
         return;
       }
+      reloadFonts = true; // a font that failed stays failed in the browser until it is re-created
       schedule(0); // starts at once and publishes "rendering" straight away
     },
 

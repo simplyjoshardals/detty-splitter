@@ -323,7 +323,7 @@ describe("createPrerender", () => {
       controller.retry();
       await flush();
       expect(renderReceipt).toHaveBeenCalledTimes(3);
-      expect(renderReceipt).toHaveBeenLastCalledWith(viewWith("a"));
+      expect(renderReceipt).toHaveBeenLastCalledWith(viewWith("a"), { reloadFonts: true });
       const snapshot = controller.getSnapshot();
       expect(snapshot.status).toBe("ready");
       if (snapshot.status === "ready") expect(snapshot.blob).toBeInstanceOf(Blob);
@@ -407,6 +407,61 @@ describe("createPrerender", () => {
       expect(renderReceipt).toHaveBeenCalledTimes(2);
       await vi.advanceTimersByTimeAsync(500);
       expect(renderReceipt).toHaveBeenCalledTimes(3);
+    });
+
+    it("asks the renderer to bring failed fonts back on a retry, and only on a retry", async () => {
+      let failures = 1;
+      const { controller, renderReceipt } = setup(async (view) =>
+        failures-- > 0 ? failResult("font") : okResult(view.perPersonTotal),
+      );
+      controller.update(viewWith("a"));
+      controller.start();
+      await flush();
+      expect(renderReceipt).toHaveBeenLastCalledWith(viewWith("a")); // the first render: the view alone
+      expect(controller.getSnapshot()).toEqual({ status: "failed", reason: "font" });
+
+      controller.retry();
+      await flush();
+      expect(renderReceipt).toHaveBeenCalledTimes(2);
+      expect(renderReceipt).toHaveBeenLastCalledWith(viewWith("a"), { reloadFonts: true });
+      expect(statusOf(controller.getSnapshot())).toBe("ready");
+
+      controller.update(viewWith("b")); // an ordinary edit goes back to the view alone
+      await vi.advanceTimersByTimeAsync(500);
+      expect(renderReceipt).toHaveBeenLastCalledWith(viewWith("b"));
+    });
+
+    it("asks again on every retry, and a font that still fails reports font again", async () => {
+      const { controller, renderReceipt } = setup(async () => failResult("font"));
+      controller.update(viewWith("a"));
+      controller.start();
+      await flush();
+      controller.retry();
+      await flush();
+      expect(controller.getSnapshot()).toEqual({ status: "failed", reason: "font" });
+      controller.retry();
+      await flush();
+      expect(renderReceipt).toHaveBeenCalledTimes(3);
+      expect(renderReceipt).toHaveBeenNthCalledWith(2, viewWith("a"), { reloadFonts: true });
+      expect(renderReceipt).toHaveBeenNthCalledWith(3, viewWith("a"), { reloadFonts: true });
+      expect(controller.getSnapshot()).toEqual({ status: "failed", reason: "font" });
+    });
+
+    it("two retry() calls in a row start one render", async () => {
+      const slow = deferred<RenderResult>();
+      let call = 0;
+      const { controller, renderReceipt } = setup(() => (++call === 1 ? Promise.resolve(failResult("font")) : slow.promise));
+      controller.update(viewWith("a"));
+      controller.start();
+      await flush();
+      controller.retry();
+      controller.retry(); // the first already moved the snapshot to "rendering"
+      controller.retry();
+      expect(renderReceipt).toHaveBeenCalledTimes(2);
+      slow.resolve(okResult("a"));
+      await flush();
+      expect(statusOf(controller.getSnapshot())).toBe("ready");
+      expect(renderReceipt).toHaveBeenCalledTimes(2);
     });
 
     it("drops the late result of a retried render when the view changes meanwhile", async () => {
