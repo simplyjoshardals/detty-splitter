@@ -53,7 +53,10 @@ function Controls() {
 class FakeIntersectionObserver {
   static instances: FakeIntersectionObserver[] = [];
 
-  constructor(private readonly callback: IntersectionObserverCallback) {
+  constructor(
+    private readonly callback: IntersectionObserverCallback,
+    readonly options?: IntersectionObserverInit,
+  ) {
     FakeIntersectionObserver.instances.push(this);
   }
 
@@ -260,6 +263,17 @@ describe("hiding while the receipt is on screen", () => {
     expect(screen.getByRole("button", { name: "See receipt" })).toBeTruthy();
   });
 
+  it("ignores its own 100px strip when it decides the totals are visible", () => {
+    addReceipt();
+    renderMeter();
+    expect(latestObserver()?.options).toEqual({ rootMargin: "0px 0px -100px 0px" });
+  });
+
+  it("draws the bar on its own compositing layer, so WebKit repaints it after it hides", () => {
+    renderMeter();
+    expect(bar().className).toContain("transform-gpu");
+  });
+
   it("never hides when there is no receipt", () => {
     renderMeter();
     expect(FakeIntersectionObserver.instances).toHaveLength(0);
@@ -276,6 +290,81 @@ describe("hiding while the receipt is on screen", () => {
     expect(liveRegion().textContent).toBe(
       "Per person ₦280,000. Group total ₦1,120,000 for 4 people.",
     );
+  });
+});
+
+describe("iOS Safari: an observer that goes quiet", () => {
+  const CLEARANCE = 100;
+
+  beforeEach(() => {
+    // Measure at once instead of on the next frame.
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      callback(0);
+      return 1;
+    });
+    vi.stubGlobal("cancelAnimationFrame", () => {});
+  });
+
+  function addTotals(): HTMLElement {
+    const totals = document.createElement("div");
+    totals.id = "receipt-totals";
+    document.body.append(totals);
+    return totals;
+  }
+
+  function place(element: HTMLElement, top: number, bottom: number) {
+    element.getBoundingClientRect = () => ({ top, bottom }) as DOMRect;
+  }
+
+  it("brings the bar back on scroll when the observer never reported the totals leaving", () => {
+    addReceipt();
+    const totals = addTotals();
+    renderMeterWatching("receipt-totals");
+
+    // The observer reports "in view" once and then falls silent.
+    act(() => latestObserver()?.emit(true));
+    expect(screen.queryByRole("region", { name: "DAMAGE METER" })).toBeNull();
+
+    // The page has scrolled on: the totals are above the screen.
+    place(totals, -500, -100);
+    fireEvent.scroll(window);
+    expect(bar()).toBeTruthy();
+    expect(screen.getByRole("button", { name: "See receipt" })).toBeTruthy();
+  });
+
+  it("hides the bar on scroll when the totals arrive and the observer missed it", () => {
+    addReceipt();
+    const totals = addTotals();
+    renderMeterWatching("receipt-totals");
+    expect(bar()).toBeTruthy();
+
+    place(totals, 100, 400);
+    fireEvent.scroll(window);
+    expect(screen.queryByRole("region", { name: "DAMAGE METER" })).toBeNull();
+  });
+
+  it("keeps the bar while the totals sit only under its own strip", () => {
+    addReceipt();
+    const totals = addTotals();
+    renderMeterWatching("receipt-totals");
+
+    place(totals, window.innerHeight - CLEARANCE + 10, window.innerHeight + 300);
+    fireEvent.scroll(window);
+    expect(bar()).toBeTruthy();
+  });
+
+  it("re-checks when the page is restored from the back/forward cache", () => {
+    addReceipt();
+    const totals = addTotals();
+    renderMeterWatching("receipt-totals");
+    act(() => latestObserver()?.emit(true));
+    expect(screen.queryByRole("region", { name: "DAMAGE METER" })).toBeNull();
+
+    place(totals, -500, -100);
+    act(() => {
+      window.dispatchEvent(new Event("pageshow"));
+    });
+    expect(bar()).toBeTruthy();
   });
 });
 

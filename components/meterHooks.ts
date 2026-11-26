@@ -64,10 +64,20 @@ export function useTargetFound(id: string): boolean {
  *   the bar hidden.
  * - `rootMargin` shrinks the area that counts as "on screen" (the usual IntersectionObserver
  *   option), so the bar can ignore the strip it covers itself.
+ * - `recheckClearancePx` (optional, the meter passes it) adds a safety net for iOS Safari,
+ *   which delivers `IntersectionObserver` callbacks late or not at all around momentum
+ *   scrolling, toolbar collapse and expand, and back/forward restores. The last callback then
+ *   stays true and the bar never comes back. With this set, the target is also measured by hand
+ *   (`getBoundingClientRect`) on `scroll`, `resize`, `visualViewport` resize and scroll,
+ *   `pageshow` and `visibilitychange`, one measurement per frame, and `inView` follows the
+ *   newest answer. "On screen" then means above the bottom `recheckClearancePx` of the visible
+ *   viewport, the same area as a matching bottom `rootMargin`. Left out, the hook is observer
+ *   only (the pre-render does not need the net).
  */
 export function useTargetInView(
   id: string,
   rootMargin?: string,
+  recheckClearancePx?: number,
 ): { found: boolean; inView: boolean } {
   const found = useTargetFound(id);
   const [inView, setInView] = useState(false);
@@ -85,8 +95,37 @@ export function useTargetInView(
       rootMargin === undefined ? undefined : { rootMargin },
     );
     observer.observe(target);
-    return () => observer.disconnect();
-  }, [id, found, rootMargin]);
+
+    if (recheckClearancePx === undefined) return () => observer.disconnect();
+
+    // Safety net: measure by hand on events iOS Safari delivers reliably.
+    let frame = 0;
+    const recheck = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const rect = target.getBoundingClientRect();
+        const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+        setInView(rect.bottom > 0 && rect.top < viewportHeight - recheckClearancePx);
+      });
+    };
+    window.addEventListener("scroll", recheck, { passive: true });
+    window.addEventListener("resize", recheck);
+    window.addEventListener("pageshow", recheck);
+    document.addEventListener("visibilitychange", recheck);
+    window.visualViewport?.addEventListener("resize", recheck);
+    window.visualViewport?.addEventListener("scroll", recheck);
+
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", recheck);
+      window.removeEventListener("resize", recheck);
+      window.removeEventListener("pageshow", recheck);
+      document.removeEventListener("visibilitychange", recheck);
+      window.visualViewport?.removeEventListener("resize", recheck);
+      window.visualViewport?.removeEventListener("scroll", recheck);
+    };
+  }, [id, found, rootMargin, recheckClearancePx]);
 
   return { found, inView: found && inView };
 }

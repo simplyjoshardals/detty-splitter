@@ -7,6 +7,8 @@ afterEach(() => {
   cleanup();
   vi.useRealTimers();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+  Reflect.deleteProperty(window, "visualViewport");
   document.body.innerHTML = "";
 });
 
@@ -211,5 +213,193 @@ describe("useTargetInView", () => {
     addTarget("something-else");
     const { result } = renderHook(() => useTargetInView("receipt"));
     expect(result.current).toEqual({ found: false, inView: false });
+  });
+});
+
+/**
+ * The iOS Safari safety net (third argument). The fake observer plays the browser that went
+ * quiet: it says "in view" once and then never reports again, while the page scrolls on and
+ * only the hand measurement can notice. jsdom has no layout, so the target's rect is set by hand
+ * and the viewport is `window.innerHeight` (768 in jsdom) unless a `visualViewport` is added.
+ */
+describe("useTargetInView safety net", () => {
+  const CLEARANCE = 100;
+  let frames: Map<number, FrameRequestCallback>;
+  let nextFrame: number;
+
+  beforeEach(() => {
+    FakeIntersectionObserver.instances = [];
+    vi.stubGlobal("IntersectionObserver", FakeIntersectionObserver);
+    frames = new Map();
+    nextFrame = 1;
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      frames.set(nextFrame, callback);
+      return nextFrame++;
+    });
+    vi.stubGlobal("cancelAnimationFrame", (handle: number) => {
+      frames.delete(handle);
+    });
+  });
+
+  const latest = () => FakeIntersectionObserver.instances[FakeIntersectionObserver.instances.length - 1];
+
+  /** Runs the measurements that were queued for the next frame. */
+  function flushFrames() {
+    act(() => {
+      const pending = [...frames.values()];
+      frames.clear();
+      for (const callback of pending) callback(0);
+    });
+  }
+
+  function placeTarget(target: HTMLElement, top: number, bottom: number) {
+    target.getBoundingClientRect = () => ({ top, bottom }) as DOMRect;
+  }
+
+  function setup() {
+    const target = addTarget("receipt-totals");
+    const hook = renderHook(() =>
+      useTargetInView("receipt-totals", `0px 0px -${CLEARANCE}px 0px`, CLEARANCE),
+    );
+    return { target, ...hook };
+  }
+
+  it("clears a stuck 'in view' when the totals have left the screen", () => {
+    const { target, result } = setup();
+    act(() => latest()?.emit(true));
+    expect(result.current.inView).toBe(true);
+
+    // The observer never reports again, but the page scrolled: the totals are above the screen.
+    placeTarget(target, -400, -50);
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    flushFrames();
+    expect(result.current.inView).toBe(false);
+  });
+
+  it("finds the totals again when the observer missed them arriving", () => {
+    const { target, result } = setup();
+    act(() => latest()?.emit(false));
+
+    placeTarget(target, 200, 400);
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    flushFrames();
+    expect(result.current.inView).toBe(true);
+  });
+
+  it("ignores the strip the bar covers: totals only under the clearance are not in view", () => {
+    const { target, result } = setup();
+    const viewportHeight = window.innerHeight;
+
+    placeTarget(target, viewportHeight - CLEARANCE + 1, viewportHeight + 200);
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    flushFrames();
+    expect(result.current.inView).toBe(false);
+
+    placeTarget(target, viewportHeight - CLEARANCE - 1, viewportHeight + 200);
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    flushFrames();
+    expect(result.current.inView).toBe(true);
+  });
+
+  it.each([
+    ["resize", () => window.dispatchEvent(new Event("resize"))],
+    ["pageshow", () => window.dispatchEvent(new Event("pageshow"))],
+    ["visibilitychange", () => document.dispatchEvent(new Event("visibilitychange"))],
+  ])("re-measures on %s", (_name, fire) => {
+    const { target, result } = setup();
+    act(() => latest()?.emit(true));
+    placeTarget(target, -400, -50);
+    act(() => {
+      fire();
+    });
+    flushFrames();
+    expect(result.current.inView).toBe(false);
+  });
+
+  it.each(["resize", "scroll"])("measures against visualViewport and re-measures on its %s", (type) => {
+    const visualViewport = Object.assign(new EventTarget(), { height: 300 });
+    Object.defineProperty(window, "visualViewport", { configurable: true, value: visualViewport });
+    const { target, result } = setup();
+
+    // 300px tall viewport minus the 100px clearance: a top edge at 250 is under the bar.
+    placeTarget(target, 250, 500);
+    act(() => {
+      visualViewport.dispatchEvent(new Event(type));
+    });
+    flushFrames();
+    expect(result.current.inView).toBe(false);
+
+    placeTarget(target, 150, 500);
+    act(() => {
+      visualViewport.dispatchEvent(new Event(type));
+    });
+    flushFrames();
+    expect(result.current.inView).toBe(true);
+  });
+
+  it("measures once per frame however many events arrive", () => {
+    const { target, result } = setup();
+    placeTarget(target, 100, 300);
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+      window.dispatchEvent(new Event("scroll"));
+      window.dispatchEvent(new Event("scroll"));
+    });
+    expect(frames.size).toBe(1);
+    flushFrames();
+    expect(result.current.inView).toBe(true);
+  });
+
+  it("is observer only when no clearance is given: events change nothing", () => {
+    const target = addTarget("receipt-totals");
+    const { result } = renderHook(() => useTargetInView("receipt-totals"));
+    act(() => latest()?.emit(true));
+    placeTarget(target, -400, -50);
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    flushFrames();
+    expect(frames.size).toBe(0);
+    expect(result.current.inView).toBe(true);
+  });
+
+  it("is never in view while the target is missing, whatever the events say", async () => {
+    const { target, result } = setup();
+    placeTarget(target, 100, 300);
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    flushFrames();
+    expect(result.current.inView).toBe(true);
+
+    await act(async () => {
+      target.remove();
+    });
+    expect(result.current).toEqual({ found: false, inView: false });
+  });
+
+  it("removes every listener and the pending frame when unmounted", () => {
+    const windowRemove = vi.spyOn(window, "removeEventListener");
+    const documentRemove = vi.spyOn(document, "removeEventListener");
+    const { target, unmount } = setup();
+    placeTarget(target, 100, 300);
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    expect(frames.size).toBe(1);
+
+    unmount();
+    const removedFromWindow = windowRemove.mock.calls.map(([type]) => type);
+    expect(removedFromWindow).toEqual(expect.arrayContaining(["scroll", "resize", "pageshow"]));
+    expect(documentRemove.mock.calls.map(([type]) => type)).toContain("visibilitychange");
+    expect(frames.size).toBe(0);
   });
 });

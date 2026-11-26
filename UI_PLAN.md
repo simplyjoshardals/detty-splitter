@@ -206,7 +206,7 @@ Ordered so the riskiest work lands first while it's cheap to change course, then
 - [ ] **S5 Danfo header, damage meter, live receipt** (about 1.75h)
   - Screens/states: S3 (all), sticky mobile results bar, desktop sticky right column.
   - Pair: danfo band header and stripe, **damage meter** sticky bar, printer slot and HTML receipt styled per DESIGN.md §7 (POS header lines, status, balance line, AUTH line), stamp "thump" with reduced-motion fallback, polite live region for totals.
-  - Acceptance: matches the export layout bands; screen reader announces totals after a 600ms pause; meter respects the iOS safe area and hides when the receipt is in view; selected states pass the "not colour alone" check.
+  - Acceptance: matches the export layout bands; screen reader announces totals after a 600ms pause; meter respects the iOS safe area, hides when the receipt's totals are in view and always comes back when they leave, including on iOS Safari after momentum scroll, toolbar collapse and back/forward restore (the observer is backed by a manual re-measure); selected states pass the "not colour alone" check.
 
 - [ ] **S6 ⚠ Canvas receipt renderer, final design** (about 2.25h)
   - Screens/states: S3 → S4 handoff.

@@ -40,9 +40,13 @@ function jumpTo(id: string): void {
 
 /**
  * The bar ignores its own strip of the screen when it decides whether the totals are visible:
- * about 68px tall, 84px in the empty state, plus the home-indicator inset (T6.3 review).
+ * about 68px tall (84px in the empty state) plus about 34px of home-indicator inset on notched
+ * iPhones, rounded to 100 (T6.3 review, widened from 88 after the iOS Safari fix). It is one
+ * number because both checks use it: the observer's bottom root margin and the manual re-measure
+ * that corrects a stuck observer (`useTargetInView`).
  */
-const BAR_CLEARANCE = "0px 0px -88px 0px";
+const BAR_CLEARANCE_PX = 100;
+const BAR_ROOT_MARGIN = `0px 0px -${BAR_CLEARANCE_PX}px 0px`;
 
 interface DamageMeterProps {
   /** Id of the element that "See receipt" jumps to and focuses. */
@@ -64,6 +68,11 @@ interface DamageMeterProps {
  *   the bar keeps its height and the layout never moves (a collapse could push the receipt back
  *   out of view and make the bar flicker). Nothing animates. The inline style is on purpose: it
  *   also takes the bar out of the accessibility tree and the tab order, and it needs no CSS.
+ * - iOS Safari: `IntersectionObserver` callbacks can arrive late or never (momentum scrolling,
+ *   toolbar collapse, back/forward restore), which left the bar hidden for good. The hook also
+ *   re-measures by hand on scroll, resize, `visualViewport`, `pageshow` and `visibilitychange`,
+ *   so a stale "in view" corrects itself. The bar has `transform-gpu` so WebKit gives the sticky
+ *   element its own layer and repaints it when `visibility` flips back.
  * - The live region is a sibling of the bar, not a child, because a hidden bar would silence it
  *   and the totals keep changing while the receipt is on screen. It is empty until the first
  *   settled edit and announces once per settled edit (`useSettledMessage`).
@@ -87,7 +96,7 @@ export function DamageMeter({ targetId = DEFAULT_TARGET_ID, watchId }: DamageMet
     totalsAnnouncement(result.perPersonMinor, result.groupTotalMinor, groupSize, currency),
   );
   const found = useTargetFound(targetId);
-  const { inView } = useTargetInView(watchId ?? targetId, BAR_CLEARANCE);
+  const { inView } = useTargetInView(watchId ?? targetId, BAR_ROOT_MARGIN, BAR_CLEARANCE_PX);
   const labelId = useId();
   // DESIGN §9: the empty-state line replaces the caption while there is nothing to pay.
   const caption = result.perPersonMinor === 0 ? "Meter never start. Add a number, oya." : "per person";
@@ -97,7 +106,7 @@ export function DamageMeter({ targetId = DEFAULT_TARGET_ID, watchId }: DamageMet
       <section
         aria-labelledby={labelId}
         style={inView ? { visibility: "hidden" } : undefined}
-        className="on-meter sticky bottom-0 z-20 min-[1280px]:hidden border-t-2 border-transparent bg-meter-bg pt-2 pr-[env(safe-area-inset-right)] pb-[max(0.5rem,env(safe-area-inset-bottom))] pl-[env(safe-area-inset-left)] text-meter-fg dark:border-meter-fg"
+        className="on-meter transform-gpu sticky bottom-0 z-20 min-[1280px]:hidden border-t-2 border-transparent bg-meter-bg pt-2 pr-[env(safe-area-inset-right)] pb-[max(0.5rem,env(safe-area-inset-bottom))] pl-[env(safe-area-inset-left)] text-meter-fg dark:border-meter-fg"
       >
         <div className="mx-auto flex w-full max-w-[560px] items-center justify-between gap-3 px-4">
           <div className="min-w-0">

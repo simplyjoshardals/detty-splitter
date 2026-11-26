@@ -1,7 +1,12 @@
 "use client";
 
 import { useId } from "react";
-import { BusIcon, CheckIcon, ConfettiIcon, CrownSimpleIcon } from "@phosphor-icons/react";
+import {
+  BusIcon,
+  CheckIcon,
+  ConfettiIcon,
+  CrownSimpleIcon,
+} from "@phosphor-icons/react";
 import { PRESETS, PRESET_ORDER } from "@/data/presets";
 import type { PresetId } from "@/lib/types";
 
@@ -31,7 +36,9 @@ export function RoutePlates({ value, onChange }: RoutePlatesProps) {
 
   return (
     <fieldset>
-      <legend className="mb-3 font-display text-[length:var(--t-sm)]">Pick your route</legend>
+      <legend className="mb-3 font-display text-[length:var(--t-sm)]">
+        Pick your route
+      </legend>
       <div className="grid gap-3 min-[480px]:grid-cols-3">
         {PRESET_ORDER.map((id) => {
           const preset = PRESETS[id];
@@ -50,11 +57,16 @@ export function RoutePlates({ value, onChange }: RoutePlatesProps) {
               <span
                 className={`relative flex w-full items-center gap-3 border-ink peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-(--focus) min-[480px]:flex-col min-[480px]:items-start min-[480px]:gap-2 ${
                   selected
-                    ? "border-[3px] bg-danfo p-[11px] pr-[39px] text-danfo-ink [box-shadow:var(--shadow-hard)] min-[480px]:pr-[11px]"
+                    ? "border-2 bg-danfo p-3 pr-10 text-danfo-ink [box-shadow:inset_0_0_0_1px_var(--ink),var(--shadow-hard)] min-[480px]:pr-3"
                     : "border-2 bg-paper p-3 pr-10 text-ink min-[480px]:pr-3"
                 }`}
               >
-                <Icon size={28} weight={selected ? "fill" : "bold"} aria-hidden="true" className="shrink-0" />
+                <Icon
+                  size={28}
+                  weight={selected ? "fill" : "bold"}
+                  aria-hidden="true"
+                  className="shrink-0"
+                />
                 <span className="min-w-0">
                   <span className="block font-display text-[length:var(--t-sm)] leading-tight">
                     {preset.label}
