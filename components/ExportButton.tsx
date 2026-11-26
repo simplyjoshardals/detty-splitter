@@ -27,10 +27,12 @@ const COPY = {
 } as const;
 
 /**
- * The last thing a tap produced. Everything except `tap_again` describes one receipt, so it
- * carries the state it was made from and is dropped as soon as the numbers change.
+ * The last thing a tap produced. `printing` (a tap is waiting for the PNG) and `tap_again` are
+ * about the pre-render, not a receipt. The rest describe one receipt, so they carry the state
+ * they were made from and are dropped as soon as the numbers change.
  */
 type Last =
+  | { kind: "printing" }
   | { kind: "tap_again" }
   | { kind: "shared" | "downloaded" | "failed"; state: AppState }
   | { kind: "inline"; state: AppState; url: string; alt: string };
@@ -75,6 +77,8 @@ interface StatusLine {
 function statusLine(last: Last | null, snapshot: PrerenderSnapshot): StatusLine | null {
   if (last === null) return null;
   switch (last.kind) {
+    case "printing":
+      return { tone: "plain", text: COPY.printing };
     case "tap_again":
       // The person asked for a receipt that wasn't ready: answer when it becomes ready or fails.
       if (snapshot.status === "ready") return { tone: "ok", text: COPY.ready };
@@ -95,7 +99,10 @@ function statusLine(last: Last | null, snapshot: PrerenderSnapshot): StatusLine 
  * Export receipt (DESIGN §4 item 7, §5.1, §5.9, §5.10; UI_PLAN §2.5). It sits above `ShareBar`.
  *
  * The tap calls `exportReceipt()` with nothing awaited before it: `share()` has to start inside
- * the tap (`lib/export`). The button only says "Printing…" while the PNG isn't ready; it uses
+ * the tap (`lib/export`). Where the browser can't share files, `exportReceipt` waits for the PNG
+ * and finishes on the first tap ("Printing…" shows meanwhile); where it can, a tap that comes
+ * too early is answered with "tap again". The button only says "Printing…" while the PNG isn't
+ * ready; it uses
  * `aria-disabled`, not `disabled`, so a tap still reaches the handler and gets the "tap again"
  * answer. The status slot is always in the page and two lines high, so messages never move
  * what is below it.
@@ -115,7 +122,7 @@ export function ExportButton() {
   }, [state]);
 
   // The numbers changed, so a result about the old receipt (and its image) no longer applies.
-  if (last !== null && last.kind !== "tap_again" && last.state !== state) setLast(null);
+  if (last !== null && "state" in last && last.state !== state) setLast(null);
 
   const inlineUrl = last?.kind === "inline" ? last.url : null;
   useEffect(() => {
@@ -128,13 +135,20 @@ export function ExportButton() {
   const line = statusLine(last, snapshot);
 
   function exportTap() {
-    // No await before this call: `share()` has to start inside the tap.
+    if (last?.kind === "printing") return; // already waiting for the PNG: one export per tap
     const tapState = state;
-    const tapSnapshot = prerender.getSnapshot();
-    void exportReceipt().then((result) => {
-      // The numbers changed while the share was open: this result is about an old receipt.
-      if (result.status !== "not_ready" && latestState.current !== tapState) return;
-      setLast(toLast(result, tapState, tapSnapshot));
+    // No await before this call: `share()` has to start inside the tap.
+    const pending = exportReceipt();
+    // Where sharing is impossible the tap waits for the PNG, so say so while it does.
+    if (printing) setLast({ kind: "printing" });
+    void pending.then((result) => {
+      // The numbers changed meanwhile: this result is about an old receipt.
+      if (result.status !== "not_ready" && latestState.current !== tapState) {
+        setLast((current) => (current?.kind === "printing" ? null : current));
+        return;
+      }
+      // An inline image comes from the blob that is ready now (the same one the chain used).
+      setLast(toLast(result, tapState, prerender.getSnapshot()));
     });
   }
 

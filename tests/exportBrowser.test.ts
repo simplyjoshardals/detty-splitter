@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { REVOKE_DELAY_MS, browserExportEnv, downloadViaAnchor } from "@/lib/export/browser";
+import { REVOKE_DELAY_MS, browserExportEnv, downloadViaAnchor, prefersShareSheet } from "@/lib/export/browser";
 
 const BLOB = new Blob(["png-bytes"], { type: "image/png" });
 
@@ -123,5 +123,37 @@ describe("browserExportEnv", () => {
     const env = browserExportEnv();
     expect(env.share).toBeUndefined();
     expect(env.canShare).toBeUndefined();
+  });
+});
+
+describe("prefersShareSheet and the desktop rule", () => {
+  const stubPointer = (coarse: boolean) =>
+    vi.stubGlobal("matchMedia", (query: string) => ({ matches: coarse && query === "(pointer: coarse)" }));
+  const sharingNavigator = () => ({ share: () => Promise.resolve(), canShare: () => true });
+
+  it("keeps sharing where the primary pointer is a finger", () => {
+    stubPointer(true);
+    vi.stubGlobal("navigator", sharingNavigator());
+    expect(prefersShareSheet()).toBe(true);
+    const env = browserExportEnv();
+    expect(env.share).toBeTypeOf("function");
+    expect(env.canShare).toBeTypeOf("function");
+  });
+
+  it("skips sharing on a desktop (mouse or trackpad) even though the browser can share files", () => {
+    stubPointer(false);
+    vi.stubGlobal("navigator", sharingNavigator());
+    expect(prefersShareSheet()).toBe(false);
+    const env = browserExportEnv();
+    expect(env.share).toBeUndefined();
+    expect(env.canShare).toBeUndefined();
+    expect(env.download).toBe(downloadViaAnchor);
+  });
+
+  it("keeps sharing when matchMedia is missing, because it cannot tell", () => {
+    vi.stubGlobal("matchMedia", undefined);
+    vi.stubGlobal("navigator", sharingNavigator());
+    expect(prefersShareSheet()).toBe(true);
+    expect(browserExportEnv().share).toBeTypeOf("function");
   });
 });

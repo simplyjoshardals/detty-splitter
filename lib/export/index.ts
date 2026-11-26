@@ -13,18 +13,25 @@
  * - `exportReceipt` is NOT `async` on purpose. Everything up to the `share()` call (reading the
  *   snapshot, building the `File`, `canShare`) runs synchronously inside the tap, so the
  *   gesture is still live (UI_PLAN §2.5). Only the promise `share()` returns is awaited.
- * - It never renders and never waits for a render. A blob that isn't ready is a `not_ready`
- *   result; the UI says "Printing…" and asks for another tap.
+ * - It never renders. A blob that isn't ready is handled one of two ways:
+ *     - the browser can share files: `not_ready`. The UI says "Printing…" and asks for another
+ *       tap, because waiting here would lose the gesture `share()` needs;
+ *     - the browser can't share files: nothing needs the gesture (a download or the inline
+ *       image works any time), so it waits for the blob, up to `WAIT_FOR_BLOB_MS`, and
+ *       finishes on the first tap. A timeout is `not_ready`.
  * - Nothing here throws or rejects: every failure is a value.
  */
 import { prerender } from "@/lib/receipt/prerender";
-import type { Prerender, PrerenderFailureReason } from "@/lib/receipt/prerender";
+import type { Prerender, PrerenderFailureReason, PrerenderSnapshot } from "@/lib/receipt/prerender";
 import type { RenderFailureReason } from "@/lib/receipt/render";
 import { browserExportEnv } from "./browser";
 import type { ExportEnv } from "./browser";
 
 export { browserExportEnv, downloadViaAnchor } from "./browser";
 export type { ExportEnv } from "./browser";
+
+/** How long a tap waits for the blob in a browser that can't share files. */
+export const WAIT_FOR_BLOB_MS = 10_000;
 
 /** Name of the saved file. */
 export const EXPORT_FILE_NAME = "detty-splitter-receipt.png";
@@ -44,11 +51,13 @@ export type ExportOutcome =
 export type ExportResult = ExportOutcome | { status: "not_ready" };
 
 /** The part of the pre-render the handler uses. Defaults to the app-wide `prerender`. */
-export type ExportSource = Pick<Prerender, "getSnapshot" | "start">;
+export type ExportSource = Pick<Prerender, "getSnapshot" | "start" | "subscribe">;
 
 export interface ExportOptions {
   source?: ExportSource;
   env?: ExportEnv;
+  /** Longest wait for the blob where sharing is impossible. Defaults to `WAIT_FOR_BLOB_MS`. */
+  waitMs?: number;
 }
 
 function isAbortError(error: unknown): boolean {
@@ -96,6 +105,39 @@ function startShare(file: File | null, env: ExportEnv): Promise<void> | null {
   }
 }
 
+/**
+ * Whether this browser would accept a PNG file in `share()`. Asked with an empty stand-in file:
+ * `canShare` only looks at the file's name and type, and needs no tap. Any doubt (no API,
+ * `false`, a throw) means "no", so the tap waits for the blob instead of asking for another.
+ */
+function canShareFiles(env: ExportEnv): boolean {
+  const probe = makeFile(new Blob([], { type: EXPORT_MIME }));
+  if (probe === null || env.share === undefined || env.canShare === undefined) return false;
+  try {
+    return env.canShare({ files: [probe] }) === true;
+  } catch {
+    return false;
+  }
+}
+
+/** Resolves with the first `ready` or `failed` snapshot, or `null` after `timeoutMs`. */
+function waitUntilSettled(source: ExportSource, timeoutMs: number): Promise<PrerenderSnapshot | null> {
+  return new Promise((resolve) => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let unsubscribe: (() => void) | null = null;
+    const finish = (value: PrerenderSnapshot | null): void => {
+      if (timer !== null) clearTimeout(timer);
+      unsubscribe?.();
+      resolve(value);
+    };
+    unsubscribe = source.subscribe(() => {
+      const current = source.getSnapshot();
+      if (current.status === "ready" || current.status === "failed") finish(current);
+    });
+    timer = setTimeout(() => finish(null), timeoutMs);
+  });
+}
+
 export function exportReceipt(options: ExportOptions = {}): Promise<ExportResult> {
   const source = options.source ?? prerender;
   const snapshot = source.getSnapshot();
@@ -106,9 +148,19 @@ export function exportReceipt(options: ExportOptions = {}): Promise<ExportResult
     return Promise.resolve({ status: "failed", reason: toFailureReason(snapshot.reason) });
   }
   if (snapshot.status !== "ready") {
-    // Without this, a tap before the pre-render ever started would say "Printing…" forever.
+    // Without this, a tap before the pre-render ever started would wait or say "Printing…" forever.
     source.start();
-    return Promise.resolve({ status: "not_ready" });
+    const env = options.env ?? browserExportEnv();
+    // Where `share()` could run, waiting would lose the tap it needs: ask for another tap.
+    if (canShareFiles(env)) return Promise.resolve({ status: "not_ready" });
+    return waitUntilSettled(source, options.waitMs ?? WAIT_FOR_BLOB_MS).then(
+      (settled): ExportResult => {
+        if (settled === null) return { status: "not_ready" };
+        if (settled.status === "failed") return { status: "failed", reason: toFailureReason(settled.reason) };
+        if (settled.status === "ready") return saveOrShowInline(settled.blob, env);
+        return { status: "not_ready" };
+      },
+    );
   }
 
   const { blob } = snapshot;

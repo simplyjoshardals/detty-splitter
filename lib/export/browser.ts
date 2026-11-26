@@ -27,11 +27,7 @@ export interface ExportEnv {
  * in-app browser may only open the image), so `true` means "the click was made".
  */
 export function downloadViaAnchor(blob: Blob, fileName: string): boolean {
-  if (
-    typeof document === "undefined" ||
-    typeof HTMLAnchorElement === "undefined"
-  )
-    return false;
+  if (typeof document === "undefined" || typeof HTMLAnchorElement === "undefined") return false;
   if (!("download" in HTMLAnchorElement.prototype)) return false;
 
   const url = URL.createObjectURL(blob);
@@ -54,24 +50,29 @@ export function downloadViaAnchor(blob: Blob, fileName: string): boolean {
 }
 
 /**
+ * Whether to offer the native share sheet at all. It is a phone and tablet feature: there the
+ * primary pointer is a finger (`coarse`). On a desktop (mouse or trackpad) the sheet is
+ * unreliable: Chrome on Windows exposes file sharing, but on the author's machine the first
+ * `share()` stayed pending with no sheet and the next one failed with `InvalidStateError`.
+ * Desktops go straight to the download. Without `matchMedia` we can't tell, so sharing stays on.
+ */
+export function prefersShareSheet(): boolean {
+  if (typeof globalThis.matchMedia !== "function") return true;
+  return globalThis.matchMedia("(pointer: coarse)").matches;
+}
+
+/**
  * The real environment. The wrappers call `navigator.share(...)` as a method, so `this` is
  * right (a detached `navigator.share` throws "Illegal invocation").
  */
 export function browserExportEnv(): ExportEnv {
   const nav: Navigator | undefined = globalThis.navigator;
-  if (nav === undefined)
-    return {
-      share: undefined,
-      canShare: undefined,
-      download: downloadViaAnchor,
-    };
+  if (nav === undefined || !prefersShareSheet()) {
+    return { share: undefined, canShare: undefined, download: downloadViaAnchor };
+  }
   return {
-    share:
-      typeof nav.share === "function" ? (data) => nav.share(data) : undefined,
-    canShare:
-      typeof nav.canShare === "function"
-        ? (data) => nav.canShare(data)
-        : undefined,
+    share: typeof nav.share === "function" ? (data) => nav.share(data) : undefined,
+    canShare: typeof nav.canShare === "function" ? (data) => nav.canShare(data) : undefined,
     download: downloadViaAnchor,
   };
 }

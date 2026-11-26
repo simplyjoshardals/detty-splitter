@@ -120,6 +120,7 @@ describe("ExportButton: blob not ready", () => {
   });
 
   it("says the receipt is ready once the blob arrives, and the button turns live", async () => {
+    sharingBrowser();
     mount();
     await tap();
     act(() => fake.set(READY));
@@ -130,16 +131,67 @@ describe("ExportButton: blob not ready", () => {
   });
 
   it("says nothing about being ready if nobody tapped", () => {
+    sharingBrowser();
     mount();
     act(() => fake.set(READY));
     expect(statusText()).toBe("");
   });
 
   it("reports a failed pre-render to someone who was waiting", async () => {
+    sharingBrowser();
     mount();
     await tap();
     act(() => fake.set({ status: "failed", reason: "draw" }));
     expect(statusText()).toBe(FAILED_TEXT);
+  });
+});
+
+describe("ExportButton: blob not ready, browser cannot share files", () => {
+  it("waits for the blob and downloads on the first tap", async () => {
+    mount(); // navigator is {}: no share
+    await tap();
+    expect(statusText()).toBe("Printing…");
+    expect(anchorClicks).toEqual([]);
+    expect(fake.start).toHaveBeenCalledTimes(1);
+
+    await act(async () => fake.set(READY));
+    expect(anchorClicks).toEqual(["detty-splitter-receipt.png"]);
+    expect(statusText()).toBe("Receipt saved. Check your downloads.");
+  });
+
+  it("shows the inline image on the first tap when the download is unsupported", async () => {
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    mount();
+    await tap();
+    await act(async () => fake.set(READY));
+    expect(statusText()).toBe("Press and hold the picture to save.");
+    expect(screen.getByRole("img").getAttribute("src")).toBe("blob:test/1");
+    expect(createObjectURL).toHaveBeenCalledWith(BLOB);
+  });
+
+  it("a second tap while waiting does not export twice", async () => {
+    mount();
+    await tap();
+    await tap();
+    await act(async () => fake.set(READY));
+    expect(anchorClicks).toHaveLength(1);
+  });
+
+  it("reports a render failure that happens while waiting", async () => {
+    mount();
+    await tap();
+    await act(async () => fake.set({ status: "failed", reason: "font" }));
+    expect(statusText()).toBe(FAILED_TEXT);
+  });
+
+  it("drops the waiting message if the numbers change before the blob arrives", async () => {
+    mount();
+    await tap();
+    fireEvent.click(screen.getByRole("button", { name: "Make it seven" }));
+    await act(async () => fake.set(READY));
+    expect(statusText()).toBe("");
   });
 });
 

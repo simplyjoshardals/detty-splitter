@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { EXPORT_FILE_NAME, exportReceipt } from "@/lib/export";
+import { EXPORT_FILE_NAME, WAIT_FOR_BLOB_MS, exportReceipt } from "@/lib/export";
 import type { ExportEnv, ExportSource } from "@/lib/export";
 import type { PrerenderSnapshot } from "@/lib/receipt/prerender";
 import type { RenderFailureReason } from "@/lib/receipt/render";
@@ -14,11 +14,24 @@ function readySnapshot(blob: Blob = BLOB): PrerenderSnapshot {
   };
 }
 
-function sourceOf(snapshot: PrerenderSnapshot) {
+function sourceOf(initial: PrerenderSnapshot) {
+  let snapshot = initial;
+  const listeners = new Set<() => void>();
   const start = vi.fn<() => void>();
   const getSnapshot = vi.fn<() => PrerenderSnapshot>(() => snapshot);
-  const source: ExportSource = { getSnapshot, start };
-  return { source, start, getSnapshot };
+  const subscribe = vi.fn((listener: () => void) => {
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+    };
+  });
+  const source: ExportSource = { getSnapshot, start, subscribe };
+  /** Moves the pre-render to `next` and tells the subscribers, like the real controller. */
+  const settle = (next: PrerenderSnapshot) => {
+    snapshot = next;
+    listeners.forEach((listener) => listener());
+  };
+  return { source, start, getSnapshot, subscribe, settle, listenerCount: () => listeners.size };
 }
 
 /** A working environment: sharing is supported and succeeds, download works. */
@@ -207,24 +220,23 @@ describe("exportReceipt: blob not ready", () => {
   it.each(["idle", "waiting", "rendering"] as const)(
     "returns not_ready while the pre-render is %s, and asks it to start",
     async (status) => {
-      const { source, start } = sourceOf({ status });
-      const { env, share, canShare, download } = makeEnv();
+      const { source, start, subscribe } = sourceOf({ status });
+      const { env, share, download } = makeEnv();
 
       expect(await exportReceipt({ source, env })).toEqual({ status: "not_ready" });
       expect(start).toHaveBeenCalledTimes(1);
-      expect(canShare).not.toHaveBeenCalled();
+      expect(subscribe).not.toHaveBeenCalled(); // a browser that can share asks for another tap
       expect(share).not.toHaveBeenCalled();
       expect(download).not.toHaveBeenCalled();
     },
   );
 
   it("reads the latest snapshot on every tap: the second tap shares", async () => {
-    let snapshot: PrerenderSnapshot = { status: "rendering" };
-    const source: ExportSource = { getSnapshot: () => snapshot, start: vi.fn() };
+    const { source, settle } = sourceOf({ status: "rendering" });
     const { env, share } = makeEnv();
 
     expect(await exportReceipt({ source, env })).toEqual({ status: "not_ready" });
-    snapshot = readySnapshot();
+    settle(readySnapshot());
     expect(await exportReceipt({ source, env })).toEqual({ status: "shared", method: "share" });
     expect(share).toHaveBeenCalledTimes(1);
   });
@@ -252,5 +264,121 @@ describe("exportReceipt: failed pre-render", () => {
       reason: "unknown",
     });
     expect(start).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("exportReceipt: blob not ready, and the browser cannot share files", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  /** The ways a browser can be unable to share a PNG; none of them needs the tap afterwards. */
+  const cannotShare: ReadonlyArray<readonly [string, () => ExportEnv]> = [
+    ["has no share or canShare", () => ({ ...makeEnv().env, share: undefined, canShare: undefined })],
+    ["has no canShare", () => ({ ...makeEnv().env, canShare: undefined })],
+    ["says canShare is false", () => {
+      const base = makeEnv();
+      base.canShare.mockReturnValue(false);
+      return base.env;
+    }],
+    ["throws from canShare", () => {
+      const base = makeEnv();
+      base.canShare.mockImplementation(() => {
+        throw new TypeError("nope");
+      });
+      return base.env;
+    }],
+  ];
+
+  it.each(cannotShare)("when the browser %s: waits for the blob, then downloads on the first tap", async (_label, makeBrowser) => {
+    const { source, start, settle } = sourceOf({ status: "rendering" });
+    const env = makeBrowser();
+    const download = vi.spyOn(env, "download");
+
+    let result: unknown = "pending";
+    const pending = exportReceipt({ source, env }).then((value) => {
+      result = value;
+    });
+    await Promise.resolve();
+    expect(result).toBe("pending");
+    expect(start).toHaveBeenCalledTimes(1);
+    expect(download).not.toHaveBeenCalled();
+
+    settle(readySnapshot());
+    await pending;
+    expect(result).toEqual({ status: "downloaded", method: "download" });
+    expect(download).toHaveBeenCalledWith(BLOB, EXPORT_FILE_NAME);
+  });
+
+  it("keeps waiting through updates that are not ready yet", async () => {
+    const { source, settle } = sourceOf({ status: "idle" });
+    const env: ExportEnv = { ...makeEnv().env, share: undefined, canShare: undefined };
+
+    const pending = exportReceipt({ source, env });
+    settle({ status: "waiting" });
+    settle({ status: "rendering" });
+    settle(readySnapshot());
+    expect(await pending).toEqual({ status: "downloaded", method: "download" });
+  });
+
+  it("falls to the inline image when the download is unsupported", async () => {
+    const { source, settle } = sourceOf({ status: "waiting" });
+    const base = makeEnv();
+    base.download.mockReturnValue(false);
+    const env: ExportEnv = { ...base.env, share: undefined, canShare: undefined };
+
+    const pending = exportReceipt({ source, env });
+    settle(readySnapshot());
+    expect(await pending).toEqual({ status: "inline", method: "inline" });
+  });
+
+  it("reports a failed render that happens while waiting (load becomes unknown)", async () => {
+    const { source, settle } = sourceOf({ status: "rendering" });
+    const env: ExportEnv = { ...makeEnv().env, share: undefined, canShare: undefined };
+
+    const first = exportReceipt({ source, env });
+    settle({ status: "failed", reason: "font" });
+    expect(await first).toEqual({ status: "failed", reason: "font" });
+
+    const loadFail = sourceOf({ status: "waiting" });
+    const third = exportReceipt({ source: loadFail.source, env });
+    loadFail.settle({ status: "failed", reason: "load" });
+    expect(await third).toEqual({ status: "failed", reason: "unknown" });
+  });
+
+  it("gives up after the wait limit with not_ready, and stops listening", async () => {
+    vi.useFakeTimers();
+    const { source, listenerCount } = sourceOf({ status: "rendering" });
+    const env: ExportEnv = { ...makeEnv().env, share: undefined, canShare: undefined };
+
+    const pending = exportReceipt({ source, env });
+    expect(listenerCount()).toBe(1);
+    await vi.advanceTimersByTimeAsync(WAIT_FOR_BLOB_MS - 1);
+    expect(listenerCount()).toBe(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(await pending).toEqual({ status: "not_ready" });
+    expect(listenerCount()).toBe(0);
+  });
+
+  it("stops listening and cancels the timer once it has settled", async () => {
+    vi.useFakeTimers();
+    const { source, settle, listenerCount } = sourceOf({ status: "rendering" });
+    const env: ExportEnv = { ...makeEnv().env, share: undefined, canShare: undefined };
+
+    const pending = exportReceipt({ source, env });
+    settle(readySnapshot());
+    await pending;
+    expect(listenerCount()).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("honours a shorter waitMs", async () => {
+    vi.useFakeTimers();
+    const { source } = sourceOf({ status: "rendering" });
+    const env: ExportEnv = { ...makeEnv().env, share: undefined, canShare: undefined };
+
+    const pending = exportReceipt({ source, env, waitMs: 50 });
+    await vi.advanceTimersByTimeAsync(50);
+    expect(await pending).toEqual({ status: "not_ready" });
   });
 });
