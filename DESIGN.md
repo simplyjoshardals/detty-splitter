@@ -86,8 +86,11 @@ Two fonts total, no italics. `display: 'swap'`, automatic fallback adjustment le
 | Export receipt | `ReceiptIcon` | Used in T9.1 (`ExportButton`); confirm with `yarn check:icons` |
 | Copy link | `CopyIcon` | Confirmed |
 | Success status | `CheckIcon` | Confirmed |
+| Export status: printing, tap again | `PrinterIcon` | Added in T9.2; checked by `yarn check:icons` |
+| Export status: saved (download) | `DownloadSimpleIcon` | Added in T9.2; checked by `yarn check:icons` |
+| Export status: inline image | `ImageIcon` | Added in T9.2; checked by `yarn check:icons` |
 | See receipt (meter jump) | `ArrowDownIcon` | Confirmed |
-| Reset to preset / rates | `ArrowCounterClockwiseIcon` | Confirmed |
+| Reset to preset / rates, Retry export (T9.2) | `ArrowCounterClockwiseIcon` | Confirmed |
 | Rates panel toggle | `CaretDownIcon` | Confirmed at install (`yarn check:icons`), added in T5.2; turned upside down while the panel is open |
 | "Open in browser" hint | `DoorOpenIcon` | Confirmed |
 | Steppers | `PlusIcon`, `MinusIcon` | Confirmed at install (`yarn check:icons`) |
@@ -227,7 +230,7 @@ Top to bottom on mobile:
 4. **Bucket list:** 5 line items, each with a 32px icon tile.
 5. **Rates:** collapsed "Rates" row; opens inline. It sits between the bucket list and the receipt (until T6.3 it sat above the totals, which now live on the receipt).
 6. **Printer slot and receipt section:** a black slot bar, then the live receipt hanging from it. **Built in T6.3:** it holds the per-person and group totals and the tier stamp, so the calculator above it has the lines and the rates only (§5.13).
-7. **Actions:** Export receipt (primary), Copy link (secondary), status line. **Built in T8.2:** only Copy link and its own status line, in `ShareBar`, directly under the receipt and inside the sticky column (16px below it, at most 380px wide and centred like the receipt), so from 1280px it stays on screen with the receipt. **Built in T9.1:** `ExportButton` sits above Copy link in the same column (16px under the receipt, same width), with its own status slot and, only when needed, the inline image panel (§5.10).
+7. **Actions:** Export receipt (primary), Copy link (secondary), status line. **Built in T8.2:** only Copy link and its own status line, in `ShareBar`, directly under the receipt and inside the sticky column (16px below it, at most 380px wide and centred like the receipt), so from 1280px it stays on screen with the receipt. **Built in T9.1:** `ExportButton` sits above Copy link in the same column (16px under the receipt, same width), with its own status slot and, only when needed, the inline image panel (§5.10). **Built in T9.2:** the status slot also holds the in-app tip, and a failure adds a Retry row under it (§5.9).
 8. **CTA card** ("Next stop"): only when enabled and valid.
 9. **Footer:** estimates note, disclosure when relevant, "Built in Lagos by <name>" (config-driven, hidden if unset).
 
@@ -330,14 +333,14 @@ One `role="status"` line under the actions, with an icon: `CheckIcon` for succes
 
 **Share status (T8.2).** The Copy link status sits 4px under the button, always in the page and two lines high (`min-h-8`) even when empty, 12px text, so a message appearing never moves what is below it. Copied: `CheckIcon`, ink, cleared after 2 seconds (a second tap restarts the 2 seconds). Blocked: `WarningIcon`, `--danger`, and it stays until a later tap succeeds, because the link field under it (§5.16) is what the person is using. Copy: §9.
 
-**Export status (T9.1).** The same slot, 8px under the Export button (the 3px hard shadow sits in the first 3 of those), always in the page and two lines high, 12px text. "Printing…" while a tap waits for the PNG (a browser that can't share files finishes on that tap; a second tap meanwhile is ignored); "Printing… tap again in a moment." when a tap came before the PNG was ready in a browser that can share files, or the wait ran out; it turns into "Receipt ready. Go and post am." (`CheckIcon`) when the PNG arrives, and only then, so nobody who did not tap is told anything on every edit. Shared and saved: `CheckIcon`. Failed: `WarningIcon`, `--danger`. A cancelled share is silent and clears the line. Every message except the two "Printing…" ones is about one set of numbers, so it clears as soon as any number changes. Copy: §9. T9.2 adds the in-app hint and Retry.
+**Export status (T9.1).** The same slot, 8px under the Export button (the 3px hard shadow sits in the first 3 of those), always in the page and two lines high, 12px text. "Printing…" while a tap waits for the PNG (a browser that can't share files finishes on that tap; a second tap meanwhile is ignored); "Printing… tap again in a moment." when a tap came before the PNG was ready in a browser that can share files, or the wait ran out; it turns into "Receipt ready. Go and post am." (`CheckIcon`) when the PNG arrives, and only then, so nobody who did not tap is told anything on every edit. Every outcome has its own icon (T9.2): `PrinterIcon` for both "Printing…" lines, `CheckIcon` for "ready" and "shared", `DownloadSimpleIcon` for saved, `ImageIcon` for the inline image, `WarningIcon` in `--danger` for a failure. A cancelled share is silent and clears the line. Every message except the two "Printing…" ones is about one set of numbers, so it clears as soon as any number changes. Copy: §9. **Retry and the in-app tip (T9.2).** A failure names its reason (the font, or anything else, §9) and shows a Retry button under the status slot, outside the `role="status"` region: a text button (§5.1), 44px tall, `ArrowCounterClockwiseIcon` 20px bold, 14px bold ink, underlined, 4px under the status text. It appears only on a failure, so the slot grows by 44px once, after a tap, and not on load. Retry runs `prerender.retry()` and then the same tap as the Export button, so where the browser cannot share files it finishes the export on that press; where it can, it ends in "Printing… tap again in a moment." and then "Receipt ready." (a share needs a fresh tap). While a retry runs the Retry button stays, dimmed (`aria-disabled`, `--muted`), so nothing under it jumps up and down, and focus moves to the Export button. It leaves when the receipt is ready or saved. The in-app tip (§9, `DoorOpenIcon` 16px, 12px `--muted`, 4px under the status line, inside the `role="status"` region so it is announced with it) is added only after a saved download, the inline image or a failure, in a browser whose user agent looks like an in-app browser (`isInAppBrowser`). It is not shown after a successful share, and nothing is shown before a tap.
 
 ### 5.10 Inline panel (rates, export result)
 Expands in place with a dashed top rule. Rates: two inputs ("₦ per $1", "₦ per £1"), "as of <date>" or a "Custom rates" tag, "Reset rates" with `ArrowCounterClockwiseIcon`.
 
 **Built for rates (T5.2).** A section under the bucket list with a dashed top rule. Its toggle is a full-width row, 44px high, inside an `h3`: "Rates" in Bungee on the left, and on the right the tag and `CaretDownIcon` (upside down while open), with `aria-expanded` and `aria-controls`. The tag is always visible, closed or open: plain muted "as of 23 Nov 2026" for the config defaults, or a framed bold "Custom rates" (2px ink border, shape and weight, not colour alone) as soon as either rate differs from the default; it is derived, so editing a rate back to its default brings the date back. The panel opens instantly, with no height animation (so nothing to turn off for reduced motion), and stays in the page while closed (`hidden`). Inside: the two fields side by side (`grid-cols-2`, 16px gap, which fits the 136px halves at 320px: the longest text, `100,000.00`, is about 126px with its padding and border), then "Reset rates" as a text button, then one reserved two-line status slot (`role="status"`, 32px) that holds the field's hint or the reset status, the latest one winning, like a bucket line. Rates take up to 2 decimals (`inputMode="decimal"`). A number outside 50 to 100,000 (0 included) or with more than 2 decimals does not clamp: the old rate stays and an error hint says so. Closing the panel clears the hint and status.
 
-**Built for the export image (T9.1).** Shown only when sharing and the download both fail (`inline` outcome). It sits 8px under the export status line, with a dashed `--rule` top rule and 12px of padding, and holds the PNG as an `<img>` 240px wide (centred, at most the column width) in a reserved 9:16 box with a 2px `--ink` border, so decoding never shifts the page. The caption is the status line above it ("Press and hold the picture to save."). The picture comes from the blob that is ready when the result lands and gets `alt` text restating the key numbers ("Receipt: ₦1,347,500 per person, ₦5,390,000 for 4 people."; T9.2 owns the final wording). It disappears, and its object URL is freed, when any number changes or the page unmounts. Saving the picture saves the full 1080×1920 file, not the 240px preview.
+**Built for the export image (T9.1).** Shown only when sharing and the download both fail (`inline` outcome). It sits 8px under the export status line, with a dashed `--rule` top rule and 12px of padding, and holds the PNG as an `<img>` 240px wide (centred, at most the column width) in a reserved 9:16 box with a 2px `--ink` border, so decoding never shifts the page. The caption is the status line above it: "Press and hold the picture to save." where the primary pointer is a finger, "Right-click the picture to save it." for a mouse or trackpad (T9.2; the same `(pointer: coarse)` rule as the share sheet). The picture comes from the blob that is ready when the result lands and gets `alt` text restating the tier and the key numbers ("Detty December 2026 receipt, SOFT LIFE: ₦1,347,500 per person, ₦5,390,000 for 4 people.", singular "1 person"; final in T9.2). It disappears, and its object URL is freed, when any number changes or the page unmounts. Saving the picture saves the full 1080×1920 file, not the 240px preview.
 
 ### 5.11 Notice banner
 Full-width, dashed border, `--muted` text, dismiss button. For the bad-link notice. `role="status"`.
@@ -379,7 +382,7 @@ Shown only when the clipboard refuses Copy link (the permission-denied row in §
 | Offline | ✔ fully works | ✔ | ✔ | ✔ local | ✔ link fails in browser | – | – |
 | Permission-denied | ✔ storage blocked: no resume | – | – | ✔ clipboard denied → select-and-copy; share cancelled → silent; download blocked → inline image | – | – | – |
 
-Product-specific: value clamped (hint, snap); custom rates active (tag replaces date); tier changed (stamp "thump"); CTA hidden (no gap); in-app browser detected (`DoorOpenIcon` hint only; the export chain does not change, T2.2 decision 4); Web Share unsupported (download, then inline image); export in progress ("Printing…", disabled); link copied (status line about 2s).
+Product-specific: value clamped (hint, snap); custom rates active (tag replaces date); tier changed (stamp "thump"); CTA hidden (no gap); in-app browser detected (`DoorOpenIcon` tip only, after a saved download, the inline image or a failure; the export chain does not change, T2.2 decision 4); Web Share unsupported (download, then inline image); export in progress ("Printing…", disabled); link copied (status line about 2s).
 
 **S7 (404):** "Wrong bus. This page no dey here." plus a primary button back to `/`.
 
@@ -471,12 +474,14 @@ Standard English with light Nigerian Pidgin, one Pidgin phrase per message at mo
 | Clipboard blocked | "Copy blocked. Press and hold the link below to copy." |
 | Export in progress | "Printing…" |
 | Export ready | "Receipt ready. Go and post am." |
-| Export failed | "Receipt no gree print. Try again, or press and hold the picture to save." |
-| Export failed (T9.1, until Retry in T9.2) | "Receipt no gree print. Change any number to try again." (there is no picture to hold when drawing failed) |
+| Export failed (font) | "The receipt font didn't load. Check your connection and try again." |
+| Export failed (draw, blob, unknown, or the renderer did not load) | "Receipt no gree print. Try again." |
+| Retry button | "Retry" (there is no picture to hold when drawing failed, so the failure lines do not mention one) |
 | Export tapped too early | "Printing… tap again in a moment." |
 | Export shared | "Receipt shared." |
 | Export saved (download) | "Receipt saved. Check your downloads." |
-| Export inline image | "Press and hold the picture to save." |
+| Export inline image (finger) | "Press and hold the picture to save." |
+| Export inline image (mouse) | "Right-click the picture to save it." |
 | In-app browser | "Tip: open this page in your browser for the best save and share." |
 | Custom rates tag | "Custom rates" |
 | Default rates tag | "as of {date}", for example "as of 23 Nov 2026" (day without a leading zero, three-letter month) |

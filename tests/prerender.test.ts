@@ -302,4 +302,139 @@ describe("createPrerender", () => {
     controller.update(viewWith("b"));
     expect(listener.mock.calls.length).toBe(calls);
   });
+
+  describe("retry (T9.2)", () => {
+    it("draws a failed view again at once, with no debounce, and can be repeated", async () => {
+      let failures = 2;
+      const { controller, renderReceipt } = setup(async (view) =>
+        failures-- > 0 ? failResult("draw") : okResult(view.perPersonTotal),
+      );
+      controller.update(viewWith("a"));
+      controller.start();
+      await flush();
+      expect(controller.getSnapshot()).toEqual({ status: "failed", reason: "draw" });
+
+      controller.retry();
+      expect(statusOf(controller.getSnapshot())).toBe("rendering"); // no wait, not even a tick
+      await flush(); // advances no time, so there was no 500 ms debounce
+      expect(renderReceipt).toHaveBeenCalledTimes(2);
+      expect(controller.getSnapshot()).toEqual({ status: "failed", reason: "draw" }); // failed again
+
+      controller.retry();
+      await flush();
+      expect(renderReceipt).toHaveBeenCalledTimes(3);
+      expect(renderReceipt).toHaveBeenLastCalledWith(viewWith("a"));
+      const snapshot = controller.getSnapshot();
+      expect(snapshot.status).toBe("ready");
+      if (snapshot.status === "ready") expect(snapshot.blob).toBeInstanceOf(Blob);
+    });
+
+    it("imports the renderer again after a failed import, then draws the view", async () => {
+      const renderReceipt = vi.fn(async (view: ReceiptView): Promise<RenderResult> => okResult(view.perPersonTotal));
+      let attempts = 0;
+      const load = vi.fn(async (): Promise<RenderModule> => {
+        attempts += 1;
+        if (attempts === 1) throw new Error("offline");
+        return { renderReceipt };
+      });
+      const controller = createPrerender({ load });
+      controller.update(viewWith("a"));
+      controller.start();
+      await flush();
+      expect(controller.getSnapshot()).toEqual({ status: "failed", reason: "load" });
+
+      controller.retry();
+      expect(controller.getSnapshot()).toEqual({ status: "waiting" }); // importing, nothing to show yet
+      await flush();
+      expect(load).toHaveBeenCalledTimes(2);
+      expect(renderReceipt).toHaveBeenCalledTimes(1);
+      expect(renderReceipt).toHaveBeenCalledWith(viewWith("a"));
+      expect(statusOf(controller.getSnapshot())).toBe("ready");
+    });
+
+    it("reports load again when the import fails a second time, and can be retried again", async () => {
+      const load = vi.fn(async (): Promise<RenderModule> => {
+        throw new Error("still offline");
+      });
+      const controller = createPrerender({ load });
+      const seen: string[] = [];
+      controller.subscribe(() => seen.push(statusOf(controller.getSnapshot())));
+      controller.update(viewWith("a"));
+      controller.start();
+      await flush();
+      seen.length = 0;
+
+      controller.retry();
+      await flush();
+      expect(load).toHaveBeenCalledTimes(2);
+      expect(seen).toEqual(["waiting", "failed"]); // the UI sees the retry happen
+      expect(controller.getSnapshot()).toEqual({ status: "failed", reason: "load" });
+
+      controller.retry();
+      await flush();
+      expect(load).toHaveBeenCalledTimes(3);
+    });
+
+    it("does nothing unless the snapshot is failed", async () => {
+      const slow = deferred<RenderResult>();
+      const { controller, load, renderReceipt } = setup((view) =>
+        view.perPersonTotal === "slow" ? slow.promise : Promise.resolve(okResult(view.perPersonTotal)),
+      );
+
+      controller.retry(); // idle, before anything started
+      expect(controller.getSnapshot()).toEqual({ status: "idle" });
+      expect(load).not.toHaveBeenCalled();
+
+      controller.update(viewWith("a"));
+      controller.start();
+      await flush();
+      const ready = controller.getSnapshot();
+      controller.retry(); // ready: the blob stays
+      expect(controller.getSnapshot()).toBe(ready);
+      expect(renderReceipt).toHaveBeenCalledTimes(1);
+
+      controller.update(viewWith("slow"));
+      await vi.advanceTimersByTimeAsync(500);
+      expect(statusOf(controller.getSnapshot())).toBe("rendering");
+      controller.retry(); // rendering: no second render
+      expect(renderReceipt).toHaveBeenCalledTimes(2);
+
+      slow.resolve(okResult("slow"));
+      await flush();
+      controller.update(viewWith("b"));
+      controller.retry(); // waiting on the debounce: the timer is not skipped
+      expect(statusOf(controller.getSnapshot())).toBe("waiting");
+      expect(renderReceipt).toHaveBeenCalledTimes(2);
+      await vi.advanceTimersByTimeAsync(500);
+      expect(renderReceipt).toHaveBeenCalledTimes(3);
+    });
+
+    it("drops the late result of a retried render when the view changes meanwhile", async () => {
+      const slow = deferred<RenderResult>();
+      let call = 0;
+      const { controller, renderReceipt } = setup((view) => {
+        call += 1;
+        if (call === 1) return Promise.resolve(failResult("font"));
+        if (call === 2) return slow.promise; // the retry, still drawing "a"
+        return Promise.resolve(okResult(view.perPersonTotal));
+      });
+      controller.update(viewWith("a"));
+      controller.start();
+      await flush();
+      expect(statusOf(controller.getSnapshot())).toBe("failed");
+
+      controller.retry();
+      expect(statusOf(controller.getSnapshot())).toBe("rendering");
+      controller.update(viewWith("b")); // edit while the retry is still drawing
+      slow.resolve(okResult("a")); // the old result arrives late
+      await flush();
+      expect(statusOf(controller.getSnapshot())).toBe("waiting"); // not ready with the old blob
+
+      await vi.advanceTimersByTimeAsync(500);
+      expect(renderReceipt).toHaveBeenCalledTimes(3);
+      const snapshot = controller.getSnapshot();
+      expect(snapshot.status).toBe("ready");
+      if (snapshot.status === "ready") expect(snapshot.blob.size).toBe(1); // "b", not "a"
+    });
+  });
 });

@@ -27,7 +27,7 @@ import type { RenderFailureReason } from "@/lib/receipt/render";
 import { browserExportEnv } from "./browser";
 import type { ExportEnv } from "./browser";
 
-export { browserExportEnv, downloadViaAnchor } from "./browser";
+export { browserExportEnv, downloadViaAnchor, isInAppBrowser, prefersShareSheet } from "./browser";
 export type { ExportEnv } from "./browser";
 
 /** How long a tap waits for the blob in a browser that can't share files. */
@@ -143,7 +143,8 @@ export function exportReceipt(options: ExportOptions = {}): Promise<ExportResult
   const snapshot = source.getSnapshot();
 
   if (snapshot.status === "failed") {
-    // A failed import can recover on a later start(); a failed draw can't (retry is T9.2).
+    // A failed import can recover on a later start(); a failed draw only through prerender.retry()
+    // (the Retry button, T9.2) or an edit. This tap just reports it.
     if (snapshot.reason === "load") source.start();
     return Promise.resolve({ status: "failed", reason: toFailureReason(snapshot.reason) });
   }

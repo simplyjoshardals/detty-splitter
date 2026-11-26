@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { REVOKE_DELAY_MS, browserExportEnv, downloadViaAnchor, prefersShareSheet } from "@/lib/export/browser";
+import {
+  REVOKE_DELAY_MS,
+  browserExportEnv,
+  downloadViaAnchor,
+  isInAppBrowser,
+  prefersShareSheet,
+} from "@/lib/export/browser";
 
 const BLOB = new Blob(["png-bytes"], { type: "image/png" });
 
@@ -155,5 +161,37 @@ describe("prefersShareSheet and the desktop rule", () => {
     vi.stubGlobal("navigator", sharingNavigator());
     expect(prefersShareSheet()).toBe(true);
     expect(browserExportEnv().share).toBeTypeOf("function");
+  });
+});
+
+// Written from memory of how these apps identify themselves, not from the author's devices.
+// Replace or add the Day 1 spike strings here once they are to hand.
+describe("isInAppBrowser", () => {
+  const IOS = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko)";
+  const ANDROID = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko)";
+
+  it.each([
+    ["Instagram on iOS", `${IOS} Mobile/21F90 Instagram 340.0.0.28.115 (iPhone14,5; iOS 17_5; en_US)`],
+    ["Instagram on Android", `${ANDROID} Chrome/126.0.0.0 Mobile Safari/537.36 Instagram 340.0.0.0.0 Android (29/10)`],
+    ["Facebook on Android", `${ANDROID} Chrome/126.0.0.0 Mobile Safari/537.36 [FB_IAB/FB4A;FBAV/450.0.0.38.108;]`],
+    ["Facebook on iOS", `${IOS} Mobile/21F90 [FBAN/FBIOS;FBAV/450.0.0.0.0;FBDV/iPhone14,5;FBSN/iOS]`],
+    ["TikTok on iOS", `${IOS} Mobile/21F90 musical_ly_34.0.0 JsSdk/2.0 BytedanceWebview/d8a21c6`],
+    ["TikTok on Android", `${ANDROID} Chrome/126.0.0.0 Mobile Safari/537.36 trill_340000 AppName/musical_ly BytedanceWebview/d8a21c6`],
+    ["Line on iOS", `${IOS} Mobile/21F90 Safari Line/13.17.0`],
+    ["WeChat", `${ANDROID} Chrome/126.0.0.0 Mobile Safari/537.36 MicroMessenger/8.0.47 Process/appbrand0`],
+    ["an Android WebView with no app marker", `${ANDROID.replace("K)", "K; wv)")} Version/4.0 Chrome/126.0.0.0 Mobile Safari/537.36`],
+  ])("recognises %s", (_name, userAgent) => {
+    expect(isInAppBrowser(userAgent)).toBe(true);
+  });
+
+  it.each([
+    ["Safari on iPhone", `${IOS} Version/17.5 Mobile/15E148 Safari/604.1`],
+    ["Chrome on iPhone", `${IOS} CriOS/126.0.0.0 Mobile/15E148 Safari/604.1`],
+    ["Chrome on Android", `${ANDROID} Chrome/126.0.0.0 Mobile Safari/537.36`],
+    ["Chrome on Windows", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"],
+    ["Firefox on Linux (\"Linux\" is not \"Line/\")", "Mozilla/5.0 (X11; Linux x86_64; rv:127.0) Gecko/20100101 Firefox/127.0"],
+    ["an empty user agent", ""],
+  ])("does not flag %s", (_name, userAgent) => {
+    expect(isInAppBrowser(userAgent)).toBe(false);
   });
 });

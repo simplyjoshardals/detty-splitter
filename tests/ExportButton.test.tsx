@@ -11,6 +11,7 @@ const fake = vi.hoisted(() => {
   let snapshot: PrerenderSnapshot = { status: "idle" };
   return {
     start: vi.fn<() => void>(),
+    retry: vi.fn<() => void>(),
     getSnapshot: (): PrerenderSnapshot => snapshot,
     subscribe(listener: () => void) {
       listeners.add(listener);
@@ -28,6 +29,7 @@ const fake = vi.hoisted(() => {
 vi.mock("@/lib/receipt/prerender", () => ({
   prerender: {
     start: fake.start,
+    retry: fake.retry,
     getSnapshot: fake.getSnapshot,
     subscribe: fake.subscribe,
     update: vi.fn(),
@@ -43,7 +45,16 @@ const READY: PrerenderSnapshot = {
 
 const TAP_AGAIN = "Printing… tap again in a moment.";
 const READY_TEXT = "Receipt ready. Go and post am.";
-const FAILED_TEXT = "Receipt no gree print. Change any number to try again.";
+const FAILED_TEXT = "Receipt no gree print. Try again.";
+const FONT_FAILED_TEXT = "The receipt font didn't load. Check your connection and try again.";
+const DOWNLOADED_TEXT = "Receipt saved. Check your downloads.";
+const HOLD_TEXT = "Press and hold the picture to save.";
+const RIGHT_CLICK_TEXT = "Right-click the picture to save it.";
+const IN_APP_TIP = "Tip: open this page in your browser for the best save and share.";
+const INSTAGRAM_UA =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Mobile/21F90 Instagram 340.0.0.28.115";
+const SAFARI_UA =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Version/17.5 Mobile/15E148 Safari/604.1";
 
 /** One edit, so a test can change the numbers after a result. */
 function Edit() {
@@ -66,6 +77,31 @@ const mount = () =>
 const exportButton = () => screen.getByRole("button", { name: /^(Export receipt|Printing…)$/ });
 const statusText = () => screen.getByRole("status").textContent;
 const tap = () => act(async () => void fireEvent.click(exportButton()));
+const retryButton = () => screen.getByRole("button", { name: "Retry" });
+const queryRetry = () => screen.queryByRole("button", { name: "Retry" });
+const clickRetry = () => act(async () => void fireEvent.click(retryButton()));
+
+/** What the real `prerender.retry()` does to the snapshot of a failed render. */
+const retryStartsRendering = () => fake.retry.mockImplementation(() => fake.set({ status: "rendering" }));
+
+/** `(pointer: coarse)` matches for a finger, not for a mouse. */
+const stubPointer = (coarse: boolean) =>
+  vi.stubGlobal("matchMedia", (query: string) => ({ matches: coarse && query === "(pointer: coarse)" }));
+
+/** A browser with a user agent, which downloads (no file sharing) unless `share` is given. */
+function browserWith(userAgent: string, shareImpl?: () => Promise<void>) {
+  const share = vi.fn<(data: ShareData) => Promise<void>>(shareImpl ?? (() => Promise.resolve()));
+  const canShare = vi.fn<(data: ShareData) => boolean>(() => true);
+  vi.stubGlobal("navigator", shareImpl === undefined ? { userAgent } : { userAgent, share, canShare });
+  return { share, canShare };
+}
+
+/** A click that throws makes the download fail, so the chain ends at the inline image. */
+function downloadThrows() {
+  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {
+    throw new Error("blocked");
+  });
+}
 
 /** A browser that can share files. */
 function sharingBrowser(shareImpl: () => Promise<void> = () => Promise.resolve()) {
@@ -82,6 +118,7 @@ let anchorClicks: string[];
 beforeEach(() => {
   fake.set({ status: "idle" });
   fake.start.mockClear();
+  fake.retry.mockReset();
   vi.stubGlobal("navigator", {});
   createObjectURL = vi.fn(() => "blob:test/1");
   revokeObjectURL = vi.fn();
@@ -183,7 +220,7 @@ describe("ExportButton: blob not ready, browser cannot share files", () => {
     mount();
     await tap();
     await act(async () => fake.set({ status: "failed", reason: "font" }));
-    expect(statusText()).toBe(FAILED_TEXT);
+    expect(statusText()).toBe(FONT_FAILED_TEXT);
   });
 
   it("drops the waiting message if the numbers change before the blob arrives", async () => {
@@ -249,7 +286,9 @@ describe("ExportButton: ready", () => {
     mount();
     await tap();
     expect(statusText()).toBe("Press and hold the picture to save.");
-    const image = screen.getByRole("img", { name: /^Receipt: .+ per person, .+ for \d+ people?\.$/ });
+    const image = screen.getByRole("img", {
+      name: /^Detty December 2026 receipt, .+: .+ per person, .+ for \d+ people?\.$/,
+    });
     expect(image.getAttribute("src")).toBe("blob:test/1");
     expect(createObjectURL).toHaveBeenCalledWith(BLOB);
   });
@@ -289,13 +328,209 @@ describe("ExportButton: ready", () => {
 });
 
 describe("ExportButton: failed pre-render", () => {
-  it.each(["font", "draw", "blob", "unknown"] as const)("a tap after a %s failure says so and shares nothing", async (reason) => {
-    fake.set({ status: "failed", reason });
+  const COPY_FOR = {
+    font: FONT_FAILED_TEXT,
+    draw: FAILED_TEXT,
+    blob: FAILED_TEXT,
+    unknown: FAILED_TEXT,
+    load: FAILED_TEXT, // the renderer chunk did not import: reported as "unknown"
+  } as const;
+
+  it.each(["font", "draw", "blob", "unknown", "load"] as const)(
+    "a tap after a %s failure says why, offers Retry and shares nothing",
+    async (reason) => {
+      fake.set({ status: "failed", reason });
+      const { share } = sharingBrowser();
+      mount();
+      expect(exportButton().textContent).toBe("Export receipt");
+      expect(queryRetry()).toBeNull(); // nothing is said before a tap
+      await tap();
+      expect(statusText()).toBe(COPY_FOR[reason]);
+      expect(retryButton().getAttribute("aria-disabled")).toBe("false");
+      expect(share).not.toHaveBeenCalled();
+    },
+  );
+
+  it("takes the reason from the pre-render when a tap was waiting and the render then failed", async () => {
+    sharingBrowser();
+    mount();
+    await tap();
+    expect(queryRetry()).toBeNull();
+    act(() => fake.set({ status: "failed", reason: "font" }));
+    expect(statusText()).toBe(FONT_FAILED_TEXT);
+    expect(retryButton()).toBeTruthy();
+  });
+
+  it("drops the failure and its Retry button when the numbers change", async () => {
+    fake.set({ status: "failed", reason: "draw" });
+    sharingBrowser();
+    mount();
+    await tap();
+    expect(retryButton()).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Make it seven" }));
+    expect(statusText()).toBe("");
+    expect(queryRetry()).toBeNull();
+  });
+});
+
+describe("ExportButton: Retry", () => {
+  beforeEach(() => {
+    fake.set({ status: "failed", reason: "draw" });
+    retryStartsRendering();
+  });
+
+  it("where sharing works: starts the render again, asks for a tap, and says when it is ready", async () => {
     const { share } = sharingBrowser();
     mount();
-    expect(exportButton().textContent).toBe("Export receipt");
     await tap();
     expect(statusText()).toBe(FAILED_TEXT);
-    expect(share).not.toHaveBeenCalled();
+
+    await clickRetry();
+    expect(fake.retry).toHaveBeenCalledTimes(1);
+    expect(statusText()).toBe(TAP_AGAIN);
+    expect(retryButton().getAttribute("aria-disabled")).toBe("true"); // shown, dimmed, while it runs
+    expect(share).not.toHaveBeenCalled(); // no gesture to spend yet
+
+    act(() => fake.set(READY));
+    expect(statusText()).toBe(READY_TEXT);
+    expect(queryRetry()).toBeNull();
+  });
+
+  it("where sharing is impossible: finishes the export on the Retry press", async () => {
+    mount(); // navigator is {}: no share
+    await tap();
+    expect(statusText()).toBe(FAILED_TEXT);
+
+    await clickRetry();
+    expect(statusText()).toBe("Printing…");
+    expect(retryButton().getAttribute("aria-disabled")).toBe("true");
+    expect(anchorClicks).toEqual([]);
+
+    await act(async () => fake.set(READY));
+    expect(anchorClicks).toEqual(["detty-splitter-receipt.png"]);
+    expect(statusText()).toBe(DOWNLOADED_TEXT);
+    expect(queryRetry()).toBeNull();
+  });
+
+  it("moves focus to the main button, so the dimmed Retry never holds it", async () => {
+    sharingBrowser();
+    mount();
+    await tap();
+    await clickRetry();
+    expect(document.activeElement).toBe(exportButton());
+  });
+
+  it("a second press while it runs does nothing", async () => {
+    sharingBrowser();
+    mount();
+    await tap();
+    await clickRetry();
+    await clickRetry();
+    expect(fake.retry).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers Retry again, with the new reason, when the retry fails too", async () => {
+    sharingBrowser();
+    mount();
+    await tap();
+    await clickRetry();
+    act(() => fake.set({ status: "failed", reason: "font" }));
+    expect(statusText()).toBe(FONT_FAILED_TEXT);
+    expect(retryButton().getAttribute("aria-disabled")).toBe("false");
+  });
+
+  it("where sharing is impossible, a failed retry reports the reason and offers Retry again", async () => {
+    mount();
+    await tap();
+    await clickRetry();
+    await act(async () => fake.set({ status: "failed", reason: "blob" }));
+    expect(statusText()).toBe(FAILED_TEXT);
+    expect(retryButton().getAttribute("aria-disabled")).toBe("false");
+  });
+});
+
+describe("ExportButton: outcomes and the inline caption", () => {
+  beforeEach(() => fake.set(READY));
+
+  it("says nothing about a cancelled share, and shows no Retry", async () => {
+    sharingBrowser(() => Promise.reject(new DOMException("cancelled", "AbortError")));
+    mount();
+    await tap();
+    expect(statusText()).toBe("");
+    expect(queryRetry()).toBeNull();
+  });
+
+  it("a download that throws falls to the inline image", async () => {
+    downloadThrows();
+    mount();
+    await tap();
+    expect(screen.getByRole("img")).toBeTruthy();
+    expect(queryRetry()).toBeNull();
+  });
+
+  it("tells a finger to press and hold", async () => {
+    stubPointer(true);
+    downloadThrows();
+    mount();
+    await tap();
+    expect(statusText()).toBe(HOLD_TEXT);
+  });
+
+  it("tells a mouse to right-click", async () => {
+    stubPointer(false);
+    downloadThrows();
+    mount();
+    await tap();
+    expect(statusText()).toBe(RIGHT_CLICK_TEXT);
+  });
+});
+
+describe("ExportButton: in-app browser tip", () => {
+  beforeEach(() => fake.set(READY));
+
+  it("shows nothing before a tap", () => {
+    browserWith(INSTAGRAM_UA);
+    mount();
+    expect(statusText()).toBe("");
+  });
+
+  it("follows a download in an in-app browser", async () => {
+    browserWith(INSTAGRAM_UA);
+    mount();
+    await tap();
+    expect(statusText()).toContain(DOWNLOADED_TEXT);
+    expect(statusText()).toContain(IN_APP_TIP);
+  });
+
+  it("follows the inline image in an in-app browser", async () => {
+    browserWith(INSTAGRAM_UA);
+    downloadThrows();
+    mount();
+    await tap();
+    expect(statusText()).toContain(IN_APP_TIP);
+  });
+
+  it("follows a failure in an in-app browser, next to Retry", async () => {
+    fake.set({ status: "failed", reason: "draw" });
+    browserWith(INSTAGRAM_UA);
+    mount();
+    await tap();
+    expect(statusText()).toContain(FAILED_TEXT);
+    expect(statusText()).toContain(IN_APP_TIP);
+    expect(retryButton()).toBeTruthy();
+  });
+
+  it("is left out when the share sheet worked", async () => {
+    browserWith(INSTAGRAM_UA, () => Promise.resolve());
+    mount();
+    await tap();
+    expect(statusText()).toBe("Receipt shared.");
+  });
+
+  it("is left out in an ordinary browser", async () => {
+    browserWith(SAFARI_UA);
+    mount();
+    await tap();
+    expect(statusText()).toBe(DOWNLOADED_TEXT);
   });
 });

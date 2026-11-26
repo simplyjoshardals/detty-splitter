@@ -76,3 +76,27 @@ export function browserExportEnv(): ExportEnv {
     download: downloadViaAnchor,
   };
 }
+
+/**
+ * User-agent markers of the in-app browsers we know (T9.2). Matched without `\b` where the
+ * marker is followed by `_` or a digit in the real strings (`musical_ly_26`, `Line/13`).
+ */
+const IN_APP_MARKERS: readonly RegExp[] = [
+  /\bInstagram\b/,
+  /\b(?:FBAN|FBAV|FB_IAB)\b/, // Facebook and Messenger
+  /musical_ly|Bytedance|TikTok/,
+  /\bLine\/\d/,
+  /MicroMessenger/, // WeChat
+  /; wv\)/, // any Android WebView
+];
+
+/**
+ * Whether the user agent looks like an in-app browser. Best effort, and used only to show the
+ * "open this page in your browser" hint: the export chain never branches on it (T2.2 decision 4).
+ * A miss shows no hint; a false hit shows a harmless tip. Not detectable: iOS WebViews that send
+ * no app marker, and X's browser (WhatsApp has no in-app browser). Pass `navigator.userAgent`
+ * after mount, so the server render and the first client render agree.
+ */
+export function isInAppBrowser(userAgent: string): boolean {
+  return IN_APP_MARKERS.some((marker) => marker.test(userAgent));
+}

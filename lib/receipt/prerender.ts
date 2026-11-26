@@ -15,6 +15,9 @@
  * - The blob is cleared the moment the view changes, so a stale PNG is never
  *   served. A late result for an older view is dropped.
  * - Nothing here throws: failures are values in the snapshot.
+ * - `retry()` (T9.2) runs a failed view again at once, with no debounce, and does nothing in any
+ *   other state. Without it a failed draw is stuck: `start()` skips the loaded renderer and
+ *   `update()` skips an unchanged view.
  */
 import type { RenderResult } from "./render";
 import type { ReceiptView } from "./view";
@@ -48,6 +51,12 @@ export interface Prerender {
   start: () => void;
   /** Tell the controller the receipt now looks like `view`. */
   update: (view: ReceiptView) => void;
+  /**
+   * Try the current view again after a failure (T9.2). If the renderer never imported it is
+   * imported again, otherwise the view is drawn again at once. Does nothing unless the snapshot
+   * is `failed`, so a stray tap cannot start a second render.
+   */
+  retry: () => void;
   getSnapshot: () => PrerenderSnapshot;
   subscribe: (listener: () => void) => () => void;
 }
@@ -161,6 +170,18 @@ export function createPrerender(options: PrerenderOptions = {}): Prerender {
         return;
       }
       schedule(renderStarted ? debounceMs : 0);
+    },
+
+    retry() {
+      if (snapshot.status !== "failed" || currentView === null) return;
+      clearTimer();
+      if (renderer === null) {
+        // The import failed. Ask for it again; the first render follows it with no debounce.
+        publish({ status: "waiting" });
+        ensureLoaded();
+        return;
+      }
+      schedule(0); // starts at once and publishes "rendering" straight away
     },
 
     getSnapshot: () => snapshot,
