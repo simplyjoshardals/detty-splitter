@@ -73,11 +73,17 @@ export function useTargetFound(id: string): boolean {
  *   newest answer. "On screen" then means above the bottom `recheckClearancePx` of the visible
  *   viewport, the same area as a matching bottom `rootMargin`. Left out, the hook is observer
  *   only (the pre-render does not need the net).
+ * - `topClearancePx` (optional, default 0, only used with `recheckClearancePx`) ignores the strip
+ *   at the top of the screen: a target whose bottom edge is within that many px of the top is
+ *   about to leave and no longer counts as on screen, the same area as a matching top
+ *   `rootMargin`. The meter uses it so a last sliver of the totals scrolling out of the top
+ *   does not keep the bar hidden while the CTA card comes into view.
  */
 export function useTargetInView(
   id: string,
   rootMargin?: string,
   recheckClearancePx?: number,
+  topClearancePx: number = 0,
 ): { found: boolean; inView: boolean } {
   const found = useTargetFound(id);
   const [inView, setInView] = useState(false);
@@ -105,7 +111,9 @@ export function useTargetInView(
       frame = requestAnimationFrame(() => {
         const rect = target.getBoundingClientRect();
         const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
-        setInView(rect.bottom > 0 && rect.top < viewportHeight - recheckClearancePx);
+        setInView(
+          rect.bottom > topClearancePx && rect.top < viewportHeight - recheckClearancePx,
+        );
       });
     };
     window.addEventListener("scroll", recheck, { passive: true });
@@ -125,7 +133,7 @@ export function useTargetInView(
       window.visualViewport?.removeEventListener("resize", recheck);
       window.visualViewport?.removeEventListener("scroll", recheck);
     };
-  }, [id, found, rootMargin, recheckClearancePx]);
+  }, [id, found, rootMargin, recheckClearancePx, topClearancePx]);
 
   return { found, inView: found && inView };
 }

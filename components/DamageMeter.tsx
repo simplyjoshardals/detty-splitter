@@ -46,7 +46,14 @@ function jumpTo(id: string): void {
  * that corrects a stuck observer (`useTargetInView`).
  */
 const BAR_CLEARANCE_PX = 100;
-const BAR_ROOT_MARGIN = `0px 0px -${BAR_CLEARANCE_PX}px 0px`;
+/**
+ * The same strip at the top of the screen: totals whose bottom edge is within 100px of the top
+ * are about to leave and no longer count as visible. Without it, the last sliver of the totals
+ * kept the bar hidden while the CTA card (about 600px further down) was already coming into
+ * view, so the bar seemed to leave at the CTA card.
+ */
+const TOP_CLEARANCE_PX = 100;
+const BAR_ROOT_MARGIN = `-${TOP_CLEARANCE_PX}px 0px -${BAR_CLEARANCE_PX}px 0px`;
 
 interface DamageMeterProps {
   /** Id of the element that "See receipt" jumps to and focuses. */
@@ -96,7 +103,12 @@ export function DamageMeter({ targetId = DEFAULT_TARGET_ID, watchId }: DamageMet
     totalsAnnouncement(result.perPersonMinor, result.groupTotalMinor, groupSize, currency),
   );
   const found = useTargetFound(targetId);
-  const { inView } = useTargetInView(watchId ?? targetId, BAR_ROOT_MARGIN, BAR_CLEARANCE_PX);
+  const { inView } = useTargetInView(
+    watchId ?? targetId,
+    BAR_ROOT_MARGIN,
+    BAR_CLEARANCE_PX,
+    TOP_CLEARANCE_PX,
+  );
   const labelId = useId();
   // DESIGN §9: the empty-state line replaces the caption while there is nothing to pay.
   const caption = result.perPersonMinor === 0 ? "Meter never start. Add a number, oya." : "per person";

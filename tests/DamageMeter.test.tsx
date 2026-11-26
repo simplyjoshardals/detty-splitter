@@ -263,10 +263,10 @@ describe("hiding while the receipt is on screen", () => {
     expect(screen.getByRole("button", { name: "See receipt" })).toBeTruthy();
   });
 
-  it("ignores its own 100px strip when it decides the totals are visible", () => {
+  it("ignores its own 100px strip, and the last 100px at the top, when it decides the totals are visible", () => {
     addReceipt();
     renderMeter();
-    expect(latestObserver()?.options).toEqual({ rootMargin: "0px 0px -100px 0px" });
+    expect(latestObserver()?.options).toEqual({ rootMargin: "-100px 0px -100px 0px" });
   });
 
   it("draws the bar on its own compositing layer, so WebKit repaints it after it hides", () => {
@@ -349,6 +349,20 @@ describe("iOS Safari: an observer that goes quiet", () => {
     renderMeterWatching("receipt-totals");
 
     place(totals, window.innerHeight - CLEARANCE + 10, window.innerHeight + 300);
+    fireEvent.scroll(window);
+    expect(bar()).toBeTruthy();
+  });
+
+  it("brings the bar back once only a sliver of the totals is left at the top", () => {
+    addReceipt();
+    const totals = addTotals();
+    renderMeterWatching("receipt-totals");
+
+    place(totals, 100, 300); // fully on screen
+    fireEvent.scroll(window);
+    expect(screen.queryByRole("region", { name: "DAMAGE METER" })).toBeNull();
+
+    place(totals, -100, 40); // last 40px at the top: the CTA-card moment
     fireEvent.scroll(window);
     expect(bar()).toBeTruthy();
   });

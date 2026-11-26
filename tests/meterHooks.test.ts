@@ -309,6 +309,28 @@ describe("useTargetInView safety net", () => {
     expect(result.current.inView).toBe(true);
   });
 
+  it("ignores the strip at the top when topClearancePx is given", () => {
+    const TOP = 100;
+    const target = addTarget("receipt-totals");
+    const { result } = renderHook(() =>
+      useTargetInView("receipt-totals", `-${TOP}px 0px -${CLEARANCE}px 0px`, CLEARANCE, TOP),
+    );
+
+    placeTarget(target, -80, TOP - 1);
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    flushFrames();
+    expect(result.current.inView).toBe(false);
+
+    placeTarget(target, -80, TOP + 1);
+    act(() => {
+      window.dispatchEvent(new Event("scroll"));
+    });
+    flushFrames();
+    expect(result.current.inView).toBe(true);
+  });
+
   it.each([
     ["resize", () => window.dispatchEvent(new Event("resize"))],
     ["pageshow", () => window.dispatchEvent(new Event("pageshow"))],
