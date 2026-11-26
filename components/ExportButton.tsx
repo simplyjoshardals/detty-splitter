@@ -158,14 +158,14 @@ export function ExportButton() {
         type="button"
         onClick={exportTap}
         aria-disabled={printing}
-        className="flex h-12 w-full items-center justify-center gap-2 border-2 border-ink bg-danfo font-display text-[length:var(--t-base)] text-danfo-ink shadow-(--shadow-hard) transition-[translate,box-shadow] duration-(--dur-fast) ease-(--ease) focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--focus) aria-disabled:opacity-50 aria-disabled:shadow-none aria-[disabled=false]:active:shadow-[1px_1px_0_var(--ink)] motion-safe:aria-[disabled=false]:active:translate-x-0.5 motion-safe:aria-[disabled=false]:active:translate-y-0.5 motion-reduce:transition-none"
+        className="flex h-12 w-full items-center justify-center gap-2 border-2 border-ink bg-danfo font-display text-[length:var(--t-base)] text-danfo-ink shadow-(--shadow-hard) transition-[translate,box-shadow] duration-(--dur-fast) ease-(--ease) focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-(--focus) aria-disabled:border-ink/50 aria-disabled:bg-danfo/50 aria-disabled:shadow-none aria-[disabled=false]:active:shadow-[1px_1px_0_var(--ink)] motion-safe:aria-[disabled=false]:active:translate-x-0.5 motion-safe:aria-[disabled=false]:active:translate-y-0.5 motion-reduce:transition-none"
       >
         <ReceiptIcon size={20} weight="bold" aria-hidden="true" />
         {printing ? COPY.printing : "Export receipt"}
       </button>
       {/* Always in the page and two lines high even when empty, like the share status
           (DESIGN §5.9), so a message appearing never moves what is below it. */}
-      <div id={STATUS_ID} role="status" className="mt-1 min-h-8 text-[length:var(--t-xs)] leading-4">
+      <div id={STATUS_ID} role="status" className="mt-2 min-h-8 text-[length:var(--t-xs)] leading-4">
         {line !== null && (
           <p className={`flex items-start gap-1.5 ${line.tone === "error" ? "text-danger" : ""}`}>
             {line.tone === "ok" && <CheckIcon size={16} weight="bold" aria-hidden="true" className="shrink-0" />}
