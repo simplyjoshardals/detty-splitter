@@ -22,6 +22,16 @@ export const CTA_URL: string | null = parseHttpsUrl(
 );
 
 /**
+ * CTA card copy (DATA_MODEL §3.3, DESIGN §5.12). Plain constants, public by design.
+ * PLACEHOLDER wording until C1 (copy refinement). CTA_DISCLOSURE is empty for your own link.
+ * For an affiliate or paid link, set it (for example "Sponsored link. We may earn a
+ * commission."): that shows the line under the button and marks the link `rel="sponsored"`.
+ */
+export const CTA_TITLE = "Still planning the trip?";
+export const CTA_BUTTON_TEXT = "Take me there";
+export const CTA_DISCLOSURE = "";
+
+/**
  * Optional footer credit, "Built in Lagos by <name>" (DESIGN §5.15). Plain constants,
  * public by design. Empty means no credit; the footer shows it only when the name is
  * non-empty and the URL is a valid https: URL (see authorCredit in lib/author).

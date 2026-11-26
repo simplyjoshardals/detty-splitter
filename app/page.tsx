@@ -1,3 +1,4 @@
+import { CtaCard } from "@/components/CtaCard";
 import { DamageMeter } from "@/components/DamageMeter";
 import { ExportButton } from "@/components/ExportButton";
 import { Footer } from "@/components/Footer";
@@ -26,7 +27,8 @@ import { AppStateProvider } from "@/state/AppStateProvider";
  * `LinkNotice` is the first thing in the calculator column: an empty live region that raises the
  * bad-link banner, and takes no space until it does (T8.2). `ExportButton` (T9.1) and `ShareBar`
  * (Copy link) hang under the receipt, in that order, inside the sticky column, so on desktop they
- * stay on screen with the receipt.
+ * stay on screen with the receipt. `CtaCard` (T10.1) follows the sticky column and renders nothing
+ * unless the flag and URL allow it; it places itself under the receipt column from 1280px.
  */
 export default function Home() {
   return (
@@ -44,6 +46,7 @@ export default function Home() {
           <ExportButton />
           <ShareBar />
         </StickyColumn>
+        <CtaCard />
       </main>
       <Footer />
       <DamageMeter watchId="receipt-totals" />

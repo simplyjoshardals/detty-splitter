@@ -113,7 +113,7 @@ Size check: 5 buckets × (price, quantity, mode, headcount) + currency + two rat
 |---|---|
 | 1 | At build time, the flag and `NEXT_PUBLIC_CTA_URL` are inlined into the bundle. |
 | 2 | At render time, the card shows only if the flag is on **and** the URL parses as `https:`. Otherwise nothing renders. |
-| 3 | On click, `track("cta_click")` fires (if configured) and the link opens in a new tab with `rel="noopener noreferrer sponsored"` when it is an affiliate or paid link. |
+| 3 | On click, `track("cta_click")` fires (if configured) and the link opens in a new tab with `rel="noopener noreferrer"`, plus `sponsored` when `CTA_DISCLOSURE` is set (an affiliate or paid link). |
 
 Changing the CTA means changing the variable in Cloudflare and redeploying (O4).
 
