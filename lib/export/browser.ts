@@ -83,6 +83,7 @@ export function browserExportEnv(): ExportEnv {
  */
 const IN_APP_MARKERS: readonly RegExp[] = [
   /\bInstagram\b/,
+  /Twitter for iPhone|TwitterAndroid/, // X
   /\b(?:FBAN|FBAV|FB_IAB)\b/, // Facebook and Messenger
   /musical_ly|Bytedance|TikTok/,
   /\bLine\/\d/,
@@ -94,7 +95,8 @@ const IN_APP_MARKERS: readonly RegExp[] = [
  * Whether the user agent looks like an in-app browser. Best effort, and used only to show the
  * "open this page in your browser" hint: the export chain never branches on it (T2.2 decision 4).
  * A miss shows no hint; a false hit shows a harmless tip. Not detectable: iOS WebViews that send
- * no app marker, and X's browser (WhatsApp has no in-app browser). Pass `navigator.userAgent`
+ * no app marker (TikTok on iOS sends a bare WKWebView string, checked on a real device; testing for
+ * the missing `Safari/` token would also flag home-screen web apps). WhatsApp has no in-app browser. Pass `navigator.userAgent`
  * after mount, so the server render and the first client render agree.
  */
 export function isInAppBrowser(userAgent: string): boolean {

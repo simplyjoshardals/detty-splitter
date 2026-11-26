@@ -164,8 +164,8 @@ describe("prefersShareSheet and the desktop rule", () => {
   });
 });
 
-// Written from memory of how these apps identify themselves, not from the author's devices.
-// Replace or add the Day 1 spike strings here once they are to hand.
+// Instagram and X strings were captured on a real iPhone and a real Android phone (26 Nov 2026).
+// The TikTok Android string is from memory and unverified: no in-app browser was reachable.
 describe("isInAppBrowser", () => {
   const IOS = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko)";
   const ANDROID = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko)";
@@ -175,8 +175,12 @@ describe("isInAppBrowser", () => {
     ["Instagram on Android", `${ANDROID} Chrome/126.0.0.0 Mobile Safari/537.36 Instagram 340.0.0.0.0 Android (29/10)`],
     ["Facebook on Android", `${ANDROID} Chrome/126.0.0.0 Mobile Safari/537.36 [FB_IAB/FB4A;FBAV/450.0.0.38.108;]`],
     ["Facebook on iOS", `${IOS} Mobile/21F90 [FBAN/FBIOS;FBAV/450.0.0.0.0;FBDV/iPhone14,5;FBSN/iOS]`],
-    ["TikTok on iOS", `${IOS} Mobile/21F90 musical_ly_34.0.0 JsSdk/2.0 BytedanceWebview/d8a21c6`],
-    ["TikTok on Android", `${ANDROID} Chrome/126.0.0.0 Mobile Safari/537.36 trill_340000 AppName/musical_ly BytedanceWebview/d8a21c6`],
+    ["TikTok on iOS (older string, from memory)", `${IOS} Mobile/21F90 musical_ly_34.0.0 JsSdk/2.0 BytedanceWebview/d8a21c6`],
+    ["Instagram on iOS (real device)", `Mozilla/5.0 (iPhone; CPU iPhone OS 18_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/22D72 Instagram 441.0.0.29.79 (iPhone11,8; iOS 18_3_1; en_GB; en-GB; scale=2.00; 828x1792; IABMV/1; 1030250346) NW/3 Safari/604.1`],
+    ["Instagram on Android (real device)", `Mozilla/5.0 (Linux; Android 14; Infinix X6531B Build/UP1A.231005.007; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/158.0.8127.46 Mobile Safari/537.36 Instagram 457.0.0.55.73 Android (34/14; 320dpi; 720x1600; INFINIX/Infinix; Infinix X6531B; Infinix-X6531B; mt6768; en_US; 1122313541)`],
+    ["X on iOS (real device)", `Mozilla/5.0 (iPhone; CPU iPhone OS 18_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/22D72 Twitter for iPhone/12.36`],
+    ["X on Android (real device)", `Mozilla/5.0 (Linux; Android 14; Infinix X6531B Build/UP1A.231005.007; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/158.0.8127.46 Mobile Safari/537.36 TwitterAndroid/12.44.0-prod.01 (312440001-r-01) Infinix+X6531B/14 (INFINIX;Infinix+X6531B;Infinix;X6531B-OP;0;;1;2015)`],
+    ["TikTok on Android (unverified, from memory)", `${ANDROID} Chrome/126.0.0.0 Mobile Safari/537.36 trill_340000 AppName/musical_ly BytedanceWebview/d8a21c6`],
     ["Line on iOS", `${IOS} Mobile/21F90 Safari Line/13.17.0`],
     ["WeChat", `${ANDROID} Chrome/126.0.0.0 Mobile Safari/537.36 MicroMessenger/8.0.47 Process/appbrand0`],
     ["an Android WebView with no app marker", `${ANDROID.replace("K)", "K; wv)")} Version/4.0 Chrome/126.0.0.0 Mobile Safari/537.36`],
@@ -190,6 +194,7 @@ describe("isInAppBrowser", () => {
     ["Chrome on Android", `${ANDROID} Chrome/126.0.0.0 Mobile Safari/537.36`],
     ["Chrome on Windows", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"],
     ["Firefox on Linux (\"Linux\" is not \"Line/\")", "Mozilla/5.0 (X11; Linux x86_64; rv:127.0) Gecko/20100101 Firefox/127.0"],
+    ["TikTok on iOS (real device: a bare WKWebView string, known miss)", "Mozilla/5.0 (iPhone; CPU iPhone OS 18_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148"],
     ["an empty user agent", ""],
   ])("does not flag %s", (_name, userAgent) => {
     expect(isInAppBrowser(userAgent)).toBe(false);
