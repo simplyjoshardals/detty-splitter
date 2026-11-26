@@ -27,8 +27,9 @@ import { AppStateProvider } from "@/state/AppStateProvider";
  * `LinkNotice` is the first thing in the calculator column: an empty live region that raises the
  * bad-link banner, and takes no space until it does (T8.2). `ExportButton` (T9.1) and `ShareBar`
  * (Copy link) hang under the receipt, in that order, inside the sticky column, so on desktop they
- * stay on screen with the receipt. `CtaCard` (T10.1) follows the sticky column and renders nothing
- * unless the flag and URL allow it; it places itself under the receipt column from 1280px.
+ * stay on screen with the receipt. `CtaCard` (T10.1) sits between `main` and the footer, outside the grid
+ * (a sticky grid item is bounded by the whole grid, so a card inside it was overlapped), and
+ * renders nothing unless the flag and URL allow it.
  */
 export default function Home() {
   return (
@@ -46,8 +47,8 @@ export default function Home() {
           <ExportButton />
           <ShareBar />
         </StickyColumn>
-        <CtaCard />
       </main>
+      <CtaCard />
       <Footer />
       <DamageMeter watchId="receipt-totals" />
     </AppStateProvider>
