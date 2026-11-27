@@ -27,8 +27,12 @@ yarn dev                     # http://localhost:3000
 | `yarn dev` | Start the dev server |
 | `yarn build` | Static export to `out/` |
 | `yarn lint` | Run ESLint |
+| `yarn test` | Unit and component tests (Vitest) |
+| `yarn test:e2e` | One end-to-end flow plus axe checks (Playwright, Chromium); builds the site and serves `out/` itself |
 
 `yarn start` is not used: the site is a static export, so serve `out/` with any static file server.
+
+Before the first `yarn test:e2e`, run `yarn playwright install chromium` once.
 
 ## Environment variables
 
@@ -50,7 +54,8 @@ lib/          Pure logic: calc, money, input, share, receipt, export, storage, a
 state/        Reducer, actions, context provider
 data/         Presets, tiers, bucket definitions
 config/       Site URL, env-driven flags
-tests/        Unit and end-to-end tests
+tests/        Unit and component tests (Vitest)
+e2e/          End-to-end flow and axe checks (Playwright)
 public/       Static assets
 ```
 

@@ -189,7 +189,7 @@ Format: **recommendation**, alternatives, why, what would change my mind.
 ### 3.10 Testing approach (for later prompts)
 - Unit tests (Vitest) for the calculation core, number-input parsing, the share-link codec including malformed input, and tier lookup.
 - Component tests (Vitest, jsdom, Testing Library) for stateful UI such as `NumberField`, queried by role and label; no snapshots.
-- One end-to-end happy path (Playwright), plus manual device checks for the receipt (these can't be automated reliably).
+- One end-to-end flow (Playwright, `e2e/main.spec.ts`, Chromium only; `yarn test:e2e`). It runs against the production static export: Playwright builds the site and serves `out/` with `serve` on port 3100, because the dev server's overlay would add elements to the page axe checks. axe runs inside it, and a keyboard-only test and a dark-mode axe run sit beside it (T11.2). Manual device checks stay for the receipt (these can't be automated reliably).
 
 ---
 

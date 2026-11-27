@@ -152,11 +152,11 @@ No form library. Each numeric field uses the same `parseNumberInput(text, range,
 |---|---|---|
 | Unit | Vitest | `lib/calc`, `lib/money`, `lib/rates`, `lib/share` (all 20 bad links, round trip), tier lookup, `parseNumberInput` |
 | Component | Vitest + React Testing Library | BucketEditor (mode switch, headcount, clamp hint), CurrencyToggle, ShareBar (copied/denied), ExportButton (not ready, ready, shared, cancelled, downloaded, inline, failed), CtaCard (hidden when flag off or URL invalid). Query by role and label, no snapshots |
-| End to end | Playwright, one flow | Default → edit a bucket → switch currency → copy link → open link in a fresh page → numbers match → export triggers a download |
-| Accessibility | axe check inside the Playwright flow (**VERIFY** current package/version) plus a manual keyboard pass | No violations on the main page; whole flow by keyboard |
+| End to end | Playwright (`e2e/main.spec.ts`, Chromium, runs on the built `out/`) | Default → edit a bucket → switch currency → copy link → open link in a fresh browser context (empty storage, so only the link supplies the numbers) → receipt text matches → export downloads a PNG (checked by file name and PNG signature). The desktop download path only; the phone share sheet stays in the manual device matrix |
+| Accessibility | `@axe-core/playwright` inside the flow (default page, then with USD and Rates open), a dark-mode run at 360px, an automated keyboard-only test, plus a short manual pass for focus visibility | No violations on the main page, with no rule disabled; whole flow by keyboard |
 | Devices | Manual | Receipt export on real devices (cannot be automated reliably) |
 
-Versions of Vitest, Playwright and testing libraries: check on install (not verified here).
+Versions of Vitest, Playwright, `@axe-core/playwright`, `serve` and the testing libraries are pinned in `package.json` (checked at install).
 
 ### 2.7 UI libraries
 
