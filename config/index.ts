@@ -13,6 +13,22 @@ import type { Rates } from "@/lib/types";
 /** Placeholder until Cloudflare assigns the real URL (T1.3) or a custom domain is set. */
 export const SITE_URL = "https://detty-splitter.pages.dev";
 
+/**
+ * Page metadata and link preview (T10.2, REQUIREMENTS D4/M10): one static, site-wide preview, no
+ * per-link image. Plain constants, public by design. DRAFT copy in the app's voice (DESIGN §9);
+ * refine freely, but keep the description at or under 160 characters (tests/metadata.test.ts).
+ * The image is `public/og-image.png`, a 1200x630 sample danfo debit-alert receipt. If you change
+ * its size, change OG_IMAGE_SIZE too (the test reads the real file and compares).
+ */
+export const SITE_NAME = "Detty Dec 2026";
+export const SITE_TITLE = "Detty December 2026: Plan the damage";
+export const SITE_DESCRIPTION =
+  "Plan the damage before December plans you. Price your trip, split it with the group, and get your debit alert. Estimates only.";
+export const OG_IMAGE_PATH = "/og-image.png";
+export const OG_IMAGE_SIZE = { width: 1200, height: 630 } as const;
+export const OG_IMAGE_ALT =
+  "A danfo-yellow debit alert receipt: Detty Dec 2026, ₦1,347,500 per person for a group of 4, stamped Soft Life Certified.";
+
 /** The CTA is on only if the variable is exactly the string "true". */
 export const CTA_ENABLED: boolean =
   process.env.NEXT_PUBLIC_CTA_ENABLED === "true";

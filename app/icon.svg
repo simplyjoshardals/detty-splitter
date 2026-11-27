@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <title>Detty Dec</title>
+  <rect width="64" height="64" fill="#FFC400"/>
+  <g fill="#111111">
+    <path d="M10 8h12l20 30V8h12v48H42L22 26v30H10z"/>
+    <rect y="24" width="64" height="5"/>
+    <rect y="38" width="64" height="5"/>
+  </g>
+</svg>

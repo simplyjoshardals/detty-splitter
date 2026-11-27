@@ -421,6 +421,21 @@ Rules:
 
 **Built in T7.3** About 200 speckles (radius 1 to 4px) are erased from the stamp with destination-out on an offscreen layer the size of the stamp box plus a 4px margin; the layer is then drawn rotated onto the receipt, so the paper is never punched through. The positions come from a seeded generator (mulberry32) whose seed is the receipt's AUTH code, so the same receipt always gets the same texture. renderReceipt(view, { texture: false }) draws the flat stamp (the fallback if the texture is ever too slow). The PNG is pre-rendered in the background: the renderer loads when the receipt is within about 800px of the viewport, renders about 500 ms after the last edit, and the latest blob is kept; the blob is cleared the moment the view changes.
 
+### 7.3 Link preview image and favicon (T10.2)
+
+One static `public/og-image.png`, **1200 × 630**, under 300 KB (WhatsApp is commonly reported to skip larger images; not verified, so `tests/metadata.test.ts` enforces it). It is a *sample danfo debit alert*, drawn from the real default receipt (`buildReceiptView(createInitialState())`), so its numbers, badge and copy come from the app and cannot drift. The source was a throwaway `app/og-source` page, captured at device pixel ratio 1 and then deleted; to redraw, rebuild that page from this spec.
+
+| Part | Content |
+|---|---|
+| Card | `--danfo` yellow, fixed in both themes. Flat, no gradient or blur (§0 principle 4) |
+| Left | `DETTY / DEC / 2026` in Bungee 116px, then the tagline from §9 in Space Mono 700 28px, all `--danfo-ink` |
+| Bottom bar | 84px `--danfo-ink` with the site host in `--danfo`, Space Mono 700 30px (the damage-meter pairing, §5.7) |
+| Slip | Cream `--receipt-*` paper, 480px wide, tilted 3°, 3px ink border and one hard shadow (10px), running off the bottom edge. Danfo band + stripe, `*** DEBIT ALERT ***`, the five lines, `PER PERSON` total, the speckled stamp (same seeded `makeSpeckles` as §7.1, rotated −4°), the balance line |
+
+Rules: keep everything that matters inside the middle 1200 × 600 and away from the outer ~60px, because X crops to 2:1 and thumbnails crop edges. Text is at least 17px on the 1200px card (decorative detail; the readable parts are the wordmark, the per-person total and the stamp). The Bungee wordmark carries no currency symbol (§1). The slip text uses the ₦ from the naira subset, so the page that is captured must have the fonts loaded.
+
+**Favicon.** A black ₦ on a danfo-yellow square, **kept** after the 16px check (the fallback of a yellow block with a black stripe was not needed). A ₦ with its two bars drawn inside the N turned to mush at 16px; the shipped geometry has a bolder N (stems 12/64 wide) and bars that run edge to edge, and the 16px frame in `favicon.ico` is pixel-snapped so each bar is exactly one crisp pixel row. The ₦ is drawn as paths, not text, because an SVG favicon cannot load web fonts. Files: `app/icon.svg` (the source), `app/favicon.ico` (16, 32, 48px), `app/apple-icon.png` (180px, full-bleed; iOS rounds the corners). Next adds the `<link>` tags by file name.
+
 ### 7.1 Ink-stamp texture (canvas)
 Draw the stamp text and border, then erase a few hundred tiny speckles with `destination-out` using a **seeded** random sequence derived from the total, so the same receipt always gets the same stamp. About 200 speckles, radius 1 to 4px. Optional: slight rotation jitter. Keep the text legible (stamp contrast above is 5.1:1).
 
@@ -530,5 +545,5 @@ Tier badges and taglines live in `data/`, with the new **balance lines** (draft,
 - Confirm remaining Phosphor icon names at install (§2).
 - Final badge names, taglines and balance lines (your copy).
 - Print-feed animation and Android haptic (optional, cut first).
-- Design the **OG image** as a sample danfo debit-alert receipt (S9).
-- Favicon: a black ₦ on a danfo-yellow square (confirm ₦ renders at 16px, or use a simple yellow block with a black stripe).
+- ~~Design the **OG image** as a sample danfo debit-alert receipt (S9).~~ Done in T10.2, see §7.3. Still to confirm on a real WhatsApp and X paste.
+- ~~Favicon: a black ₦ on a danfo-yellow square (confirm ₦ renders at 16px, or use a simple yellow block with a black stripe).~~ Done in T10.2: ₦ kept, pixel-snapped at 16px (§7.3).

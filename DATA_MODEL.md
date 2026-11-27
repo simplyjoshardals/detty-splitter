@@ -186,6 +186,8 @@ Rules:
 | Key | Source | Rules |
 |---|---|---|
 | `SITE_URL` | constant | Used for the receipt watermark and metadata. One-line swap for a custom domain |
+| `SITE_NAME`, `SITE_TITLE`, `SITE_DESCRIPTION` | constants | Page title, description and Open Graph site name (T10.2). Draft copy in the app's voice (DESIGN §9). The description stays at or under 160 characters (`tests/metadata.test.ts`) |
+| `OG_IMAGE_PATH`, `OG_IMAGE_SIZE`, `OG_IMAGE_ALT` | constants | The one static link-preview image, `public/og-image.png`, 1200 × 630 (DESIGN §7.3). The test reads the real file and compares its size with `OG_IMAGE_SIZE`. The alt text quotes the sample receipt's total, so update it if the sample changes |
 | `CTA_ENABLED` | `NEXT_PUBLIC_CTA_ENABLED` | On only if the value is exactly the string `true`. Anything else is off |
 | `CTA_URL` | `NEXT_PUBLIC_CTA_URL` | Must parse as a URL with protocol `https:` (`parseHttpsUrl`, shared from `lib/author`). Otherwise treated as unset |
 | `CTA_TITLE`, `CTA_BUTTON_TEXT`, `CTA_DISCLOSURE` | constants | Placeholder wording until C1. A non-empty `CTA_DISCLOSURE` (the link is an affiliate or paid promo) shows the disclosure line under the button and adds `sponsored` to the link's `rel`. Empty means neither |

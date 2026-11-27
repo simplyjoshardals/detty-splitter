@@ -246,8 +246,10 @@ No paid API and no secret keys exist anywhere in this design. `NEXT_PUBLIC_*` va
 ```
 detty-splitter/
 ├─ app/                    # default create-next-app layout, nothing moved
-│  ├─ favicon.ico
+│  ├─ apple-icon.png       # 180px touch icon (T10.2), picked up by file name
+│  ├─ favicon.ico          # 16/32/48px frames, ₦ on danfo yellow (T10.2)
 │  ├─ globals.css          # Tailwind layers + design tokens
+│  ├─ icon.svg             # the same ₦ icon as SVG (T10.2)
 │  ├─ layout.tsx           # fonts, metadata, OG tags, analytics script
 │  └─ page.tsx             # the single page, composes components
 ├─ components/             # presentational UI: PresetPicker, BucketEditor,
@@ -267,8 +269,8 @@ detty-splitter/
 │  └─ analytics/           # track() adapter
 ├─ state/                  # reducer, actions, session (app state + load info), local save, context provider
 ├─ data/                   # presets, tiers and taglines, bucket definitions
-├─ config/                 # site URL, CTA flag and URL, default rates + as-of date
-├─ public/                 # og-image.png, _headers
+├─ config/                 # site URL, title/description/OG image, CTA flag and URL, default rates + as-of date
+├─ public/                 # og-image.png (1200×630, T10.2), _headers
 ├─ tests/                  # unit tests for calc, share, receipt helpers; one e2e
 ├─ next.config.ts          # output: 'export', unoptimized images
 ├─ tsconfig.json           # path alias "@/*" -> "./*"
@@ -276,7 +278,7 @@ detty-splitter/
 └─ ARCHITECTURE.md, REQUIREMENTS.md, DATA_MODEL.md, (later) DESIGN.md, BUILD_PLAN.md
 ```
 
-No `src/` folder. `app/` is the stock `create-next-app` folder (`favicon.ico`, `globals.css`, `layout.tsx`, `page.tsx`), and the other folders are siblings of it at the project root. Per the Next.js docs, `components/` and `lib/` have no special meaning and live outside `app/` here, which the docs list as a valid strategy ("store project files outside of `app`"). When you run `create-next-app`, answer **No** to "Use `src/` directory?". Make sure Tailwind picks up classes in `components/` too (Tailwind v4 detects sources automatically; on v3 list the folders in the config).
+No `src/` folder. `app/` is the stock `create-next-app` folder (`favicon.ico`, `globals.css`, `layout.tsx`, `page.tsx`, plus the icon files from T10.2), and the other folders are siblings of it at the project root. Per the Next.js docs, `components/` and `lib/` have no special meaning and live outside `app/` here, which the docs list as a valid strategy ("store project files outside of `app`"). When you run `create-next-app`, answer **No** to "Use `src/` directory?". Make sure Tailwind picks up classes in `components/` too (Tailwind v4 detects sources automatically; on v3 list the folders in the config).
 
 Rules of placement:
 - `lib/calc`, `lib/money`, `lib/input`, `lib/rates`, `lib/author`, `lib/share`, `lib/storage` must not import React. This keeps them testable and reusable by the receipt renderer.
