@@ -47,8 +47,15 @@ function toPayload(event: AnalyticsEvent): Payload | null {
       return { name: raw.name };
     case "receipt_export": {
       const { tier, currency, method } = raw;
-      if (typeof tier !== "number" || !Number.isInteger(tier) || tier < 1 || tier > 5) return null;
-      if (typeof currency !== "string" || !CURRENCIES.includes(currency)) return null;
+      if (
+        typeof tier !== "number" ||
+        !Number.isInteger(tier) ||
+        tier < 1 ||
+        tier > 5
+      )
+        return null;
+      if (typeof currency !== "string" || !CURRENCIES.includes(currency))
+        return null;
       if (typeof method !== "string" || !METHODS.includes(method)) return null;
       return { name: "receipt_export", data: { tier, currency, method } };
     }
@@ -68,7 +75,10 @@ function browserTracker(): Tracker | undefined {
 }
 
 /** Sends one event. Safe to call anywhere: it never throws and never blocks. */
-export function track(event: AnalyticsEvent, tracker: Tracker | undefined = browserTracker()): void {
+export function track(
+  event: AnalyticsEvent,
+  tracker: Tracker | undefined = browserTracker(),
+): void {
   const payload = toPayload(event);
   if (payload === null || tracker === undefined) return;
   try {
@@ -79,7 +89,8 @@ export function track(event: AnalyticsEvent, tracker: Tracker | undefined = brow
   }
 }
 
-const SITE_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const SITE_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Attributes for the Umami `<script>` tag. */
 export interface UmamiScriptProps {
@@ -90,7 +101,7 @@ export interface UmamiScriptProps {
   /** Without these two the pageview URL would carry the share link, which holds the plan. */
   "data-exclude-hash": "true";
   "data-exclude-search": "true";
-  "data-do-not-track": "false";
+  "data-do-not-track": "true";
 }
 
 /**
@@ -118,6 +129,6 @@ export function umamiScriptProps(
     "data-domains": host,
     "data-exclude-hash": "true",
     "data-exclude-search": "true",
-    "data-do-not-track": "false",
+    "data-do-not-track": "true",
   };
 }
