@@ -64,6 +64,16 @@ export const CTA_BUTTON_TEXT = "Take me there";
 export const CTA_DISCLOSURE = "";
 
 /**
+ * Analytics (DATA_MODEL §3.3 and §7, ARCHITECTURE §3.9): Umami Cloud. The site ID is public by
+ * design (it sits in the page source), so it is a plain constant, not an env var. Empty means no
+ * script is added and `track()` does nothing. Paste the website ID (a UUID) from the Umami
+ * dashboard before launch. The script only sends from the host of SITE_URL (`data-domains`),
+ * so localhost, previews and tests never count. Change the host here and the CSP together.
+ */
+export const ANALYTICS_SITE_ID = "";
+export const ANALYTICS_SCRIPT_SRC = "https://cloud.umami.is/script.js";
+
+/**
  * Optional footer credit, "Built in Lagos by <name>" (DESIGN §5.15). Plain constants,
  * public by design. Empty means no credit; the footer shows it only when the name is
  * non-empty and the URL is a valid https: URL (see authorCredit in lib/author).
