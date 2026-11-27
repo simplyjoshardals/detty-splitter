@@ -178,9 +178,9 @@ describe("umamiScriptProps", () => {
 
 describe("analytics config", () => {
   it("has a site ID that is empty (no analytics) or a UUID", () => {
-    expect(ANALYTICS_SITE_ID === "" || umamiScriptProps(ANALYTICS_SITE_ID, SCRIPT, SITE_URL) !== null).toBe(
-      true,
-    );
+    // Widened: once the ID is set, the constant's literal type no longer overlaps with "".
+    const siteId: string = ANALYTICS_SITE_ID;
+    expect(siteId === "" || umamiScriptProps(siteId, SCRIPT, SITE_URL) !== null).toBe(true);
   });
 
   it("loads the script over https", () => {
