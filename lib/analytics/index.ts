@@ -6,8 +6,10 @@
  * again at runtime (types can be bypassed), and sends only the allowed keys, so an extra field
  * on an object can never leave the page. It never throws, and it does nothing when the Umami
  * script is absent (no site ID, blocked by an ad blocker, still loading, or a dev build).
+ *
+ * The script and its events go through this site's own origin (T10.4, lib/umami-proxy), so the
+ * tag points at a same-origin path and carries `data-host-url`.
  */
-import { parseHttpsUrl } from "@/lib/author";
 import type { ExportMethod } from "@/lib/export";
 import type { CurrencyCode } from "@/lib/types";
 
@@ -94,19 +96,30 @@ const SITE_ID_PATTERN =
 
 /** Attributes for the Umami `<script>` tag. */
 export interface UmamiScriptProps {
+  /** A same-origin path (served by functions/m/lib.ts), never an Umami URL. */
   src: string;
   "data-website-id": string;
   /** Only this host sends data: localhost, previews and tests stay silent. */
   "data-domains": string;
+  /**
+   * Where events are posted: this site's own origin. Required, because without it the tracker
+   * falls back to Umami's gateway host, the one a block or an ad blocker targets.
+   */
+  "data-host-url": string;
   /** Without these two the pageview URL would carry the share link, which holds the plan. */
   "data-exclude-hash": "true";
   "data-exclude-search": "true";
-  "data-do-not-track": "false";
+  /** Visitors whose browser says Do Not Track are not counted. */
+  "data-do-not-track": "true";
 }
+
+/** A path on this site: one leading slash, plain characters, no `//` or `..`. */
+const SAME_ORIGIN_PATH = /^\/[A-Za-z0-9_-][A-Za-z0-9._/-]*$/;
 
 /**
  * The script tag's attributes, or `null` when there should be no script: no site ID, an ID that
- * is not a UUID, a script URL that is not https, or a site URL that does not parse.
+ * is not a UUID, a script source that is not a same-origin path, or a site URL that is not a
+ * valid https URL.
  */
 export function umamiScriptProps(
   siteId: string,
@@ -114,21 +127,26 @@ export function umamiScriptProps(
   siteUrl: string,
 ): UmamiScriptProps | null {
   const id = siteId.trim();
-  const src = parseHttpsUrl(scriptSrc);
-  if (!SITE_ID_PATTERN.test(id) || src === null) return null;
-  let host: string;
+  if (
+    !SITE_ID_PATTERN.test(id) ||
+    !SAME_ORIGIN_PATH.test(scriptSrc) ||
+    scriptSrc.includes("..")
+  )
+    return null;
+  let site: URL;
   try {
-    host = new URL(siteUrl).hostname;
+    site = new URL(siteUrl);
   } catch {
     return null;
   }
-  if (!host) return null;
+  if (site.protocol !== "https:" || !site.hostname) return null;
   return {
-    src,
+    src: scriptSrc,
     "data-website-id": id,
-    "data-domains": host,
+    "data-domains": site.hostname,
+    "data-host-url": site.origin,
     "data-exclude-hash": "true",
     "data-exclude-search": "true",
-    "data-do-not-track": "false",
+    "data-do-not-track": "true",
   };
 }

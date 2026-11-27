@@ -92,7 +92,8 @@ export const viewport: Viewport = {
 
 // Umami (T10.3). `null` until a site ID is set in config, so no script is added and `track()` does
 // nothing. The attributes keep the #hash (the share link) out of the pageview URL and limit sending
-// to the real host. `afterInteractive` keeps it off the critical path.
+// to the real host. The script and its events go through this site's own origin (T10.4), so
+// Umami's hostnames never appear in the page. `afterInteractive` keeps it off the critical path.
 const umami = umamiScriptProps(ANALYTICS_SITE_ID, ANALYTICS_SCRIPT_SRC, SITE_URL);
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

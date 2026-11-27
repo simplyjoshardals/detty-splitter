@@ -68,10 +68,16 @@ export const CTA_DISCLOSURE = "";
  * design (it sits in the page source), so it is a plain constant, not an env var. Empty means no
  * script is added and `track()` does nothing. Paste the website ID (a UUID) from the Umami
  * dashboard before launch. The script only sends from the host of SITE_URL (`data-domains`),
- * so localhost, previews and tests never count. Change the host here and the CSP together.
+ * so localhost, previews and tests never count.
+ *
+ * Both the script and the events go through this site's own origin (T10.4), so a DNS block or
+ * an ad blocker on Umami's hostnames does not matter. ANALYTICS_SCRIPT_SRC is a path on this
+ * site, served by `functions/m/lib.ts`; events post to `<SITE_URL origin>/api/send`, served by
+ * `functions/api/send.ts`. Rename the path and the file together (tests/umamiProxy.test.ts
+ * checks they match). The Umami hosts themselves live in lib/umami-proxy.
  */
 export const ANALYTICS_SITE_ID = "55b900bc-c714-418e-9af1-e74817cce70f";
-export const ANALYTICS_SCRIPT_SRC = "https://cloud.umami.is/script.js";
+export const ANALYTICS_SCRIPT_SRC = "/m/lib";
 
 /**
  * Optional footer credit, "Built in Lagos by <name>" (DESIGN §5.15). Plain constants,

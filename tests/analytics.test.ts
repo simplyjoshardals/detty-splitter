@@ -1,11 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ANALYTICS_SCRIPT_SRC, ANALYTICS_SITE_ID, SITE_URL } from "@/config";
-import { parseHttpsUrl } from "@/lib/author";
 import { track, umamiScriptProps } from "@/lib/analytics";
 import type { AnalyticsEvent } from "@/lib/analytics";
 
 const SITE_ID = "94db1cb1-74f4-4a40-ad6c-962362670409";
-const SCRIPT = "https://cloud.umami.is/script.js";
+const SCRIPT = "/m/lib";
 
 /** Bypasses the types on purpose: callers can be wrong at runtime. */
 const loose = (event: unknown): AnalyticsEvent => event as AnalyticsEvent;
@@ -139,11 +138,12 @@ describe("track", () => {
 });
 
 describe("umamiScriptProps", () => {
-  it("builds the tag attributes, with the hash and search excluded", () => {
+  it("builds the tag attributes: same-origin script and host, hash and search excluded", () => {
     expect(umamiScriptProps(SITE_ID, SCRIPT, "https://detty-splitter.pages.dev/")).toEqual({
       src: SCRIPT,
       "data-website-id": SITE_ID,
       "data-domains": "detty-splitter.pages.dev",
+      "data-host-url": "https://detty-splitter.pages.dev",
       "data-exclude-hash": "true",
       "data-exclude-search": "true",
       "data-do-not-track": "true",
@@ -156,6 +156,18 @@ describe("umamiScriptProps", () => {
     );
   });
 
+  it("sets data-host-url to the origin of the site URL, without path or query", () => {
+    expect(
+      umamiScriptProps(SITE_ID, SCRIPT, "https://example.com/some/path?x=1")?.["data-host-url"],
+    ).toBe("https://example.com");
+  });
+
+  it("never points the script or the host at an Umami hostname", () => {
+    const props = umamiScriptProps(SITE_ID, SCRIPT, SITE_URL);
+    expect(JSON.stringify(props)).not.toContain("umami.is");
+    expect(JSON.stringify(props)).not.toContain("umami.dev");
+  });
+
   it("trims the site ID", () => {
     expect(umamiScriptProps(`  ${SITE_ID}\n`, SCRIPT, SITE_URL)?.["data-website-id"]).toBe(SITE_ID);
   });
@@ -166,13 +178,26 @@ describe("umamiScriptProps", () => {
     }
   });
 
-  it("returns null for a script URL that is not https", () => {
-    expect(umamiScriptProps(SITE_ID, "http://cloud.umami.is/script.js", SITE_URL)).toBeNull();
-    expect(umamiScriptProps(SITE_ID, "", SITE_URL)).toBeNull();
+  it("returns null for a script source that is not a same-origin path", () => {
+    for (const src of [
+      "",
+      "/",
+      "m/lib",
+      "//cloud.umami.is/script.js",
+      "https://cloud.umami.is/script.js",
+      "http://example.com/m/lib",
+      "/m/../lib",
+      "/./lib",
+      '/m/lib"><script>',
+      "/m/lib?x=1",
+    ]) {
+      expect(umamiScriptProps(SITE_ID, src, SITE_URL)).toBeNull();
+    }
   });
 
-  it("returns null for a site URL that does not parse", () => {
+  it("returns null for a site URL that does not parse or is not https", () => {
     expect(umamiScriptProps(SITE_ID, SCRIPT, "not a url")).toBeNull();
+    expect(umamiScriptProps(SITE_ID, SCRIPT, "http://example.com")).toBeNull();
   });
 });
 
@@ -183,7 +208,9 @@ describe("analytics config", () => {
     expect(siteId === "" || umamiScriptProps(siteId, SCRIPT, SITE_URL) !== null).toBe(true);
   });
 
-  it("loads the script over https", () => {
-    expect(parseHttpsUrl(ANALYTICS_SCRIPT_SRC)).not.toBeNull();
+  it("loads the script from a path on this site", () => {
+    expect(umamiScriptProps(SITE_ID, ANALYTICS_SCRIPT_SRC, SITE_URL)?.src).toBe(
+      ANALYTICS_SCRIPT_SRC,
+    );
   });
 });

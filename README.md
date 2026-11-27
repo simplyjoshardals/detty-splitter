@@ -47,14 +47,15 @@ These are public values inlined at build time. Never put secrets in them. Changi
 
 ### Analytics
 
-Umami Cloud, off until you paste the website ID (a UUID, public by design) into `ANALYTICS_SITE_ID` in `config/index.ts`; it is a plain constant, not an env var. With it empty no script is added and nothing is sent. It sends only `receipt_export` (tier, currency, method), `link_copy` and `cta_click`, never amounts, headcounts, rates or the share link, and only from the host of `SITE_URL`, so local runs and previews do not count. Check it on the deployed site in Umami's Realtime view.
+Umami Cloud, off until you paste the website ID (a UUID, public by design) into `ANALYTICS_SITE_ID` in `config/index.ts`; it is a plain constant, not an env var. With it empty no script is added and nothing is sent. It sends only `receipt_export` (tier, currency, method), `link_copy` and `cta_click`, never amounts, headcounts, rates or the share link, and only from the host of `SITE_URL`, so local runs and previews do not count. The tracker script and its events go through this site's own origin (Cloudflare Pages Functions in `functions/`, relaying to Umami), so a DNS block or ad blocker on Umami's hostnames does not stop them. Visitors whose browser sends Do Not Track are not counted. The relay only exists on the deployed Pages site: `yarn dev` and `yarn serve out` have no `functions/`, so the script request 404s there, which is harmless (nothing is sent from other hosts). Check it on the deployed site in Umami's Realtime view.
 
 ## Project structure
 
 ```
 app/          Next.js routes and global styles
 components/   Presentational UI
-lib/          Pure logic: calc, money, input, share, receipt, export, storage, analytics
+lib/          Pure logic: calc, money, input, share, receipt, export, storage, analytics, umami-proxy
+functions/    Cloudflare Pages Functions: the analytics relay (tracker script and events)
 state/        Reducer, actions, context provider
 data/         Presets, tiers, bucket definitions
 config/       Site URL, env-driven flags
@@ -69,4 +70,4 @@ public/       Static assets
 
 ## Deployment
 
-Cloudflare Pages (or Workers static assets): build command `yarn build`, output directory `out`.
+Cloudflare Pages: build command `yarn build`, output directory `out`. Use Pages (connected to the repo), not Workers static assets: the `functions/` folder is the analytics relay and only Pages deploys it. Requests to those two routes count toward the Workers Free limit of 100,000 a day; static files do not.

@@ -11,7 +11,7 @@
 1. **There is no backend and no database.** Everything runs in the browser. The only "server" is Cloudflare serving static files. This makes Prompt 3 (SQL, RLS) mostly not applicable. See §9.
 2. **Share-link state goes in the URL hash (`#...`), not the query string.** The hash is never sent to any server, so it stays private, can't break static hosting, and can't affect OG tags.
 3. **Receipt export: draw directly on a Canvas 2D, not DOM screenshot.** A receipt is text lines, rules and a stamp, which is simple on canvas. This avoids the most likely failure (DOM-to-image libraries on iOS Safari and in-app browsers) and costs no bundle. This departs from your "html2canvas if needed" idea. The reasoning is in §3.
-4. **Analytics:** Cloudflare Web Analytics does **not** support custom events (confirmed in its FAQ: "Not yet"), so your D7 can't be met with it alone. **Recommendation: use Umami Cloud's free Hobby plan as the single analytics script** (custom events, cookieless per its own FAQ). Caveats and the fallback are in §3.9.
+4. **Analytics:** Cloudflare Web Analytics does **not** support custom events (confirmed in its FAQ: "Not yet"), so your D7 can't be met with it alone. **Recommendation: use Umami Cloud's free Hobby plan as the single analytics script** (custom events, cookieless per its own FAQ). Its script and events go through a small same-origin relay (Cloudflare Pages Functions), so a DNS block or ad blocker on Umami's hostnames does not stop it. Caveats, the relay and the fallback are in §3.9.
 5. **Challenge to your stack:** Next.js is heavier than this app needs. A single-page static calculator would also work in Vite + React or plain TypeScript. Next.js is still fine here, and the portfolio value of a familiar stack is real, but expect extra build/bundle weight. Keep client JS small by keeping the app to one route.
 6. **Cloudflare note:** the Pages Next.js static-export guide still exists, but Cloudflare's own page says it recommends Workers (via vinext) for Next.js generally, and links a Pages→Workers migration guide. Both serve static files and both support a `_headers` file (verified, §3.8). Static assets on Workers are documented as free and unlimited. Check which one the dashboard offers on deploy day; the build output (`out/`) is the same either way.
 
@@ -33,14 +33,16 @@
 | **UI layer** | Preset picker, bucket editors, results, currency toggle, receipt preview, CTA card | Browser |
 | **Receipt renderer** | Draws the receipt onto a canvas, outputs a PNG blob | Browser, loaded only on export |
 | **Share/export adapter** | Web Share with file, else download, else on-screen image fallback | Browser |
-| **Analytics adapter** | One small function `track(event)` that no-ops if no tool is configured | Browser plus third party (Umami Cloud, §3.9) |
+| **Analytics adapter** | One small function `track(event)` that no-ops if no tool is configured | Browser, then this site's own relay, then Umami Cloud (§3.9) |
+| **Analytics relay** | Two Pages Functions (`functions/m/lib.ts`, `functions/api/send.ts`) that fetch the tracker script and forward events to Umami from this site's own origin. Logic in `lib/umami-proxy`, fixed upstream URLs, header allow-list (T10.4) | Cloudflare edge |
 
 ### Diagram
 
 ```mermaid
 flowchart LR
-  subgraph CF["Cloudflare (static hosting, free)"]
+  subgraph CF["Cloudflare Pages (free)"]
     A["Static files: HTML, JS, CSS, fonts, og-image.png"]
+    FN["Pages Functions: analytics relay (/m/lib, /api/send)"]
   end
 
   subgraph B["User's browser"]
@@ -69,7 +71,7 @@ flowchart LR
   CODEC <-->|"URL hash"| UI
   S <--> LS
   UI --> REC --> SH --> WA
-  UI --> AN --> AT
+  UI --> AN --> FN --> AT
   UI -->|"only if flag on and URL valid"| CTA
 ```
 
@@ -89,7 +91,7 @@ flowchart LR
 | 6 | The tier badge is derived from per-person ₦ total (A12) and shown live (S9). | Browser |
 | 7 | **Before the tap:** when the receipt section nears the viewport, the renderer module is fetched; after about 500ms without edits, it loads the font, draws the canvas and caches the latest PNG blob. | Browser |
 | 8 | User taps Export. The click handler uses the **already-built blob** (no awaiting of rendering before `share()`, because `share()` needs transient user activation and iOS has been reported to lose it after async work; see UI_PLAN.md §2.5). If the blob isn't ready yet: in a browser that can share files, show "Printing…" and ask for another tap; in one that can't, wait for the blob (up to 10 seconds) and finish on the first tap, because a download or the inline image needs no gesture. The share adapter uses Share only where the primary pointer is coarse (phones and tablets); on a desktop (mouse or trackpad) it starts at the download, because desktop share sheets are unreliable (T2.2 decision 6). Where Share is used it checks `navigator.canShare({ files })`. If true it opens the share sheet. Otherwise it triggers a download. If the anchor download is unsupported or throws, it shows the image inline with "press and hold to save" (a browser that silently refuses a download cannot be detected, so that case is not caught). | Browser, OS |
-| 9 | `track("receipt_export")` is called (if an analytics tool is configured). | Browser → third party |
+| 9 | `track("receipt_export")` is called (if an analytics tool is configured). | Browser → own origin (relay) → Umami |
 
 No network call is made in steps 2–8 after the first load.
 
@@ -176,6 +178,7 @@ Format: **recommendation**, alternatives, why, what would change my mind.
 - **Alternatives:** Vercel Hobby; GitHub Pages; Netlify.
 - **Why:** Free, global CDN, and the limits are not a concern for a small static site. Verified: Pages free limits are 500 builds/month, 20,000 files, 25 MiB per file, and Workers static assets are documented as free and unlimited.
 - **Commercial-use check (partly verified):** In Cloudflare's general terms and Self-Serve Subscription Agreement I found **no ban on commercial use of free plans**. Free Services are offered without liability and Cloudflare may end them at its sole discretion (§2.6), and you may not collect card details on a property receiving free services (§2.2.1(h)). Linking out to a Paystack page doesn't do that. I could **not** read the Developer Platform / service-specific terms, so that part is unconfirmed. For Vercel, I could not find the "non-commercial" wording on the Hobby and fair-use pages I fetched (parts rendered blank, and the terms page was blocked), so I can't confirm that claim from official text either. I've softened it in REQUIREMENTS.md.
+- **Pages, not Workers static assets, once the analytics relay is in (T10.4):** the relay is a Pages Functions folder (`functions/` at the repo root), which Cloudflare builds and deploys with the site when it is connected through Pages. Workers static assets would ignore that folder and need an equivalent Worker instead.
 - **Change my mind if:** a Cloudflare build or deploy problem costs more than an hour on launch weekend. Then switch to the next-easiest static host rather than debug.
 
 ### 3.9 Analytics (resolves O3)
@@ -185,7 +188,8 @@ Format: **recommendation**, alternatives, why, what would change my mind.
 - **Option 3:** No analytics at launch. Fastest, but you can't tell whether it worked.
 - **Rule:** use **one** analytics script, not two. Each extra script costs performance on weak phones.
 - **Decision:** go with Option 1 (Umami Cloud). Keep `track()` behind the adapter so swapping tools is a one-file change. If the cap or behavior at the cap is a problem, fall back to Option 2. Because only one script is used, Cloudflare Web Analytics is not added, so its cookie behavior (not confirmed; the page I tried to read was blocked) no longer matters.
-- **Built (T10.3):** `lib/analytics` holds `track()` and `umamiScriptProps()`; `app/layout.tsx` adds the script through `next/script` (`afterInteractive`) only when `ANALYTICS_SITE_ID` is set. **Verified in Umami's docs:** the Cloud script is `https://cloud.umami.is/script.js`; the tag takes `data-website-id`, `data-domains`, `data-exclude-hash`, `data-exclude-search` and `data-do-not-track`; events go through `umami.track(name, data)`. **Not verified:** which hosts the tracker posts events to (by default the host the script was loaded from, so expect `https://cloud.umami.is`). Confirm in DevTools, Network, on the deployed site, and use the same hosts in the CSP (T11.3: `script-src` and `connect-src`). The pageview URL would carry the share link in its `#hash`, so `data-exclude-hash` and `data-exclude-search` are always set (DATA_MODEL §7). Events only prove themselves on the deployed site, in Umami's Realtime view.
+- **Built (T10.3):** `lib/analytics` holds `track()` and `umamiScriptProps()`; `app/layout.tsx` adds the script through `next/script` (`afterInteractive`) only when `ANALYTICS_SITE_ID` is set. **Verified in Umami's docs:** the Cloud script is `https://cloud.umami.is/script.js`; the tag takes `data-website-id`, `data-domains`, `data-exclude-hash`, `data-exclude-search` and `data-do-not-track`; events go through `umami.track(name, data)`. **Superseded by T10.4 (below):** the script and its events no longer come from Umami's hostnames. The pageview URL would carry the share link in its `#hash`, so `data-exclude-hash` and `data-exclude-search` are always set (DATA_MODEL §7). Events only prove themselves on the deployed site, in Umami's Realtime view.
+- **Built (T10.4): same-origin relay.** A DNS or ISP block, or an ad blocker's filter list, usually targets Umami's hostnames, so the browser never talks to them. `functions/m/lib.ts` serves the tracker script at `/m/lib` (a neutral path, `ANALYTICS_SCRIPT_SRC`), and `functions/api/send.ts` receives the tracker's events at `/api/send` and forwards them. The script tag carries `data-host-url` set to the site's own origin: **without it the tracker falls back to Umami's gateway host**, the one being avoided. Both functions are thin wrappers over `lib/umami-proxy`, which has fixed upstream URLs (`https://cloud.umami.is/script.js` and `https://gateway.umami.is/api/send`, no input can change them), forwards only `content-type`, `user-agent`, `x-umami-*` and the visitor's IP as `x-forwarded-for` (so geography is not Cloudflare's), never cookies, referrer or origin, refuses bodies over 16 KB and answers 502 when upstream fails. **Verified in docs:** Umami documents proxying the script from your own domain and `data-host-url`; its "Sending stats" page gives `https://gateway.umami.is/api/send` for Cloud (one third-party package lists `https://api-gateway.umami.dev/api/send`; the Umami page is the one used). **Not verified:** that the real tracker posts to that gateway and that geography comes out right; both need a check on the deployed site (DevTools, Network: requests only to this origin; Umami Realtime: events and country). **Limits:** requests to Pages Functions count toward the Workers Free plan, 100,000 per day, and static assets stay free. Each event is one function request and each pageview adds one for the script (cached for an hour in the browser), so Umami's own 100K a month cap is reached long before this limit. If the daily limit is ever hit, only the two relay routes stop (analytics is lost, the site is not affected). **Not defeated:** an extension that blocks by path (`/api/send`) rather than by hostname. The tracker fixes that path; renaming it would mean rewriting the served script, which breaks silently when Umami changes it, so it is not done. **Do Not Track:** the tag sets `data-do-not-track="true"`, so visitors whose browser sends DNT are not counted (a tester with DNT on will not appear in Realtime).
 
 ### 3.10 Testing approach (for later prompts)
 - Unit tests (Vitest) for the calculation core, number-input parsing, the share-link codec including malformed input, and tier lookup.
@@ -198,7 +202,7 @@ Format: **recommendation**, alternatives, why, what would change my mind.
 
 | Service | Free-tier facts I verified | What happens at the limit | Privacy/surprise notes |
 |---|---|---|---|
-| **Cloudflare Pages / Workers static assets** | Pages: 500 builds/month, 1 concurrent build, 20,000 files per site, 25 MiB max per file, 100 custom domains per project, no stated bandwidth cap. Workers: static asset requests documented as free and unlimited. | Builds queue or fail past 500/month. Not a risk for you. | Requests to Pages **Functions** count toward the Workers plan. You use none, so don't add any. On Workers, avoid `run_worker_first` on the free plan (over-limit requests get a 429). No commercial-use ban found in the general terms; Developer Platform terms not read. |
+| **Cloudflare Pages / Workers static assets** | Pages: 500 builds/month, 1 concurrent build, 20,000 files per site, 25 MiB max per file, 100 custom domains per project, no stated bandwidth cap. Workers: static asset requests documented as free and unlimited. | Builds queue or fail past 500/month. Not a risk for you. | Requests to Pages **Functions** count toward the Workers Free plan: 100,000 per day, resetting at midnight UTC, while static asset requests stay free. The only Functions are the two analytics relay routes (T10.4), so keep it to those. On Workers, avoid `run_worker_first` on the free plan (over-limit requests get a 429). No commercial-use ban found in the general terms; Developer Platform terms not read. |
 | **Cloudflare Web Analytics (not used)** | No custom events. 7-day unsampled retention, then aggregated, with about 6 months retained. | n/a | Cookie/consent behavior not confirmed. Not needed if Umami is the single script. |
 | **Umami Cloud (chosen)** | Hobby plan: 100K events/month, 1 website, 6-month retention. Custom events supported. Cookieless and no consent banner needed, per Umami's own FAQ. | Hobby behavior past the cap is **not documented** (paid plans pause tracking at a budget). Treat as "tracking may stop." | Vendor's own privacy claim, not independently verified. |
 | **Google Fonts via `next/font`** | Fonts are downloaded at build time and self-hosted. | n/a | No runtime request to Google, which is better for privacy and speed. |
@@ -222,6 +226,7 @@ No paid API and no secret keys exist anywhere in this design. `NEXT_PUBLIC_*` va
 | `localStorage` blocked or full (private mode, in-app) | Wrap in try/catch, app works without persistence |
 | Clipboard API blocked | Fallback to selectable text field and manual copy |
 | Analytics blocked by an ad-blocker or tool down | `track()` is fire-and-forget and never throws or blocks the UI |
+| Analytics relay down, Umami down, or the Functions daily limit reached | The relay answers 502 (or Cloudflare stops running it); the tracker ignores it, events are lost, the app is unaffected |
 | CTA URL missing or invalid | Card is not rendered. No empty space, no broken link |
 | Bad deploy | Cloudflare keeps previous deployments; roll back from the dashboard |
 | Slow or offline network after first load | Everything runs locally after the page loads, so only first load depends on the network |
@@ -237,7 +242,7 @@ No paid API and no secret keys exist anywhere in this design. `NEXT_PUBLIC_*` va
 - **No free-text fields in MVP**, which removes the main XSS and content-abuse vector (and any "offensive receipt" screenshots with your URL on them).
 - **Secrets:** none exist. `NEXT_PUBLIC_CTA_URL` is public by design and must never contain a secret or tokenized URL.
 - **Outbound links:** `noopener noreferrer`, plus `sponsored` for affiliate or paid links.
-- **Headers (verified in Cloudflare docs):** put a plain-text `_headers` file (no extension) in `public/` so it is copied into the build output. Format: a URL pattern line, then indented `Name: value` lines. Limits: 100 rules, 2,000 characters per line. It applies to static asset responses, which is all you serve. Use it for a Content-Security-Policy, referrer policy and `frame-ancestors`. A strict CSP can conflict with the Umami script and with Next.js inline scripts, so add it last, test it, and loosen it if the page or analytics breaks.
+- **Headers (verified in Cloudflare docs):** put a plain-text `_headers` file (no extension) in `public/` so it is copied into the build output. Format: a URL pattern line, then indented `Name: value` lines. Limits: 100 rules, 2,000 characters per line. It applies to static asset responses, which is all you serve. Use it for a Content-Security-Policy, referrer policy and `frame-ancestors`. `_headers` does not apply to Functions responses, which set their own headers. Since the analytics script and events are same-origin (T10.4), the CSP needs no Umami host (`'self'` covers `script-src` and `connect-src` for analytics). A strict CSP can still conflict with Next.js inline scripts, so add it last, test it, and loosen it if the page or analytics breaks.
 - **Dependencies:** minimal and pinned; run the package manager's audit once before launch.
 
 ---
@@ -267,7 +272,9 @@ detty-splitter/
 │  ├─ export/              # share / download / inline-image fallback chain (index.ts, T9.1);
 │  │                       # browser.ts: the navigator and anchor-download wrappers
 │  ├─ storage/             # safe localStorage wrapper (readSnapshot, writeSnapshot)
-│  └─ analytics/           # track() adapter
+│  ├─ analytics/           # track() adapter, umamiScriptProps()
+│  └─ umami-proxy/         # relay logic for the analytics Functions (T10.4); no React, no Node APIs
+├─ functions/              # Cloudflare Pages Functions: m/lib.ts (tracker script), api/send.ts (events)
 ├─ state/                  # reducer, actions, session (app state + load info), local save, context provider
 ├─ data/                   # presets, tiers and taglines, bucket definitions
 ├─ config/                 # site URL, title/description/OG image, CTA flag and URL, default rates + as-of date
@@ -282,7 +289,8 @@ detty-splitter/
 No `src/` folder. `app/` is the stock `create-next-app` folder (`favicon.ico`, `globals.css`, `layout.tsx`, `page.tsx`, plus the icon files from T10.2), and the other folders are siblings of it at the project root. Per the Next.js docs, `components/` and `lib/` have no special meaning and live outside `app/` here, which the docs list as a valid strategy ("store project files outside of `app`"). When you run `create-next-app`, answer **No** to "Use `src/` directory?". Make sure Tailwind picks up classes in `components/` too (Tailwind v4 detects sources automatically; on v3 list the folders in the config).
 
 Rules of placement:
-- `lib/calc`, `lib/money`, `lib/input`, `lib/rates`, `lib/author`, `lib/share`, `lib/storage` must not import React. This keeps them testable and reusable by the receipt renderer.
+- `lib/calc`, `lib/money`, `lib/input`, `lib/rates`, `lib/author`, `lib/share`, `lib/storage`, `lib/umami-proxy` must not import React. `lib/umami-proxy` also uses no Node APIs, because it runs in a Pages Function.
+- `functions/` files only call into `lib/` through relative imports (Pages bundles them without the `@/` alias) and read no config or env. This keeps them testable and reusable by the receipt renderer.
 - Components never contain pricing numbers; those live in `data/`.
 - Every environment variable is read in `config/` only.
 - Tier thresholds and taglines live in `data/` so you can tune them (O1) without touching logic.
@@ -308,7 +316,8 @@ Checked from official docs this session: Cloudflare Pages limits, Workers static
 
 1. **Real-device tests (Day 1 spike):** receipt export, Web Share and download on a real iPhone, a mid-range Android, and the WhatsApp, Instagram, TikTok and X in-app browsers. No authoritative documentation exists for the in-app browsers.
 2. **Worst-case share-link length** in WhatsApp (Risk 3). Needs a real paste test.
-3. **CSP vs the Umami script and Next.js inline scripts.** Needs a test build.
+3. **CSP vs Next.js inline scripts** (the analytics script is same-origin since T10.4). Needs a test build.
+3a. **Analytics relay on the deployed site (T10.4):** requests go only to this origin, `gateway.umami.is` is really the upstream, events and country show in Umami Realtime, and it works from the network where Umami's hostnames are blocked.
 4. **Umami Hobby behavior past 100K events.** Undocumented. Optional: email Umami support. The design tolerates either outcome.
 5. **Cloudflare Developer Platform / service-specific terms** (the part I couldn't read), if you want certainty on commercial use. The general terms show no ban.
 6. **DOM-capture libraries on iOS:** only matters if you reject Canvas 2D. My only comparison source is one blog post.
@@ -335,5 +344,8 @@ That spec becomes `DATA_MODEL.md` and keeps the same slot in your playbook.
 - [web.dev: Web Share API](https://web.dev/articles/web-share)
 - [Umami Cloud FAQ](https://docs.umami.is/docs/cloud/faq)
 - [Umami pricing](https://umami.is/pricing)
+- [Umami: bypass ad blockers](https://docs.umami.is/docs/bypass-ad-blockers)
+- [Umami: sending stats (Cloud gateway)](https://docs.umami.is/docs/api/sending-stats)
+- [Cloudflare Pages Functions pricing](https://developers.cloudflare.com/pages/functions/pricing/)
 - [html2canvas vs dom-to-image vs html-to-image comparison](https://dev.to/shaishav_patel_271fdcd61a/html2canvas-vs-dom-to-image-vs-html-to-image-browser-screenshot-library-comparison-4h5c) (single blog post)
 - [Apple Developer Forums: html2canvas on iOS 15](https://developer.apple.com/forums/thread/690805) (search result only, not fully reviewed)
