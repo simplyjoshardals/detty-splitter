@@ -233,8 +233,9 @@ Goal: every number editable, every mode switchable, safely.
 
 ### Slice 11: Polish, accessibility, QA, launch prep (2.0h) _(UI_PLAN S10)_
 
-- [ ] **T11.1 Sleekness pass and screenshots** (0.75h)
+- [x] **T11.1 Sleekness pass and screenshots** (0.75h)
   - Done when: DESIGN.md §11 checklist walked; screenshots at 360 / 768 / 1280 in light and dark reviewed; nothing generic or cheap-looking left from the checklist.
+  - **Done: walked by the author (27 Nov 2026): all eight §11 items pass (first paint on throttled network, typing on iPhone, plates and currency, stamp and PNG texture, export on a phone, hints). The 360 / 768 / 1280 light and dark screenshots were reviewed slice by slice, last in the T10.1 pass (320, 360, 768, 1280), so no new screenshot round was taken. A source audit found nothing to change: no blur, gradients or large radii in `app/` or `components/`, and the items below are intentional.** **No code changed.** **Left as is, on purpose:** the saved numbers swap in after mount (static export needs the first render to match the server HTML, DESIGN §6); the PNG's top and bottom margins are the 140px story safe zone (DESIGN §7); the ₦ font has no fallback adjustment, so a price may shift about 2px when it swaps in. **Not in this slice:** web app manifest, print-feed animation and Android haptic (optional, DESIGN §8 and §12).
 - [ ] **T11.2 Accessibility and end-to-end** (0.75h)
   - Done when: axe shows no violations on the main page; whole flow works by keyboard only; one Playwright flow passes (default, edit, switch currency, copy link, open link in a fresh page, numbers match, export triggers a download).
 - [ ] **T11.3 CSP, final device test, launch** (0.5h)
