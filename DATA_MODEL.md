@@ -195,7 +195,8 @@ Rules:
 | `CTA_URL` | `NEXT_PUBLIC_CTA_URL` | Must parse as a URL with protocol `https:` (`parseHttpsUrl`, shared from `lib/author`). Otherwise treated as unset |
 | `CTA_TITLE`, `CTA_BUTTON_TEXT`, `CTA_DISCLOSURE` | constants | Placeholder wording until C1. A non-empty `CTA_DISCLOSURE` (the link is an affiliate or paid promo) shows the disclosure line under the button and adds `sponsored` to the link's `rel`. Empty means neither |
 | `DEFAULT_RATES` + `RATES_AS_OF` | constants | You set these from a real source before launch; date shown in the UI and receipt |
-| `ANALYTICS_SITE_ID` | constant | Public by design (Umami site IDs are embedded in page source) |
+| `ANALYTICS_SITE_ID` | constant | Public by design (Umami site IDs are embedded in page source). Empty by default: no script is added and `track()` does nothing. Paste the website ID (a UUID) from the Umami dashboard before launch. `umamiScriptProps` (`lib/analytics`) treats anything that is not a UUID as unset (T10.3) |
+| `ANALYTICS_SCRIPT_SRC` | constant | `https://cloud.umami.is/script.js`, https only. The script only sends from the host of `SITE_URL` (`data-domains`), so localhost, previews and tests never count. Change the host here and in the CSP together (T10.3) |
 | `AUTHOR_NAME`, `AUTHOR_URL` | constants | Optional, empty by default. Footer shows "Built in Lagos by <name>" as a link only when both are set: `authorCredit` (`lib/author`) needs a non-blank name and a URL with protocol `https:`, otherwise it is treated as unset |
 
 Card renders only when `CTA_ENABLED` **and** `CTA_URL` is valid (and the title and button text are not blank). Both are public values, so never put a secret or tokenized URL in them.
@@ -320,6 +321,8 @@ interface ReceiptView {
 | `preset_selected` (optional) | `preset` | On preset tap |
 
 Hard rule: **never send amounts, headcounts, rates or the share string.** Event properties are limited to the small enums above. That keeps analytics free of anything that could identify or reconstruct a person's plans.
+
+**How it is enforced (T10.3).** `track()` (`lib/analytics`) takes only these three typed events, checks every value again at run time, and sends only the keys in the table, so an extra field on an object never leaves the page. It never throws and does nothing when `window.umami` is missing. The automatic pageview is the other way data could leak: its URL carries the `#v1-…` share link, which holds the whole plan. The script tag therefore always has `data-exclude-hash` and `data-exclude-search` (and `data-do-not-track`), and a test pins them. `preset_selected` is **not built**: it is optional, and the free plan has 100K events a month. `receipt_export` is sent when the export path succeeds (`shared`, `downloaded` or `inline`), with the state the tap was made from; a cancelled share, a failure or a "not ready" tap sends nothing. `link_copy` is sent only when the copy worked, and `cta_click` on a click of the CTA link (a middle-click is not counted).
 
 ---
 

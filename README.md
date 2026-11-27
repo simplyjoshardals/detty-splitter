@@ -45,6 +45,10 @@ Defined in `.env.example` and read only in `config/index.ts`.
 
 These are public values inlined at build time. Never put secrets in them. Changing them requires a rebuild and redeploy.
 
+### Analytics
+
+Umami Cloud, off until you paste the website ID (a UUID, public by design) into `ANALYTICS_SITE_ID` in `config/index.ts`; it is a plain constant, not an env var. With it empty no script is added and nothing is sent. It sends only `receipt_export` (tier, currency, method), `link_copy` and `cta_click`, never amounts, headcounts, rates or the share link, and only from the host of `SITE_URL`, so local runs and previews do not count. Check it on the deployed site in Umami's Realtime view.
+
 ## Project structure
 
 ```

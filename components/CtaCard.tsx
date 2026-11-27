@@ -7,6 +7,7 @@ import {
   CTA_URL,
 } from "@/config";
 import { parseHttpsUrl } from "@/lib/author";
+import { CtaLink } from "./CtaLink";
 
 interface CtaCardProps {
   /** Defaults to the config flag. Tests pass their own, so they never mock config. */
@@ -60,7 +61,7 @@ export function CtaCard({
         >
           {heading}
         </h2>
-        <a
+        <CtaLink
           href={href}
           target="_blank"
           rel={rel}
@@ -70,7 +71,7 @@ export function CtaCard({
         >
           {label}
           <ArrowSquareOutIcon size={20} weight="bold" aria-hidden="true" />
-        </a>
+        </CtaLink>
         {note && (
           <p id={DISCLOSURE_ID} className="mt-2 text-[length:var(--t-xs)] leading-4 text-balance text-muted">
             {note}

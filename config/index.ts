@@ -70,7 +70,7 @@ export const CTA_DISCLOSURE = "";
  * dashboard before launch. The script only sends from the host of SITE_URL (`data-domains`),
  * so localhost, previews and tests never count. Change the host here and the CSP together.
  */
-export const ANALYTICS_SITE_ID = "";
+export const ANALYTICS_SITE_ID = "55b900bc-c714-418e-9af1-e74817cce70f";
 export const ANALYTICS_SCRIPT_SRC = "https://cloud.umami.is/script.js";
 
 /**

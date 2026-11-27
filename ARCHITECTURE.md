@@ -33,7 +33,7 @@
 | **UI layer** | Preset picker, bucket editors, results, currency toggle, receipt preview, CTA card | Browser |
 | **Receipt renderer** | Draws the receipt onto a canvas, outputs a PNG blob | Browser, loaded only on export |
 | **Share/export adapter** | Web Share with file, else download, else on-screen image fallback | Browser |
-| **Analytics adapter** | One small function `track(event)` that no-ops if no tool is configured | Browser plus third party (TBD, §3) |
+| **Analytics adapter** | One small function `track(event)` that no-ops if no tool is configured | Browser plus third party (Umami Cloud, §3.9) |
 
 ### Diagram
 
@@ -56,7 +56,7 @@ flowchart LR
 
   CFG["Config: site URL, CTA flag + URL, rates"]
   PRE["Presets + tier data"]
-  AT["Analytics service (TBD)"]
+  AT["Analytics service (Umami Cloud)"]
   WA["WhatsApp / X / OS share sheet"]
   CTA["External CTA link (any https URL)"]
 
@@ -185,6 +185,7 @@ Format: **recommendation**, alternatives, why, what would change my mind.
 - **Option 3:** No analytics at launch. Fastest, but you can't tell whether it worked.
 - **Rule:** use **one** analytics script, not two. Each extra script costs performance on weak phones.
 - **Decision:** go with Option 1 (Umami Cloud). Keep `track()` behind the adapter so swapping tools is a one-file change. If the cap or behavior at the cap is a problem, fall back to Option 2. Because only one script is used, Cloudflare Web Analytics is not added, so its cookie behavior (not confirmed; the page I tried to read was blocked) no longer matters.
+- **Built (T10.3):** `lib/analytics` holds `track()` and `umamiScriptProps()`; `app/layout.tsx` adds the script through `next/script` (`afterInteractive`) only when `ANALYTICS_SITE_ID` is set. **Verified in Umami's docs:** the Cloud script is `https://cloud.umami.is/script.js`; the tag takes `data-website-id`, `data-domains`, `data-exclude-hash`, `data-exclude-search` and `data-do-not-track`; events go through `umami.track(name, data)`. **Not verified:** which hosts the tracker posts events to (by default the host the script was loaded from, so expect `https://cloud.umami.is`). Confirm in DevTools, Network, on the deployed site, and use the same hosts in the CSP (T11.3: `script-src` and `connect-src`). The pageview URL would carry the share link in its `#hash`, so `data-exclude-hash` and `data-exclude-search` are always set (DATA_MODEL §7). Events only prove themselves on the deployed site, in Umami's Realtime view.
 
 ### 3.10 Testing approach (for later prompts)
 - Unit tests (Vitest) for the calculation core, number-input parsing, the share-link codec including malformed input, and tier lookup.

@@ -1,11 +1,16 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ShareBar } from "@/components/ShareBar";
+import type { AnalyticsEvent } from "@/lib/analytics";
 import { decodeShare } from "@/lib/share";
 import { buildShareUrl } from "@/lib/share/link";
 import { createInitialState } from "@/state/reducer";
 import { AppStateProvider, useAppState } from "@/state/AppStateProvider";
+
+/** Stands in for the adapter, so a test sees what would be sent. */
+const analytics = vi.hoisted(() => ({ track: vi.fn<(event: AnalyticsEvent) => void>() }));
+vi.mock("@/lib/analytics", () => ({ track: analytics.track }));
 
 afterEach(() => {
   cleanup();
@@ -165,5 +170,36 @@ describe("ShareBar: copy denied", () => {
     await tapCopy();
     expect(statusText()).toBe(COPIED);
     expect(screen.queryByRole("textbox")).toBeNull();
+  });
+});
+
+describe("ShareBar: analytics", () => {
+  beforeEach(() => analytics.track.mockClear());
+
+  it("sends link_copy once, with no properties, after the link was copied", async () => {
+    workingClipboard();
+    mount();
+    await tapCopy();
+    expect(analytics.track).toHaveBeenCalledTimes(1);
+    expect(analytics.track).toHaveBeenCalledWith({ name: "link_copy" });
+  });
+
+  it("never sends the link or the numbers", async () => {
+    const { written } = workingClipboard();
+    mount();
+    await tapCopy();
+    const sent = JSON.stringify(analytics.track.mock.calls);
+    expect(sent).not.toContain("#");
+    expect(sent).not.toContain(written[0] ?? "no link was written");
+  });
+
+  it("sends nothing when the browser refuses the copy", async () => {
+    vi.stubGlobal("navigator", {
+      clipboard: { writeText: () => Promise.reject(new Error("NotAllowedError")) },
+    });
+    mount();
+    await tapCopy();
+    expect(statusText()).toBe(BLOCKED);
+    expect(analytics.track).not.toHaveBeenCalled();
   });
 });

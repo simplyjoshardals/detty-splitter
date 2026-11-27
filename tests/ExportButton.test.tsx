@@ -2,6 +2,7 @@
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ExportButton } from "@/components/ExportButton";
+import type { AnalyticsEvent } from "@/lib/analytics";
 import type { PrerenderSnapshot } from "@/lib/receipt/prerender";
 import { AppStateProvider, useAppState } from "@/state/AppStateProvider";
 
@@ -35,6 +36,10 @@ vi.mock("@/lib/receipt/prerender", () => ({
     update: vi.fn(),
   },
 }));
+
+/** Stands in for the adapter, so a test sees what would be sent. */
+const analytics = vi.hoisted(() => ({ track: vi.fn<(event: AnalyticsEvent) => void>() }));
+vi.mock("@/lib/analytics", () => ({ track: analytics.track }));
 
 const BLOB = new Blob(["png-bytes"], { type: "image/png" });
 const READY: PrerenderSnapshot = {
@@ -532,5 +537,80 @@ describe("ExportButton: in-app browser tip", () => {
     mount();
     await tap();
     expect(statusText()).toBe(DOWNLOADED_TEXT);
+  });
+});
+
+describe("ExportButton: analytics", () => {
+  beforeEach(() => {
+    analytics.track.mockClear();
+    fake.set(READY);
+  });
+
+  /** The one event the tap sent, with its tier checked to be a real tier id. */
+  function sentExport() {
+    expect(analytics.track).toHaveBeenCalledTimes(1);
+    const event = analytics.track.mock.calls[0]?.[0];
+    if (event?.name !== "receipt_export") throw new Error("expected a receipt_export event");
+    expect([1, 2, 3, 4, 5]).toContain(event.tier);
+    return event;
+  }
+
+  it("sends receipt_export with method share after the share sheet worked", async () => {
+    sharingBrowser();
+    mount();
+    await tap();
+    expect(sentExport()).toMatchObject({ currency: "NGN", method: "share" });
+  });
+
+  it("sends receipt_export with method download after a download", async () => {
+    mount(); // navigator is {}: no share
+    await tap();
+    expect(sentExport()).toMatchObject({ currency: "NGN", method: "download" });
+  });
+
+  it("sends receipt_export with method inline when the download is unsupported", async () => {
+    downloadThrows();
+    mount();
+    await tap();
+    expect(sentExport()).toMatchObject({ currency: "NGN", method: "inline" });
+  });
+
+  it("sends only the name, tier, currency and method: no amounts, headcount, rates or link", async () => {
+    mount();
+    await tap();
+    expect(Object.keys(sentExport()).sort()).toEqual(["currency", "method", "name", "tier"]);
+  });
+
+  it("sends nothing when the user cancels the share sheet", async () => {
+    sharingBrowser(() => Promise.reject(new DOMException("cancelled", "AbortError")));
+    mount();
+    await tap();
+    expect(analytics.track).not.toHaveBeenCalled();
+  });
+
+  it("sends nothing when the receipt is not ready yet", async () => {
+    fake.set({ status: "idle" });
+    sharingBrowser();
+    mount();
+    await tap();
+    expect(statusText()).toBe(TAP_AGAIN);
+    expect(analytics.track).not.toHaveBeenCalled();
+  });
+
+  it("sends nothing when the pre-render failed", async () => {
+    fake.set({ status: "failed", reason: "draw" });
+    sharingBrowser();
+    mount();
+    await tap();
+    expect(statusText()).toBe(FAILED_TEXT);
+    expect(analytics.track).not.toHaveBeenCalled();
+  });
+
+  it("sends one event per finished export, and a second tap is a second export", async () => {
+    sharingBrowser();
+    mount();
+    await tap();
+    await tap();
+    expect(analytics.track).toHaveBeenCalledTimes(2);
   });
 });

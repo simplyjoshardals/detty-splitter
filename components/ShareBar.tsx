@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CheckIcon, CopyIcon, WarningIcon } from "@phosphor-icons/react";
+import { track } from "@/lib/analytics";
 import { buildShareUrl, copyText, type CopyResult } from "@/lib/share/link";
 import { useAppState } from "@/state/AppStateProvider";
 
@@ -47,9 +48,10 @@ export function ShareBar() {
 
   function copyLink() {
     // No await before this call: the clipboard write has to start inside the tap.
-    void copyText(buildShareUrl(state, window.location)).then((result) =>
-      setStatus({ kind: result }),
-    );
+    void copyText(buildShareUrl(state, window.location)).then((result) => {
+      if (result === "copied") track({ name: "link_copy" });
+      setStatus({ kind: result });
+    });
   }
 
   return (

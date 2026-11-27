@@ -11,6 +11,9 @@ import {
   ReceiptIcon,
   WarningIcon,
 } from "@phosphor-icons/react";
+import { TIERS } from "@/data/tiers";
+import { track } from "@/lib/analytics";
+import { calculate } from "@/lib/calc";
 import { exportReceipt, isInAppBrowser, prefersShareSheet } from "@/lib/export";
 import type { ExportFailureReason, ExportResult } from "@/lib/export";
 import { prerender } from "@/lib/receipt/prerender";
@@ -245,6 +248,16 @@ export function ExportButton() {
     // Where sharing is impossible the tap waits for the PNG, so say so while it does.
     if (waiting) setLast({ kind: "printing", retry: fromRetry });
     void pending.then((result) => {
+      // A finished export counts even if the numbers changed meanwhile: the file that left was the
+      // receipt of `tapState`. Cancelled, failed and not-ready taps send nothing (DATA_MODEL §7).
+      if (result.status === "shared" || result.status === "downloaded" || result.status === "inline") {
+        track({
+          name: "receipt_export",
+          tier: calculate(tapState, TIERS).tier.id,
+          currency: tapState.currency,
+          method: result.method,
+        });
+      }
       // The numbers changed meanwhile: this result is about an old receipt.
       if (result.status !== "not_ready" && latestState.current !== tapState) {
         setLast((current) => (current?.kind === "printing" ? null : current));

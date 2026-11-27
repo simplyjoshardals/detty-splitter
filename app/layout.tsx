@@ -1,7 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Bungee, Space_Mono } from "next/font/google";
 import localFont from "next/font/local";
+import Script from "next/script";
 import {
+  ANALYTICS_SCRIPT_SRC,
+  ANALYTICS_SITE_ID,
   OG_IMAGE_ALT,
   OG_IMAGE_PATH,
   OG_IMAGE_SIZE,
@@ -13,6 +16,7 @@ import {
   THEME_COLOR,
   X_HANDLE,
 } from "@/config";
+import { umamiScriptProps } from "@/lib/analytics";
 import "./globals.css";
 
 // Display font: words only (DESIGN §1). Never used for numbers or currency symbols.
@@ -86,13 +90,21 @@ export const viewport: Viewport = {
   themeColor: THEME_COLOR,
 };
 
+// Umami (T10.3). `null` until a site ID is set in config, so no script is added and `track()` does
+// nothing. The attributes keep the #hash (the share link) out of the pageview URL and limit sending
+// to the real host. `afterInteractive` keeps it off the critical path.
+const umami = umamiScriptProps(ANALYTICS_SITE_ID, ANALYTICS_SCRIPT_SRC, SITE_URL);
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
       className={`${bungee.variable} ${spaceMono.variable} ${naira.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        {umami !== null && <Script strategy="afterInteractive" {...umami} />}
+      </body>
     </html>
   );
 }
