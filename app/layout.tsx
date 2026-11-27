@@ -5,10 +5,13 @@ import {
   OG_IMAGE_ALT,
   OG_IMAGE_PATH,
   OG_IMAGE_SIZE,
+  OG_LOCALE,
   SITE_DESCRIPTION,
   SITE_NAME,
   SITE_TITLE,
   SITE_URL,
+  THEME_COLOR,
+  X_HANDLE,
 } from "@/config";
 import "./globals.css";
 
@@ -55,16 +58,20 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: SITE_TITLE,
   description: SITE_DESCRIPTION,
+  // Share links and test URLs (`?v=1`) all point at the one page, so say which URL is the real one.
+  alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     url: "/",
     siteName: SITE_NAME,
+    locale: OG_LOCALE,
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
     images: [OG_IMAGE],
   },
   twitter: {
     card: "summary_large_image",
+    site: X_HANDLE,
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
     images: [OG_IMAGE],
@@ -75,6 +82,8 @@ export const metadata: Metadata = {
 // env(safe-area-inset-*) non-zero. The damage meter pads itself by those insets (DESIGN §4).
 export const viewport: Viewport = {
   viewportFit: "cover",
+  // Danfo yellow, so the phone's toolbar matches the header band (T10.2 follow-up).
+  themeColor: THEME_COLOR,
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

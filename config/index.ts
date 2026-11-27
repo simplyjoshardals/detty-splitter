@@ -29,6 +29,22 @@ export const OG_IMAGE_SIZE = { width: 1200, height: 630 } as const;
 export const OG_IMAGE_ALT =
   "A danfo-yellow debit alert receipt: Detty Dec 2026, ₦1,347,500 per person for a group of 4, stamped Soft Life Certified.";
 
+/**
+ * `og:locale`. Facebook's English locales are en_GB and en_US (there is no en_NG), so en_GB, the
+ * closest to Nigerian English spelling. Format `ll_CC`, checked in tests/metadata.test.ts.
+ */
+export const OG_LOCALE = "en_GB";
+
+/** The author's X handle, shown as the card's attribution (`twitter:site`). Public by design. */
+export const X_HANDLE = "@joshardals";
+
+/**
+ * Mobile browser toolbar colour (`theme-color`): danfo yellow, which matches the header band in
+ * both themes (the band is a light island, DESIGN §3.1). Must equal `--danfo` in globals.css;
+ * tests/metadata.test.ts reads the CSS and compares.
+ */
+export const THEME_COLOR = "#FFC400";
+
 /** The CTA is on only if the variable is exactly the string "true". */
 export const CTA_ENABLED: boolean =
   process.env.NEXT_PUBLIC_CTA_ENABLED === "true";

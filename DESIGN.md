@@ -436,6 +436,8 @@ Rules: keep everything that matters inside the middle 1200 × 600 and away from 
 
 **Favicon.** A black ₦ on a danfo-yellow square, **kept** after the 16px check (the fallback of a yellow block with a black stripe was not needed). A ₦ with its two bars drawn inside the N turned to mush at 16px; the shipped geometry has a bolder N (stems 12/64 wide) and bars that run edge to edge, and the 16px frame in `favicon.ico` is pixel-snapped so each bar is exactly one crisp pixel row. The ₦ is drawn as paths, not text, because an SVG favicon cannot load web fonts. Files: `app/icon.svg` (the source), `app/favicon.ico` (16, 32, 48px), `app/apple-icon.png` (180px, full-bleed; iOS rounds the corners). Next adds the `<link>` tags by file name.
 
+**Browser chrome.** `theme-color` is `--danfo` (`THEME_COLOR` in `config/`, checked against `globals.css`), so a phone's toolbar continues the header band. The band is yellow in both themes, so one value covers light and dark. The page also declares `<link rel="canonical" href="/">` (resolved against `SITE_URL`), so share links and `?v=` test URLs all name one page.
+
 ### 7.1 Ink-stamp texture (canvas)
 Draw the stamp text and border, then erase a few hundred tiny speckles with `destination-out` using a **seeded** random sequence derived from the total, so the same receipt always gets the same stamp. About 200 speckles, radius 1 to 4px. Optional: slight rotation jitter. Keep the text legible (stamp contrast above is 5.1:1).
 

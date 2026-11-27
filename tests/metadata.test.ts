@@ -3,10 +3,13 @@ import { describe, expect, it } from "vitest";
 import {
   OG_IMAGE_PATH,
   OG_IMAGE_SIZE,
+  OG_LOCALE,
   SITE_DESCRIPTION,
   SITE_NAME,
   SITE_TITLE,
   SITE_URL,
+  THEME_COLOR,
+  X_HANDLE,
 } from "@/config";
 
 /**
@@ -58,9 +61,30 @@ describe("page metadata", () => {
       "SITE_DESCRIPTION",
       "OG_IMAGE_PATH",
       "summary_large_image",
+      "canonical",
+      "OG_LOCALE",
+      "X_HANDLE",
+      "THEME_COLOR",
     ]) {
       expect(layout, `layout.tsx should mention ${needle}`).toContain(needle);
     }
+  });
+});
+
+describe("preview and browser hints", () => {
+  it("has an X handle in the form X accepts (@ and 1 to 15 letters, digits or underscores)", () => {
+    expect(X_HANDLE).toMatch(/^@\w{1,15}$/);
+  });
+
+  it("has an og:locale in the ll_CC format", () => {
+    expect(OG_LOCALE).toMatch(/^[a-z]{2}_[A-Z]{2}$/);
+  });
+
+  it("sets the browser toolbar colour to the danfo token, so the two cannot drift apart", () => {
+    const css = readFileSync(new URL("app/globals.css", ROOT), "utf8");
+    const danfo = /--danfo:\s*(#[0-9a-f]{6})/i.exec(css);
+    if (danfo === null || danfo[1] === undefined) throw new Error("globals.css has no --danfo");
+    expect(THEME_COLOR.toLowerCase()).toBe(danfo[1].toLowerCase());
   });
 });
 
