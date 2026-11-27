@@ -101,7 +101,7 @@ export interface UmamiScriptProps {
   /** Without these two the pageview URL would carry the share link, which holds the plan. */
   "data-exclude-hash": "true";
   "data-exclude-search": "true";
-  "data-do-not-track": "true";
+  "data-do-not-track": "false";
 }
 
 /**
@@ -129,6 +129,6 @@ export function umamiScriptProps(
     "data-domains": host,
     "data-exclude-hash": "true",
     "data-exclude-search": "true",
-    "data-do-not-track": "true",
+    "data-do-not-track": "false",
   };
 }
