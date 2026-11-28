@@ -507,8 +507,8 @@ Standard English with light Nigerian Pidgin, one Pidgin phrase per message at mo
 | Default rates tag | "as of {date}", for example "as of 23 Nov 2026" (day without a leading zero, three-letter month) |
 | Receipt rates note | "Rates as of 23 Nov 2026" (same date format), or "Custom rates" once either rate differs |
 | CTA label | "NEXT STOP" |
-| CTA title (placeholder until C1) | "Still planning the trip?" |
-| CTA button (placeholder until C1) | "Take me there" |
+| CTA title (kept after C1; the CTA is off at launch) | "Still planning the trip?" |
+| CTA button (kept after C1) | "Take me there" |
 | CTA disclosure (empty unless the link is affiliate or paid) | for example "Sponsored link. We may earn a commission." |
 | Footer credit | "Built in Lagos by <name>" |
 | 404 | "Wrong bus. This page no dey here." |

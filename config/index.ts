@@ -55,7 +55,7 @@ export const CTA_URL: string | null = parseHttpsUrl(
 
 /**
  * CTA card copy (DATA_MODEL §3.3, DESIGN §5.12). Plain constants, public by design.
- * PLACEHOLDER wording until C1 (copy refinement). CTA_DISCLOSURE is empty for your own link.
+ * Wording kept after C1 (copy refinement); the CTA is off at launch. CTA_DISCLOSURE is empty for your own link.
  * For an affiliate or paid link, set it (for example "Sponsored link. We may earn a
  * commission."): that shows the line under the button and marks the link `rel="sponsored"`.
  */

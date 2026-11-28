@@ -200,19 +200,19 @@
 
 ## 7. Draft receipt tiers (to refine)
 
-Tier is computed from the **per-person total in ₦** (A12). Thresholds are placeholders and must be tuned after price research so the middle tiers hold most users and the extremes feel rare and shareable.
+Tier is computed from the **per-person total in ₦** (A12). Thresholds were tuned in R1 (28 Nov 2026) so the middle tiers hold most users and the extremes feel rare and shareable.
 
-| Tier | Placeholder threshold (per person, ₦) | Badge | Draft tagline |
+| Tier | Threshold (per person, ₦) | Badge | Tagline |
 |---|---|---|---|
-| 1 | under 300k | **Certified Sapa Survivor** | "Outside on a budget. Jollof and gist dey carry me." |
-| 2 | 300k–750k | **Budget Baddie / Budget Boss** | "I go enter every party. I no go enter debt." |
-| 3 | 750k–1.5M | **Soft Life Certified** | "Soft life no be luck, na planning." |
-| 4 | 1.5M–3M | **Detty December Professional** | "Table don reserve. Account balance? Private." |
-| 5 | above 3M | **IJGB Final Boss** | "Dollar dey talk. Lagos dey listen." |
+| 1 | under 600k | **Certified Sapa Survivor** | "Outside on a budget. Jollof and gist dey carry me." |
+| 2 | 600k–1.2M | **Budget Boss** | "I go enter every party. I no go enter debt." |
+| 3 | 1.2M–2.5M | **Soft Life Certified** | "Soft life no be luck, na planning." |
+| 4 | 2.5M–4M | **Detty December Professional** | "Table don reserve. Account balance? Private." |
+| 5 | above 4M | **IJGB Final Boss** | "Dollars talk. Lagos dey listen." |
 
-**Draft balance lines** (the receipt's "AVAIL BAL" joke, one per tier, your copy to refine):
+**Balance lines** (the receipt's "AVAIL BAL" joke, one per tier, final after C1):
 
-| Tier | Draft balance line |
+| Tier | Balance line |
 |---|---|
 | 1 | `AVAIL BAL: ₦0.00 (SAPA LOADING)` |
 | 2 | `AVAIL BAL: STILL BREATHING` |

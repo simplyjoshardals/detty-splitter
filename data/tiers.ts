@@ -47,7 +47,7 @@ export const TIERS: readonly Tier[] = [
     id: 5,
     minPerPersonNgn: 4000000,
     badge: "IJGB Final Boss",
-    tagline: "Dollar dey talk. Lagos dey listen.",
+    tagline: "Dollars talk. Lagos dey listen.",
     balanceLine: "AVAIL BAL: IN DOLLARS, OGA.",
   },
 ];
