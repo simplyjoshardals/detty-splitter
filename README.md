@@ -2,7 +2,7 @@
 
 A zero-signup, mobile-first web page that takes a group from "vibe" to "cost per person" for a Lagos Detty December trip in under a minute. Pick a preset, tweak the numbers, switch currency (₦ / $ / £), then share the calculation as a link or export it as a "damage receipt" image.
 
-> Status: in development. Launch target: Tue 24 Nov 2026.
+> Status: live at [detty-splitter.pages.dev](https://detty-splitter.pages.dev). Launched 28 Nov 2026.
 
 ## How it works
 
