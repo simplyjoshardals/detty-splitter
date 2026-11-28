@@ -78,7 +78,7 @@ Goal: learn now whether canvas export, Web Share and the fallbacks work where yo
     5. Fonts: load and draw using only the first family of `--font-bungee` and `--font-space-mono` (T7.2 adds `--font-naira` under the same rule). The fallback face `next/font` appends made `document.fonts.load()` reject with NetworkError on Android (likely because it points at a system font Android lacks), even though the real fonts were fine. T9.2 adds `prerender.retry()`; its logic is tested with a mocked renderer, but recovery from a real font failure still needs a device check (offline, then Retry).
     6. (Added 26 Nov 2026, in T9.1; the matrix above has no desktop row.) Desktop uses the download first, not Share. The author's desktop Chrome (Windows) exposes file sharing, but the first `share()` stayed pending with no sheet shown and a second click failed with `InvalidStateError` ("An earlier share has not yet completed"), so it took two clicks. Share is therefore used only where `(pointer: coarse)` matches (phones, tablets); a mouse or trackpad primary pointer skips it. Phones and in-app browsers are unchanged.
 
-> Delete the `/spike` route before launch (it's on the Slice 11 checklist). Since T7.2 it runs the real renderer (`lib/receipt`), so it is also where the exported PNG can be looked at until T7.3/T8.
+> The `/spike` route was deleted in T11.3. It was the throwaway page for the export spike; since T7.2 it ran the real renderer (`lib/receipt`).
 
 ### Slice 3: First paint, defaults, read-only results (2.0h) _(UI_PLAN S2)_
 
@@ -251,6 +251,7 @@ Goal: every number editable, every mode switchable, safely.
   - Build: Content-Security-Policy in `public/_headers` **last**, test, and loosen if fonts, the analytics script or the page break (analytics is same-origin since T10.4, so no Umami host is needed in the CSP).
   - Done when: no console errors; the `/spike` route is deleted; full loop retested on a real iPhone and Android; real preset prices and rates are in `config/`/`data/`; custom-domain decision (O2) made; launch posts drafted.
   - Depends on: everything above.
+  - Built (28 Nov 2026), not yet verified by the author: **`public/_headers`** has the CSP (the policy and the reasons are in ARCHITECTURE §6; `'unsafe-inline'` for scripts and styles, because a static export has no nonces). **`tests/headers.test.ts`** pins the rules. **`e2e/main.spec.ts`** has a third test that applies the CSP line to every page response (`serve` ignores `_headers`), stubs `/m/lib` (a Function that `serve` does not run), then fails on any console error, page error or failed font while it edits, copies the link and exports. **`app/spike`** is deleted. **Still open:** the CSP check on a Pages preview deploy, the real iPhone and Android loop, real prices and rates (R1 under Parallel tracks), the custom-domain decision (O2) and the launch posts.
 
 ### Parallel tracks (not in the 18.75h)
 
@@ -289,7 +290,7 @@ Riskiest and least-familiar work comes first, while changing course is cheap.
 - [x] Analytics relay checked on the deployed site (T10.4, 28 Nov 2026): requests only to this origin, also from a network where Umami's hostnames are blocked; events and country in Umami Realtime
 - [ ] First-load JS checked against the budget after any slice that adds a dependency
 - [ ] Committed with a clear message and pushed (auto-deploys)
-- [ ] **Launch-day only:** `/spike` removed, real prices and rates in place, CSP tested, analytics events verified
+- [ ] **Launch-day only:** `/spike` removed (T11.3), real prices and rates in place (R1), CSP tested on a Pages preview deploy (policy and e2e built in T11.3), analytics events verified
 
 ---
 
