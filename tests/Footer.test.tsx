@@ -2,6 +2,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { Footer } from "@/components/Footer";
+import { AUTHOR_NAME } from "@/config";
 import { authorCredit } from "@/lib/author";
 
 afterEach(cleanup);
@@ -18,9 +19,9 @@ describe("Footer", () => {
     expect(screen.queryByText(/Built in Lagos/)).toBeNull();
   });
 
-  it("shows no credit with the shipped config, which is empty", () => {
+  it("shows the shipped credit as a link", () => {
     render(<Footer />);
-    expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.getByRole("link", { name: AUTHOR_NAME })).toBeTruthy();
   });
 
   it("shows the credit as a link when a valid one is given", () => {

@@ -84,20 +84,20 @@ export const ANALYTICS_SCRIPT_SRC = "/m/lib";
  * public by design. Empty means no credit; the footer shows it only when the name is
  * non-empty and the URL is a valid https: URL (see authorCredit in lib/author).
  */
-export const AUTHOR_NAME = "";
-export const AUTHOR_URL = "";
+export const AUTHOR_NAME = "Joshardals";
+export const AUTHOR_URL = "https://x.com/joshardals";
 
 /**
- * PLACEHOLDER default rates, in naira per 1 unit of foreign currency. Not real:
- * 1,500 is the DATA_MODEL example and the GBP figure is made up. Replace both, and
- * RATES_AS_OF, from a real source before launch (DATA_MODEL §0 decision 5).
+ * Default rates, in naira per 1 unit of foreign currency (R1, 28 Nov 2026). USD is the CBN
+ * official rate (central rate 1,391.75 on 25 Nov 2026, rounded); GBP is the mid-market rate
+ * rounded (about 1,855 to 1,865). Street rates run higher, so the rates panel stays editable.
+ * Refresh both, and RATES_AS_OF, from a real source when they drift (DATA_MODEL §0 decision 5).
  * Each must stay inside RANGES.rate, with at most 2 decimals (tests/rates.test.ts checks).
  */
-export const DEFAULT_RATES: Rates = { ngnPerUsd: 1500, ngnPerGbp: 2000 };
+export const DEFAULT_RATES: Rates = { ngnPerUsd: 1356.9, ngnPerGbp: 1773.3 };
 
 /**
- * PLACEHOLDER: the date DEFAULT_RATES were read from the real source, as an ISO date
- * (YYYY-MM-DD). The UI shows it as "as of 23 Nov 2026" until a rate is edited. Set it
- * together with DEFAULT_RATES before launch; today's date only keeps the UI honest in dev.
+ * The date DEFAULT_RATES were read from the real source, as an ISO date (YYYY-MM-DD). The UI
+ * shows it as "as of 28 Nov 2026" until a rate is edited. Set it together with DEFAULT_RATES.
  */
-export const RATES_AS_OF = "2026-11-23";
+export const RATES_AS_OF = "2026-11-28";

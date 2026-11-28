@@ -207,7 +207,7 @@ Format: **recommendation**, alternatives, why, what would change my mind.
 | **Umami Cloud (chosen)** | Hobby plan: 100K events/month, 1 website, 6-month retention. Custom events supported. Cookieless and no consent banner needed, per Umami's own FAQ. | Hobby behavior past the cap is **not documented** (paid plans pause tracking at a budget). Treat as "tracking may stop." | Vendor's own privacy claim, not independently verified. |
 | **Google Fonts via `next/font`** | Fonts are downloaded at build time and self-hosted. | n/a | No runtime request to Google, which is better for privacy and speed. |
 | **GitHub** | Repo and CI | n/a | Use a public repo for the portfolio; never commit `.env` secrets (none exist). |
-| **Custom domain (optional)** | Paid, outside $0 budget | n/a | O2 in REQUIREMENTS. |
+| **Custom domain (optional)** | Paid, outside $0 budget | n/a | O2 in REQUIREMENTS. Decided 28 Nov 2026: not for launch. |
 
 No paid API and no secret keys exist anywhere in this design. `NEXT_PUBLIC_*` variables are public by design.
 
@@ -242,7 +242,7 @@ No paid API and no secret keys exist anywhere in this design. `NEXT_PUBLIC_*` va
 - **No free-text fields in MVP**, which removes the main XSS and content-abuse vector (and any "offensive receipt" screenshots with your URL on them).
 - **Secrets:** none exist. `NEXT_PUBLIC_CTA_URL` is public by design and must never contain a secret or tokenized URL.
 - **Outbound links:** `noopener noreferrer`, plus `sponsored` for affiliate or paid links.
-- **Headers (verified in Cloudflare docs):** put a plain-text `_headers` file (no extension) in `public/` so it is copied into the build output. Format: a URL pattern line, then indented `Name: value` lines. Limits: 100 rules, 2,000 characters per line. It applies to static asset responses, which is all you serve. Use it for a Content-Security-Policy, referrer policy and `frame-ancestors`. `_headers` does not apply to Functions responses, which set their own headers. Since the analytics script and events are same-origin (T10.4), the CSP needs no Umami host (`'self'` covers `script-src` and `connect-src` for analytics). **CSP (T11.3):** `default-src 'self'`; `script-src` and `style-src` are `'self' 'unsafe-inline'`; `img-src 'self' data: blob:` (the inline export image is a `blob:` URL); `font-src 'self'` (`next/font` self-hosts at build time); `connect-src 'self'`; `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'` (this one only works as a header). `'unsafe-inline'` stays because a static export cannot use nonces: Next writes inline `<script>` tags into every page and React writes `style` attributes. It still blocks every third-party script, request, frame and form target, and the share-link hash is never injected as HTML (see above). The stricter option is hashing each inline script in a post-build step, which breaks whenever Next changes its inline output. `tests/headers.test.ts` pins the rules (no wildcard, no host, no `'unsafe-eval'`, one line under the 2,000-character limit) and the third e2e test applies the same line to every page response, because `serve` ignores `_headers`. The deployed `_headers` itself still needs a check on a Pages preview deploy.
+- **Headers (verified in Cloudflare docs):** put a plain-text `_headers` file (no extension) in `public/` so it is copied into the build output. Format: a URL pattern line, then indented `Name: value` lines. Limits: 100 rules, 2,000 characters per line. It applies to static asset responses, which is all you serve. Use it for a Content-Security-Policy, referrer policy and `frame-ancestors`. `_headers` does not apply to Functions responses, which set their own headers. Since the analytics script and events are same-origin (T10.4), the CSP needs no Umami host (`'self'` covers `script-src` and `connect-src` for analytics). **CSP (T11.3):** `default-src 'self'`; `script-src` and `style-src` are `'self' 'unsafe-inline'`; `img-src 'self' data: blob:` (the inline export image is a `blob:` URL); `font-src 'self'` (`next/font` self-hosts at build time); `connect-src 'self'`; `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'` (this one only works as a header). `'unsafe-inline'` stays because a static export cannot use nonces: Next writes inline `<script>` tags into every page and React writes `style` attributes. It still blocks every third-party script, request, frame and form target, and the share-link hash is never injected as HTML (see above). The stricter option is hashing each inline script in a post-build step, which breaks whenever Next changes its inline output. `tests/headers.test.ts` pins the rules (no wildcard, no host, no `'unsafe-eval'`, one line under the 2,000-character limit) and the third e2e test applies the same line to every page response, because `serve` ignores `_headers`. Verified by the author on 28 Nov 2026: the tests pass and the policy works on a deployed Pages preview.
 - **Dependencies:** minimal and pinned; run the package manager's audit once before launch.
 
 ---
@@ -304,7 +304,7 @@ Rules of placement:
 - A nonce- or hash-based CSP without `'unsafe-inline'` (T11.3 shipped the policy in §6 with it).
 - Compression of share links (only if Risk 3's test fails).
 - PWA/offline (C9).
-- Custom domain (O2) and its purchase.
+- A custom domain and its purchase (O2 decided 28 Nov 2026: launch on `detty-splitter.pages.dev`; a later switch only changes `SITE_URL`).
 - Final tier thresholds (O1) until price research is done.
 - Settle-up, named participants (C3).
 
@@ -316,7 +316,7 @@ Checked from official docs this session: Cloudflare Pages limits, Workers static
 
 1. **Real-device tests (Day 1 spike):** receipt export, Web Share and download on a real iPhone, a mid-range Android, and the WhatsApp, Instagram, TikTok and X in-app browsers. No authoritative documentation exists for the in-app browsers.
 2. **Worst-case share-link length** in WhatsApp (Risk 3). Needs a real paste test.
-3. **CSP vs Next.js inline scripts** (the analytics script is same-origin since T10.4). Settled in T11.3 by allowing `'unsafe-inline'` for scripts and styles (§6), with an e2e test that runs the app under the policy. Still to check on a deployed Pages preview.
+3. **CSP vs Next.js inline scripts** (the analytics script is same-origin since T10.4). Settled in T11.3 by allowing `'unsafe-inline'` for scripts and styles (§6), with an e2e test that runs the app under the policy. Verified on a deployed Pages preview (28 Nov 2026).
 4. **Umami Hobby behavior past 100K events.** Undocumented. Optional: email Umami support. The design tolerates either outcome.
 5. **Cloudflare Developer Platform / service-specific terms** (the part I couldn't read), if you want certainty on commercial use. The general terms show no ban.
 6. **DOM-capture libraries on iOS:** only matters if you reject Canvas 2D. My only comparison source is one blog post.

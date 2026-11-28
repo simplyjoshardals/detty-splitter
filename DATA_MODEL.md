@@ -125,7 +125,7 @@ displayAmount(x)  = x / rate(currency)         // rate(NGN) = 1
 
 ### 2.5 Worked example (golden test)
 
-Illustrative numbers only: not real Lagos prices, and the rate is not a real rate. Group size 4, every shared headcount 4, rate ₦1,500 per $1.
+Illustrative numbers only: not real Lagos prices, and the rate is not a real rate. Group size 4, every shared headcount 4, rate ₦1,500 per $1. Before R1 these were also the Soft Life preset; after R1 they are not, and the unit tests keep them as fixed fixture values (`tests/setup.ts`).
 
 | Bucket | Price × qty | Mode | Line total | Your share (₦) |
 |---|---|---|---|---|
@@ -136,7 +136,7 @@ Illustrative numbers only: not real Lagos prices, and the rate is not a real rat
 | Food | ₦40,000 × 7 | per person | 280,000 | 280,000 |
 
 - Per person: ₦1,347,500. Group total: ₦5,390,000 (equals 1,050,000 + 1,200,000 + 1,600,000 + 420,000 + 1,120,000, i.e. real money, since all headcounts equal the group size).
-- Tier (placeholder thresholds in §3.2): ₦750k to 1.5M, so **Tier 3**.
+- Tier (thresholds in §3.2): ₦1.2M to 2.5M after R1, so **Tier 3**.
 - In USD: lines are 175.00, 200.00, 266.67, 70.00, 186.67, so the displayed per-person total is **$898.34** (the exact value is $898.33; the one-cent gap is the documented rounding rule). Group total shown: $898.34 × 4 = **$3,593.36**.
 - Switching to NGN or GBP must not change the tier.
 
@@ -159,7 +159,7 @@ interface Preset {
 Rules:
 - Exactly 3 presets, all with 5 buckets in the fixed order.
 - All prices are whole naira, rounded to a "round number" feel (D1).
-- **Values are blank until your price research (O1/Risk 1) is done.** Do not ship a placeholder that looks like a real quote. Show the "estimates, tap any number to edit" label everywhere.
+- **Values are R1 estimates (28 Nov 2026) from public Lagos prices.** Do not present them as quotes. Show the "estimates, tap any number to edit" label everywhere.
 - Default scenario on first load: `soft`, group size 4, 7 units where it applies (A11).
 - "Reset to preset" restores the last-picked preset's values into AppState, including `groupSize`, but keeps the user's `currency` and `rates`.
 
@@ -178,7 +178,7 @@ interface Tier {
 Rules:
 - Thresholds strictly ascending; tier 1 `minPerPersonNgn = 0`.
 - Selection: the highest tier whose `minPerPersonNgn <= perPersonNgn` (exact value).
-- Placeholder bounds from REQUIREMENTS §7: 0, 300,000, 750,000, 1,500,000, 3,000,000. Tune after price research (O1).
+- Bounds tuned in R1: 0, 600,000, 1,200,000, 2,500,000, 4,000,000, so Budget, Soft Life and Baller land in Tiers 1, 3 and 5.
 - Badge and tagline copy lives only in this file.
 
 ### 3.3 Config (`config/`, the only place env vars are read)
@@ -392,7 +392,7 @@ Full shapes are in UI_PLAN.md §1. Summary of what the UI needs from this data l
 
 ## 10. Decisions still open
 
-- **O1:** preset numbers and tier thresholds (your price research).
+- **O1 (decided in R1, 28 Nov 2026):** preset numbers and tier thresholds.
 - Default exchange rates and their "as of" date (set from a real source before launch).
 - Whether "Copy link" should also offer the Web Share sheet for the URL itself (nice to have, not MVP).
 

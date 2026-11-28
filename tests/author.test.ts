@@ -45,8 +45,8 @@ describe("authorCredit", () => {
     expect(authorCredit("A <b> & C", "https://ada.dev")?.name).toBe("A <b> & C");
   });
 
-  it("ships unset, so no credit shows until the owner fills both in", () => {
-    expect(authorCredit(AUTHOR_NAME, AUTHOR_URL)).toBeNull();
+  it("ships a valid credit, so the footer link is never silently dropped", () => {
+    expect(authorCredit(AUTHOR_NAME, AUTHOR_URL)).not.toBeNull();
   });
 });
 

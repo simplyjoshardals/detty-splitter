@@ -1,8 +1,10 @@
-import { describe, expect, it } from "vitest";
-import { DEFAULT_RATES, RATES_AS_OF } from "@/config";
+import { describe, expect, it, vi } from "vitest";
 import { RANGES, parseNumberInput } from "@/lib/input";
 import { formatAsOfDate, ratesAreCustom } from "@/lib/rates";
 import type { Rates } from "@/lib/types";
+
+// The real config values: tests/setup.ts mocks them for the other tests.
+const { DEFAULT_RATES, RATES_AS_OF } = await vi.importActual<typeof import("@/config")>("@/config");
 
 const DEFAULTS: Rates = { ngnPerUsd: 1500, ngnPerGbp: 2000 };
 

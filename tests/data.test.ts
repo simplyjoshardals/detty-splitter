@@ -1,8 +1,38 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { BUCKETS, BUCKET_ORDER } from "@/data/buckets";
-import { PRESETS, PRESET_ORDER } from "@/data/presets";
 import { TIERS } from "@/data/tiers";
+import { calculate } from "@/lib/calc";
 import type { PresetId } from "@/lib/types";
+
+// The real presets: tests/setup.ts mocks them for the other tests.
+const { PRESETS, PRESET_ORDER } = await vi.importActual<typeof import("@/data/presets")>("@/data/presets");
+
+describe("presets land in the intended tiers (R1)", () => {
+  it.each<[PresetId, number]>([
+    ["budget", 1],
+    ["soft", 3],
+    ["baller", 5],
+  ])("%s is in tier %i", (id, tierId) => {
+    const preset = PRESETS[id];
+    const [stay, events, tables, transport, food] = preset.buckets;
+    const result = calculate(
+      {
+        currency: "NGN",
+        groupSize: preset.groupSize,
+        rates: { ngnPerUsd: 1500, ngnPerGbp: 2000 },
+        buckets: [
+          { id: "stay", ...stay },
+          { id: "events", ...events },
+          { id: "tables", ...tables },
+          { id: "transport", ...transport },
+          { id: "food", ...food },
+        ],
+      },
+      TIERS,
+    );
+    expect(result.tier.id).toBe(tierId);
+  });
+});
 
 describe("tiers", () => {
   it("has 5 tiers numbered 1 to 5, the first starting at 0", () => {
