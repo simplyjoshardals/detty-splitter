@@ -111,7 +111,8 @@ export function DamageMeter({ targetId = DEFAULT_TARGET_ID, watchId }: DamageMet
   );
   const labelId = useId();
   // DESIGN §9: the empty-state line replaces the caption while there is nothing to pay.
-  const caption = result.perPersonMinor === 0 ? "Meter never start. Add a number, oya." : "per person";
+  const caption =
+    result.perPersonMinor === 0 ? "Meter never start. Add a number, oya." : "per person";
 
   return (
     <>

@@ -140,7 +140,8 @@ describe("useTargetInView", () => {
     vi.stubGlobal("IntersectionObserver", FakeIntersectionObserver);
   });
 
-  const latest = () => FakeIntersectionObserver.instances[FakeIntersectionObserver.instances.length - 1];
+  const latest = () =>
+    FakeIntersectionObserver.instances[FakeIntersectionObserver.instances.length - 1];
 
   it("reports not found, not in view, and watches nothing when the target is missing", () => {
     const { result } = renderHook(() => useTargetInView("receipt"));
@@ -241,7 +242,8 @@ describe("useTargetInView safety net", () => {
     });
   });
 
-  const latest = () => FakeIntersectionObserver.instances[FakeIntersectionObserver.instances.length - 1];
+  const latest = () =>
+    FakeIntersectionObserver.instances[FakeIntersectionObserver.instances.length - 1];
 
   /** Runs the measurements that were queued for the next frame. */
   function flushFrames() {
@@ -346,26 +348,32 @@ describe("useTargetInView safety net", () => {
     expect(result.current.inView).toBe(false);
   });
 
-  it.each(["resize", "scroll"])("measures against visualViewport and re-measures on its %s", (type) => {
-    const visualViewport = Object.assign(new EventTarget(), { height: 300 });
-    Object.defineProperty(window, "visualViewport", { configurable: true, value: visualViewport });
-    const { target, result } = setup();
+  it.each(["resize", "scroll"])(
+    "measures against visualViewport and re-measures on its %s",
+    (type) => {
+      const visualViewport = Object.assign(new EventTarget(), { height: 300 });
+      Object.defineProperty(window, "visualViewport", {
+        configurable: true,
+        value: visualViewport,
+      });
+      const { target, result } = setup();
 
-    // 300px tall viewport minus the 100px clearance: a top edge at 250 is under the bar.
-    placeTarget(target, 250, 500);
-    act(() => {
-      visualViewport.dispatchEvent(new Event(type));
-    });
-    flushFrames();
-    expect(result.current.inView).toBe(false);
+      // 300px tall viewport minus the 100px clearance: a top edge at 250 is under the bar.
+      placeTarget(target, 250, 500);
+      act(() => {
+        visualViewport.dispatchEvent(new Event(type));
+      });
+      flushFrames();
+      expect(result.current.inView).toBe(false);
 
-    placeTarget(target, 150, 500);
-    act(() => {
-      visualViewport.dispatchEvent(new Event(type));
-    });
-    flushFrames();
-    expect(result.current.inView).toBe(true);
-  });
+      placeTarget(target, 150, 500);
+      act(() => {
+        visualViewport.dispatchEvent(new Event(type));
+      });
+      flushFrames();
+      expect(result.current.inView).toBe(true);
+    },
+  );
 
   it("measures once per frame however many events arrive", () => {
     const { target, result } = setup();

@@ -71,11 +71,7 @@ const MAX_EXACT_DIGITS = 15;
  * - The value is worked out in whole hundredths (or whatever `decimals` scales to), so
  *   "1,500.55" is exactly 1500.55.
  */
-export function parseNumberInput(
-  text: string,
-  range: NumberRange,
-  lastGood: number,
-): ParseResult {
+export function parseNumberInput(text: string, range: NumberRange, lastGood: number): ParseResult {
   const decimals = range.decimals ?? 0;
   const cleaned = text.replace(/[,\s]/g, "");
   if (cleaned === "") return { status: "reverted", value: lastGood, reason: "empty" };

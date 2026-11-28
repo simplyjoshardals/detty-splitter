@@ -66,8 +66,7 @@ export interface FieldHintProps {
 export function useRowHint<F extends string>(values: Readonly<Record<F, number>>) {
   const [stored, setStored] = useState<{ field: F; hint: Hint } | null>(null);
 
-  const active =
-    stored !== null && values[stored.field] === stored.hint.forValue ? stored : null;
+  const active = stored !== null && values[stored.field] === stored.hint.forValue ? stored : null;
   if (stored !== null && active === null) setStored(null);
 
   function forField(field: F): FieldHintProps {

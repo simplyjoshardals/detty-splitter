@@ -59,8 +59,7 @@ type Families = Record<FontSpec["role"], string>;
 type StampOp = Extract<DrawOp, { kind: "stamp" }>;
 
 // Latin only: the ₦ comes from the naira face below, so the latin-ext file is not needed.
-const FONT_SAMPLE =
-  "$£0123456789.,:*×÷ ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz";
+const FONT_SAMPLE = "$£0123456789.,:*×÷ ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz";
 // The naira face is limited to U+20A6 by `unicode-range`, so it only downloads for this sample.
 const NAIRA_SAMPLE = "₦";
 
@@ -73,9 +72,7 @@ function fail(
 }
 
 function describeError(error: unknown): string {
-  return error instanceof Error
-    ? `${error.name}: ${error.message}`
-    : String(error);
+  return error instanceof Error ? `${error.name}: ${error.message}` : String(error);
 }
 
 /**
@@ -90,9 +87,7 @@ function primaryFamily(list: string): string {
 
 /** A canvas can't read CSS variables, so resolve them from the document. */
 function readCssVar(name: string): string {
-  return getComputedStyle(document.documentElement)
-    .getPropertyValue(name)
-    .trim();
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
 function readColors(): Colors | null {
@@ -127,20 +122,13 @@ function strokeAndFillStamp(
   ctx.lineWidth = 6;
   ctx.strokeRect(-op.width / 2, -op.height / 2, op.width, op.height);
   ctx.lineWidth = 3;
-  ctx.strokeRect(
-    -op.width / 2 + 12,
-    -op.height / 2 + 12,
-    op.width - 24,
-    op.height - 24,
-  );
+  ctx.strokeRect(-op.width / 2 + 12, -op.height / 2 + 12, op.width - 24, op.height - 24);
   ctx.font = cssFont(op.font, families);
   ctx.fillStyle = color;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   const top = -(op.lines.length * op.lineHeight) / 2;
-  op.lines.forEach((line, i) =>
-    ctx.fillText(line, 0, top + op.lineHeight * (i + 0.5)),
-  );
+  op.lines.forEach((line, i) => ctx.fillText(line, 0, top + op.lineHeight * (i + 0.5)));
 }
 
 function drawFlatStamp(
@@ -182,13 +170,7 @@ function drawTexturedStamp(
   layerCtx.fillStyle = "#000";
   for (const speckle of makeSpeckles(op.seed, op.width, op.height)) {
     layerCtx.beginPath();
-    layerCtx.arc(
-      left + speckle.x,
-      topEdge + speckle.y,
-      speckle.r,
-      0,
-      Math.PI * 2,
-    );
+    layerCtx.arc(left + speckle.x, topEdge + speckle.y, speckle.r, 0, Math.PI * 2);
     layerCtx.fill();
   }
   layerCtx.restore();
@@ -266,10 +248,7 @@ export async function renderReceipt(
   const mono = readCssVar("--font-space-mono");
   const naira = readCssVar("--font-naira");
   if (!display || !mono || !naira) {
-    return fail(
-      "font",
-      "CSS variables --font-bungee / --font-space-mono / --font-naira not found",
-    );
+    return fail("font", "CSS variables --font-bungee / --font-space-mono / --font-naira not found");
   }
   const colors = readColors();
   if (!colors) return fail("draw", "CSS variables --receipt-* not found");
@@ -277,8 +256,7 @@ export async function renderReceipt(
   const displayFamily = primaryFamily(display);
   const monoFamily = primaryFamily(mono);
   const nairaFamily = primaryFamily(naira);
-  if (options.reloadFonts === true)
-    reviveFailedFonts([displayFamily, monoFamily, nairaFamily]);
+  if (options.reloadFonts === true) reviveFailedFonts([displayFamily, monoFamily, nairaFamily]);
   const specs: ReadonlyArray<{
     label: string;
     family: string;
@@ -313,36 +291,30 @@ export async function renderReceipt(
 
   // Each font loads on its own so one failure can't hide which file failed.
   const fonts: FontDiagnostic[] = await Promise.all(
-    specs.map(
-      async ({ label, family, spec, sample }): Promise<FontDiagnostic> => {
-        try {
-          const faces = await document.fonts.load(spec, sample);
-          return {
-            label,
-            family,
-            facesLoaded: faces.length,
-            checkOk: document.fonts.check(spec, sample),
-            error: null,
-          };
-        } catch (error) {
-          return {
-            label,
-            family,
-            facesLoaded: 0,
-            checkOk: false,
-            error: describeError(error),
-          };
-        }
-      },
-    ),
+    specs.map(async ({ label, family, spec, sample }): Promise<FontDiagnostic> => {
+      try {
+        const faces = await document.fonts.load(spec, sample);
+        return {
+          label,
+          family,
+          facesLoaded: faces.length,
+          checkOk: document.fonts.check(spec, sample),
+          error: null,
+        };
+      } catch (error) {
+        return {
+          label,
+          family,
+          facesLoaded: 0,
+          checkOk: false,
+          error: describeError(error),
+        };
+      }
+    }),
   );
-  const failedFonts = fonts.filter(
-    (f) => f.error !== null || f.facesLoaded === 0,
-  );
+  const failedFonts = fonts.filter((f) => f.error !== null || f.facesLoaded === 0);
   if (failedFonts.length > 0) {
-    const detail = failedFonts.map(
-      (f) => `${f.label} (${f.error ?? "0 faces loaded"})`,
-    );
+    const detail = failedFonts.map((f) => `${f.label} (${f.error ?? "0 faces loaded"})`);
     return fail("font", `Font load failed: ${detail.join("; ")}`, fonts);
   }
 
@@ -365,8 +337,7 @@ export async function renderReceipt(
       return ctx.measureText(text).width;
     };
     const layout = layoutReceipt(view, measure);
-    if (!layout.ok)
-      return fail("draw", `Receipt does not fit: ${layout.message}`, fonts);
+    if (!layout.ok) return fail("draw", `Receipt does not fit: ${layout.message}`, fonts);
     paint(ctx, layout.ops, colors, families, texture);
     blob = await canvasToBlob(canvas);
   } catch (error) {

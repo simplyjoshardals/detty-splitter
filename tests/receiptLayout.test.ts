@@ -86,11 +86,17 @@ describe("fitFontSize", () => {
   });
 
   it("stops at the 30px floor and says it does not fit", () => {
-    expect(fitFontSize("1234567890", "mono", 700, 100, 60, WIDE)).toEqual({ size: MIN_TEXT_PX, fits: false });
+    expect(fitFontSize("1234567890", "mono", 700, 100, 60, WIDE)).toEqual({
+      size: MIN_TEXT_PX,
+      fits: false,
+    });
   });
 
   it("reports a fit exactly at the floor", () => {
-    expect(fitFontSize("1234567890", "mono", 700, 196, 60, WIDE)).toEqual({ size: MIN_TEXT_PX, fits: true });
+    expect(fitFontSize("1234567890", "mono", 700, 196, 60, WIDE)).toEqual({
+      size: MIN_TEXT_PX,
+      fits: true,
+    });
   });
 });
 
@@ -125,7 +131,14 @@ describe("layoutReceipt: bands and content", () => {
   const ops = layoutOrFail(GOLDEN_VIEW);
 
   it("paints the paper, then the 140px safe margins around the danfo bands", () => {
-    expect(ops[0]).toEqual({ kind: "rect", x: 0, y: 0, width: CANVAS_WIDTH, height: CANVAS_HEIGHT, color: "paper" });
+    expect(ops[0]).toEqual({
+      kind: "rect",
+      x: 0,
+      y: 0,
+      width: CANVAS_WIDTH,
+      height: CANVAS_HEIGHT,
+      color: "paper",
+    });
     const top = ops[1];
     expect(top).toMatchObject({ kind: "rect", y: 140, color: "danfo" });
     const bottom = ops.find((op) => op.kind === "rect" && op.y === BOTTOM_BAND_TOP);
@@ -151,7 +164,9 @@ describe("layoutReceipt: bands and content", () => {
     ];
     for (const text of expected) expect(drawn.has(text)).toBe(true);
     // The wrapped lines rebuild the original sentences.
-    const copy = textOps(ops).filter((op) => RECEIPT_COPY.customerCopy.includes(op.text) && op.text.length > 20);
+    const copy = textOps(ops).filter(
+      (op) => RECEIPT_COPY.customerCopy.includes(op.text) && op.text.length > 20,
+    );
     expect(copy.map((op) => op.text).join(" ")).toBe(RECEIPT_COPY.customerCopy);
     expect(stampOps(ops).map((op) => op.lines.join(" "))).toEqual([GOLDEN_VIEW.badge]);
   });
@@ -231,8 +246,10 @@ describe("layoutReceipt: the max-values case in every currency and tier", () => 
       it(`${label}: fits, with no text under 30px`, () => {
         expect(result.ok).toBe(true);
         if (!result.ok) return;
-        for (const op of textOps(result.ops)) expect(op.font.size).toBeGreaterThanOrEqual(MIN_TEXT_PX);
-        for (const stamp of stampOps(result.ops)) expect(stamp.font.size).toBeGreaterThanOrEqual(MIN_TEXT_PX);
+        for (const op of textOps(result.ops))
+          expect(op.font.size).toBeGreaterThanOrEqual(MIN_TEXT_PX);
+        for (const stamp of stampOps(result.ops))
+          expect(stamp.font.size).toBeGreaterThanOrEqual(MIN_TEXT_PX);
       });
 
       it(`${label}: no digit is clipped and no label meets its amount`, () => {
@@ -246,7 +263,9 @@ describe("layoutReceipt: the max-values case in every currency and tier", () => 
         // Texts on one baseline (a label and its amount) keep a gap between them.
         for (const left of texts.filter((op) => op.align === "left")) {
           for (const right of texts.filter((op) => op.align === "right" && op.y === left.y)) {
-            expect(extent(right, WIDE).left - extent(left, WIDE).right).toBeGreaterThanOrEqual(24 - 0.001);
+            expect(extent(right, WIDE).left - extent(left, WIDE).right).toBeGreaterThanOrEqual(
+              24 - 0.001,
+            );
           }
         }
       });
@@ -288,7 +307,9 @@ describe("layoutReceipt: a long amount and failures", () => {
     const longAmount = `₦${"9".repeat(24)}`;
     const view: ReceiptView = {
       ...GOLDEN_VIEW,
-      lines: GOLDEN_VIEW.lines.map((line, i) => (i === 0 ? { ...line, yourShare: longAmount } : line)),
+      lines: GOLDEN_VIEW.lines.map((line, i) =>
+        i === 0 ? { ...line, yourShare: longAmount } : line,
+      ),
     };
     const texts = textOps(layoutOrFail(view));
     const label = texts.find((op) => op.text === GOLDEN_VIEW.lines[0]?.label);

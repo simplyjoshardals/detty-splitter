@@ -134,11 +134,7 @@ export function NumberField({
 
   return (
     <div>
-      <label
-        id={labelId}
-        htmlFor={id}
-        className="block text-[length:var(--t-xs)] text-muted"
-      >
+      <label id={labelId} htmlFor={id} className="block text-[length:var(--t-xs)] text-muted">
         {label}
       </label>
       <div

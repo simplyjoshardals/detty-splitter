@@ -87,17 +87,23 @@ const queryRetry = () => screen.queryByRole("button", { name: "Retry" });
 const clickRetry = () => act(async () => void fireEvent.click(retryButton()));
 
 /** What the real `prerender.retry()` does to the snapshot of a failed render. */
-const retryStartsRendering = () => fake.retry.mockImplementation(() => fake.set({ status: "rendering" }));
+const retryStartsRendering = () =>
+  fake.retry.mockImplementation(() => fake.set({ status: "rendering" }));
 
 /** `(pointer: coarse)` matches for a finger, not for a mouse. */
 const stubPointer = (coarse: boolean) =>
-  vi.stubGlobal("matchMedia", (query: string) => ({ matches: coarse && query === "(pointer: coarse)" }));
+  vi.stubGlobal("matchMedia", (query: string) => ({
+    matches: coarse && query === "(pointer: coarse)",
+  }));
 
 /** A browser with a user agent, which downloads (no file sharing) unless `share` is given. */
 function browserWith(userAgent: string, shareImpl?: () => Promise<void>) {
   const share = vi.fn<(data: ShareData) => Promise<void>>(shareImpl ?? (() => Promise.resolve()));
   const canShare = vi.fn<(data: ShareData) => boolean>(() => true);
-  vi.stubGlobal("navigator", shareImpl === undefined ? { userAgent } : { userAgent, share, canShare });
+  vi.stubGlobal(
+    "navigator",
+    shareImpl === undefined ? { userAgent } : { userAgent, share, canShare },
+  );
   return { share, canShare };
 }
 
@@ -127,10 +133,20 @@ beforeEach(() => {
   vi.stubGlobal("navigator", {});
   createObjectURL = vi.fn(() => "blob:test/1");
   revokeObjectURL = vi.fn();
-  Object.defineProperty(URL, "createObjectURL", { value: createObjectURL, configurable: true, writable: true });
-  Object.defineProperty(URL, "revokeObjectURL", { value: revokeObjectURL, configurable: true, writable: true });
+  Object.defineProperty(URL, "createObjectURL", {
+    value: createObjectURL,
+    configurable: true,
+    writable: true,
+  });
+  Object.defineProperty(URL, "revokeObjectURL", {
+    value: revokeObjectURL,
+    configurable: true,
+    writable: true,
+  });
   anchorClicks = [];
-  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+  vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+    this: HTMLAnchorElement,
+  ) {
     anchorClicks.push(this.download);
   });
 });

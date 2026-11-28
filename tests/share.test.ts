@@ -56,7 +56,11 @@ const REJECTED: [string, string, DecodeFailure][] = [
   ["5 extra 12th field", linkWith((f) => f.push("1.1.s.1")), "bad_structure"],
   ["6 bucket with 3 fields", linkWith((f) => (f[6] = "150000.7.s")), "bad_structure"],
   ["6 bucket with 5 fields", linkWith((f) => (f[6] = "150000.7.s.4.1")), "bad_structure"],
-  ["7 negative price (the minus splits a field)", linkWith((f) => (f[6] = "-100000.7.s.4")), "bad_structure"],
+  [
+    "7 negative price (the minus splits a field)",
+    linkWith((f) => (f[6] = "-100000.7.s.4")),
+    "bad_structure",
+  ],
   ["8 exponent price", linkWith((f) => (f[6] = "1e9.7.s.4")), "bad_chars"],
   ["8 decimal price (adds a dot-field)", linkWith((f) => (f[6] = "1.5.7.s.4")), "bad_structure"],
   ["9 20-digit price", linkWith((f) => (f[6] = "99999999999999999999.7.s.4")), "bad_value"],
@@ -93,15 +97,23 @@ describe("DATA_MODEL §9.1: malformed and hostile links", () => {
   });
 
   it("18: every truncation of a valid link is rejected", () => {
-    const accepted = Array.from({ length: EXAMPLE.length - 1 }, (_, i) => EXAMPLE.slice(0, i + 1))
-      .filter((cut) => decodeShare(cut).ok);
+    const accepted = Array.from({ length: EXAMPLE.length - 1 }, (_, i) =>
+      EXAMPLE.slice(0, i + 1),
+    ).filter((cut) => decodeShare(cut).ok);
     expect(accepted).toEqual([]);
   });
 
   it("20: works from the hash alone when localStorage is blocked", () => {
     vi.stubGlobal(
       "localStorage",
-      new Proxy({}, { get: () => { throw new Error("blocked"); } }),
+      new Proxy(
+        {},
+        {
+          get: () => {
+            throw new Error("blocked");
+          },
+        },
+      ),
     );
     expect(decodeShare(EXAMPLE).ok).toBe(true);
     expect(decodeShare("#v1").ok).toBe(false);
@@ -109,7 +121,10 @@ describe("DATA_MODEL §9.1: malformed and hostile links", () => {
 
   it("the length cap counts the leading # and is checked before the characters", () => {
     expect(decodeShare("#".padEnd(MAX_LINK_LENGTH, "v")).ok).toBe(false);
-    expect(decodeShare("#".padEnd(MAX_LINK_LENGTH + 1, "é"))).toEqual({ ok: false, code: "too_long" });
+    expect(decodeShare("#".padEnd(MAX_LINK_LENGTH + 1, "é"))).toEqual({
+      ok: false,
+      code: "too_long",
+    });
   });
 });
 
@@ -129,7 +144,12 @@ describe("clamping (out-of-range numbers load, and are reported)", () => {
   });
 
   it("12: rate 0 becomes the minimum, never zero; a huge rate becomes the maximum", () => {
-    const result = decodeOk(linkWith((f) => { f[4] = "0"; f[5] = "99999999"; }));
+    const result = decodeOk(
+      linkWith((f) => {
+        f[4] = "0";
+        f[5] = "99999999";
+      }),
+    );
     expect(result.state.rates).toEqual({ ngnPerUsd: 50, ngnPerGbp: 100000 });
     expect(result.clamped).toEqual(["ngnPerUsd", "ngnPerGbp"]);
   });
@@ -142,7 +162,11 @@ describe("clamping (out-of-range numbers load, and are reported)", () => {
 
   it("lists clamped fields in link order", () => {
     const result = decodeOk(
-      linkWith((f) => { f[3] = "0"; f[4] = "0"; f[10] = "99000000000.1000.p.0"; }),
+      linkWith((f) => {
+        f[3] = "0";
+        f[4] = "0";
+        f[10] = "99000000000.1000.p.0";
+      }),
     );
     expect(result.clamped).toEqual([
       "groupSize",
@@ -154,8 +178,13 @@ describe("clamping (out-of-range numbers load, and are reported)", () => {
   });
 
   it("clamps up to 12 digits and rejects 13", () => {
-    expect(decodeOk(linkWith((f) => (f[6] = "999999999999.7.s.4"))).state.buckets[0].unitPriceNgn).toBe(50000000);
-    expect(decodeShare(linkWith((f) => (f[6] = "9999999999999.7.s.4")))).toEqual({ ok: false, code: "bad_value" });
+    expect(
+      decodeOk(linkWith((f) => (f[6] = "999999999999.7.s.4"))).state.buckets[0].unitPriceNgn,
+    ).toBe(50000000);
+    expect(decodeShare(linkWith((f) => (f[6] = "9999999999999.7.s.4")))).toEqual({
+      ok: false,
+      code: "bad_value",
+    });
   });
 });
 

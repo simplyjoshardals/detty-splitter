@@ -121,7 +121,10 @@ function canShareFiles(env: ExportEnv): boolean {
 }
 
 /** Resolves with the first `ready` or `failed` snapshot, or `null` after `timeoutMs`. */
-function waitUntilSettled(source: ExportSource, timeoutMs: number): Promise<PrerenderSnapshot | null> {
+function waitUntilSettled(
+  source: ExportSource,
+  timeoutMs: number,
+): Promise<PrerenderSnapshot | null> {
   return new Promise((resolve) => {
     let timer: ReturnType<typeof setTimeout> | null = null;
     let unsubscribe: (() => void) | null = null;
@@ -157,7 +160,8 @@ export function exportReceipt(options: ExportOptions = {}): Promise<ExportResult
     return waitUntilSettled(source, options.waitMs ?? WAIT_FOR_BLOB_MS).then(
       (settled): ExportResult => {
         if (settled === null) return { status: "not_ready" };
-        if (settled.status === "failed") return { status: "failed", reason: toFailureReason(settled.reason) };
+        if (settled.status === "failed")
+          return { status: "failed", reason: toFailureReason(settled.reason) };
         if (settled.status === "ready") return saveOrShowInline(settled.blob, env);
         return { status: "not_ready" };
       },

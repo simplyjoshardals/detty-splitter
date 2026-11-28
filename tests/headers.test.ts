@@ -11,7 +11,9 @@ import { describe, expect, it } from "vitest";
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const HEADERS = readFileSync(resolve(ROOT, "public/_headers"), "utf8");
 
-const CSP_LINES = HEADERS.split(/\r?\n/).filter((line) => /^\s+Content-Security-Policy:/.test(line));
+const CSP_LINES = HEADERS.split(/\r?\n/).filter((line) =>
+  /^\s+Content-Security-Policy:/.test(line),
+);
 const CSP = (CSP_LINES[0] ?? "").replace(/^\s+Content-Security-Policy:\s*/, "").trim();
 
 /** Directive name -> its sources, e.g. "img-src" -> ["'self'", "data:", "blob:"]. */

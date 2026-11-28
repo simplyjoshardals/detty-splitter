@@ -19,16 +19,10 @@ export type FieldName =
   | `${BucketId}.${"unitPriceNgn" | "quantity" | "headcount"}`;
 
 export type DecodeFailure =
-  | "empty"
-  | "too_long"
-  | "bad_chars"
-  | "bad_version"
-  | "bad_structure"
-  | "bad_value";
+  "empty" | "too_long" | "bad_chars" | "bad_version" | "bad_structure" | "bad_value";
 
 export type DecodeResult =
-  | { ok: true; state: AppState; clamped: FieldName[] }
-  | { ok: false; code: DecodeFailure };
+  { ok: true; state: AppState; clamped: FieldName[] } | { ok: false; code: DecodeFailure };
 
 /** Longest accepted input, including the leading "#" (DATA_MODEL §4.4 step 2). */
 export const MAX_LINK_LENGTH = 300;
@@ -130,9 +124,21 @@ function readClamped(
 function readBucket(id: BucketId, fields: readonly string[], clamped: FieldName[]): Bucket | null {
   const [price, quantity, modeCode, headcount] = fields;
   const { price: priceDigits, quantity: quantityDigits, headcount: headcountDigits } = MAX_DIGITS;
-  const unitPriceNgn = readClamped(price, priceDigits, RANGES.unitPriceNgn, `${id}.unitPriceNgn`, clamped);
+  const unitPriceNgn = readClamped(
+    price,
+    priceDigits,
+    RANGES.unitPriceNgn,
+    `${id}.unitPriceNgn`,
+    clamped,
+  );
   const qty = readClamped(quantity, quantityDigits, RANGES.quantity, `${id}.quantity`, clamped);
-  const people = readClamped(headcount, headcountDigits, RANGES.headcount, `${id}.headcount`, clamped);
+  const people = readClamped(
+    headcount,
+    headcountDigits,
+    RANGES.headcount,
+    `${id}.headcount`,
+    clamped,
+  );
   const mode = fromCode(MODE_CODES, modeCode);
   if (unitPriceNgn === null || qty === null || people === null || mode === null) return null;
   return { id, unitPriceNgn, quantity: qty, mode, headcount: people };
@@ -161,7 +167,13 @@ export function decodeShare(input: string): DecodeResult {
   if (presetId === null || currency === null) return fail("bad_value");
 
   const clamped: FieldName[] = [];
-  const groupSize = readClamped(groupText, MAX_DIGITS.group, RANGES.groupSize, "groupSize", clamped);
+  const groupSize = readClamped(
+    groupText,
+    MAX_DIGITS.group,
+    RANGES.groupSize,
+    "groupSize",
+    clamped,
+  );
   const usd = readClamped(usdText, MAX_DIGITS.rate, RATE_HUNDREDTHS, "ngnPerUsd", clamped);
   const gbp = readClamped(gbpText, MAX_DIGITS.rate, RATE_HUNDREDTHS, "ngnPerGbp", clamped);
   const [stay, events, tables, transport, food] = BUCKET_ORDER.map((id, i) =>

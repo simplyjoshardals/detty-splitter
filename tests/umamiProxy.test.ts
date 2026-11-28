@@ -15,8 +15,7 @@ const ORIGIN = "https://detty-splitter.pages.dev";
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const EVENT = JSON.stringify({ type: "event", payload: { name: "link_copy" } });
 
-const upstream = (body: string, init?: ResponseInit) =>
-  vi.fn(async () => new Response(body, init));
+const upstream = (body: string, init?: ResponseInit) => vi.fn(async () => new Response(body, init));
 
 function post(headers: Record<string, string> = {}, body: string = EVENT): Request {
   return new Request(`${ORIGIN}${COLLECT_PATH}`, { method: "POST", headers, body });
@@ -36,14 +35,20 @@ describe("serveScript", () => {
   });
 
   it("answers HEAD without a body", async () => {
-    const res = await serveScript(new Request(`${ORIGIN}/m/lib`, { method: "HEAD" }), upstream("x"));
+    const res = await serveScript(
+      new Request(`${ORIGIN}/m/lib`, { method: "HEAD" }),
+      upstream("x"),
+    );
     expect(res.status).toBe(200);
     expect(await res.text()).toBe("");
   });
 
   it("refuses other methods without calling upstream", async () => {
     const fetcher = upstream("x");
-    const res = await serveScript(new Request(`${ORIGIN}/m/lib`, { method: "POST", body: "{}" }), fetcher);
+    const res = await serveScript(
+      new Request(`${ORIGIN}/m/lib`, { method: "POST", body: "{}" }),
+      fetcher,
+    );
     expect(res.status).toBe(405);
     expect(res.headers.get("allow")).toBe("GET, HEAD");
     expect(fetcher).not.toHaveBeenCalled();
@@ -65,7 +70,10 @@ describe("serveScript", () => {
 
 describe("forwardCollect", () => {
   it("posts the body to the one fixed upstream URL and returns its answer", async () => {
-    const fetcher = upstream("session-token", { status: 200, headers: { "content-type": "text/plain" } });
+    const fetcher = upstream("session-token", {
+      status: 200,
+      headers: { "content-type": "text/plain" },
+    });
     const res = await forwardCollect(post(), fetcher);
     expect(fetcher).toHaveBeenCalledTimes(1);
     const [url, init] = fetcher.mock.calls[0] as unknown as [string, RequestInit];
@@ -105,7 +113,14 @@ describe("forwardCollect", () => {
     expect(sent.get("x-umami-website-id")).toBe("55b900bc-c714-418e-9af1-e74817cce70f");
     expect(sent.get("x-umami-cache")).toBe("token");
     expect(sent.get("x-forwarded-for")).toBe("203.0.113.7");
-    for (const name of ["cookie", "authorization", "referer", "origin", "x-custom", "cf-connecting-ip"]) {
+    for (const name of [
+      "cookie",
+      "authorization",
+      "referer",
+      "origin",
+      "x-custom",
+      "cf-connecting-ip",
+    ]) {
       expect(sent.has(name)).toBe(false);
     }
   });
@@ -144,8 +159,12 @@ describe("forwardCollect", () => {
   it("passes an upstream client error through, and turns a redirect or server error into 502", async () => {
     expect((await forwardCollect(post(), upstream("bad", { status: 400 }))).status).toBe(400);
     expect(
-      (await forwardCollect(post(), upstream("", { status: 302, headers: { location: "https://x.test" } })))
-        .status,
+      (
+        await forwardCollect(
+          post(),
+          upstream("", { status: 302, headers: { location: "https://x.test" } }),
+        )
+      ).status,
     ).toBe(502);
     expect((await forwardCollect(post(), upstream("boom", { status: 503 }))).status).toBe(502);
   });
@@ -174,7 +193,9 @@ describe("wiring", () => {
 
   it("keeps the Umami hosts in lib/umami-proxy only", () => {
     for (const rel of ["config/index.ts", "lib/analytics/index.ts", "app/layout.tsx"]) {
-      expect(readFileSync(resolve(ROOT, rel), "utf8")).not.toMatch(/https:\/\/(cloud|gateway)\.umami/);
+      expect(readFileSync(resolve(ROOT, rel), "utf8")).not.toMatch(
+        /https:\/\/(cloud|gateway)\.umami/,
+      );
     }
   });
 });

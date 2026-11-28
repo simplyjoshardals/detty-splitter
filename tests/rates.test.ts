@@ -50,7 +50,7 @@ describe("formatAsOfDate", () => {
 });
 
 describe("config defaults (to catch a typo when the real values are set before launch)", () => {
-  it("has an \"as of\" date that is a real ISO date", () => {
+  it('has an "as of" date that is a real ISO date', () => {
     expect(() => formatAsOfDate(RATES_AS_OF)).not.toThrow();
   });
 

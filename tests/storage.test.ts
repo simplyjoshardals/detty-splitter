@@ -6,7 +6,9 @@ interface FakeStorage {
   setItem(key: string, value: string): void;
 }
 
-function fakeStorage(overrides: Partial<FakeStorage> = {}): FakeStorage & { data: Map<string, string> } {
+function fakeStorage(
+  overrides: Partial<FakeStorage> = {},
+): FakeStorage & { data: Map<string, string> } {
   const data = new Map<string, string>();
   return {
     data,

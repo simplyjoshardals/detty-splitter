@@ -51,7 +51,15 @@ interface Options {
 }
 
 function stubBrowser(options: Options = {}): Setup {
-  const setup: Setup = { events: [], fontsSet: [], fills: [], varReads: [], arcs: [], drawImages: 0, composites: [] };
+  const setup: Setup = {
+    events: [],
+    fontsSet: [],
+    fills: [],
+    varReads: [],
+    arcs: [],
+    drawImages: 0,
+    composites: [],
+  };
   const vars = options.vars ?? CSS_VARS;
   const makeCtx = () => ({
     set font(value: string) {
@@ -83,7 +91,8 @@ function stubBrowser(options: Options = {}): Setup {
     lineTo: () => undefined,
     stroke: () => undefined,
     strokeRect: () => undefined,
-    arc: (x: number, y: number, r: number) => setup.arcs.push(`${x.toFixed(3)},${y.toFixed(3)},${r.toFixed(3)}`),
+    arc: (x: number, y: number, r: number) =>
+      setup.arcs.push(`${x.toFixed(3)},${y.toFixed(3)},${r.toFixed(3)}`),
     fill: () => undefined,
     drawImage: () => {
       setup.drawImages += 1;
@@ -98,7 +107,9 @@ function stubBrowser(options: Options = {}): Setup {
       width: 0,
       height: 0,
       getContext: () =>
-        options.context === "missing" || (isLayer && options.layerContext === "missing") ? null : ctx,
+        options.context === "missing" || (isLayer && options.layerContext === "missing")
+          ? null
+          : ctx,
       toBlob: (callback: (blob: Blob | null) => void) =>
         callback(options.blob === "null" ? null : new Blob(["png"], { type: "image/png" })),
     };
@@ -192,9 +203,13 @@ describe("renderReceipt: the happy path", () => {
     const setup = stubBrowser();
     await renderReceipt(VIEW);
     const receiptReads = setup.varReads.filter((name) => name.startsWith("--receipt-"));
-    expect(receiptReads.sort()).toEqual(
-      ["--receipt-danfo", "--receipt-ink", "--receipt-muted", "--receipt-paper", "--receipt-stamp"],
-    );
+    expect(receiptReads.sort()).toEqual([
+      "--receipt-danfo",
+      "--receipt-ink",
+      "--receipt-muted",
+      "--receipt-paper",
+      "--receipt-stamp",
+    ]);
     for (const color of ["#F4F1EA", "#111111", "#5C584F", "#C4271B", "#FFC400"]) {
       expect(setup.fills).toContain(color);
     }
@@ -229,7 +244,10 @@ describe("renderReceipt: the ink-stamp texture", () => {
     const first = stubBrowser();
     await renderReceipt(VIEW);
     const other = stubBrowser();
-    await renderReceipt({ ...VIEW, authCode: VIEW.authCode === "00000001" ? "00000002" : "00000001" });
+    await renderReceipt({
+      ...VIEW,
+      authCode: VIEW.authCode === "00000001" ? "00000002" : "00000001",
+    });
     expect(other.arcs).toHaveLength(SPECKLE_COUNT);
     expect(other.arcs).not.toEqual(first.arcs);
   });

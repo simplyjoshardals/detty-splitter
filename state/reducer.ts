@@ -10,15 +10,7 @@ import { RANGES, clampDecimal, clampInteger } from "@/lib/input";
 import { isCurrencyCode } from "@/lib/money";
 import { ratesAreCustom } from "@/lib/rates";
 import { decodeShare, encodeShare } from "@/lib/share";
-import type {
-  AppState,
-  Bucket,
-  BucketId,
-  CurrencyCode,
-  Mode,
-  PresetId,
-  Rates,
-} from "@/lib/types";
+import type { AppState, Bucket, BucketId, CurrencyCode, Mode, PresetId, Rates } from "@/lib/types";
 
 /** Copies preset values into fresh bucket objects (nothing is shared with PRESETS). */
 function bucketsFromPreset(preset: Preset): AppState["buckets"] {

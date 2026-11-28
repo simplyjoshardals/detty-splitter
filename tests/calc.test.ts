@@ -2,14 +2,7 @@ import { describe, expect, it } from "vitest";
 import { calculate } from "@/lib/calc";
 import { formatAmount } from "@/lib/money";
 import type { AppState, CurrencyCode } from "@/lib/types";
-import {
-  GOLDEN,
-  TEST_TIERS,
-  deepFreeze,
-  eventsOnly,
-  makeBucket,
-  mapBuckets,
-} from "./fixtures";
+import { GOLDEN, TEST_TIERS, deepFreeze, eventsOnly, makeBucket, mapBuckets } from "./fixtures";
 
 function inCurrency(state: AppState, currency: CurrencyCode): AppState {
   return { ...state, currency };
@@ -21,9 +14,7 @@ describe("golden example (DATA_MODEL §2.5)", () => {
     expect(result.lines.map((l) => l.lineTotalNgn)).toEqual([
       1050000, 300000, 1600000, 420000, 280000,
     ]);
-    expect(result.lines.map((l) => l.shareMinor)).toEqual([
-      262500, 300000, 400000, 105000, 280000,
-    ]);
+    expect(result.lines.map((l) => l.shareMinor)).toEqual([262500, 300000, 400000, 105000, 280000]);
     expect(result.perPersonMinor).toBe(1347500);
     expect(result.groupTotalMinor).toBe(5390000);
     expect(result.tier.id).toBe(3);
@@ -76,9 +67,12 @@ describe("tiers", () => {
     expect(result.tier.id).toBe(1);
   });
 
-  it.each(BOUNDARY_CASES)("per-person ₦%s selects Tier %s (lower bound inclusive)", (price, tierId) => {
-    expect(calculate(eventsOnly(price), TEST_TIERS).tier.id).toBe(tierId);
-  });
+  it.each(BOUNDARY_CASES)(
+    "per-person ₦%s selects Tier %s (lower bound inclusive)",
+    (price, tierId) => {
+      expect(calculate(eventsOnly(price), TEST_TIERS).tier.id).toBe(tierId);
+    },
+  );
 
   it("never changes tier when the currency changes", () => {
     for (const price of [299999, 300000, 750000, 1499999, 3000000]) {
@@ -131,9 +125,7 @@ describe("headcount and group size", () => {
   it("makes your share equal the line total when headcount is 1", () => {
     const solo = mapBuckets(GOLDEN, (b) => ({ ...b, headcount: 1 }));
     const result = calculate(solo, TEST_TIERS);
-    expect(result.lines.map((l) => l.shareMinor)).toEqual(
-      result.lines.map((l) => l.lineTotalNgn),
-    );
+    expect(result.lines.map((l) => l.shareMinor)).toEqual(result.lines.map((l) => l.lineTotalNgn));
     expect(result.perPersonMinor).toBe(3650000);
     expect(result.tier.id).toBe(5);
   });

@@ -7,7 +7,11 @@ import type { AppState } from "@/lib/types";
 
 /** The golden example (DATA_MODEL §2.5) with the config's default rates, so the note is the default. */
 const DEFAULTS: AppState = { ...GOLDEN, rates: DEFAULT_RATES };
-const OPTIONS = { defaultRates: GOLDEN.rates, ratesAsOf: "2026-11-23", siteUrl: "https://example.test" };
+const OPTIONS = {
+  defaultRates: GOLDEN.rates,
+  ratesAsOf: "2026-11-23",
+  siteUrl: "https://example.test",
+};
 
 /** "$1,234.50" -> 123450, "₦262,500" -> 262500. */
 function minorUnits(text: string): number {
@@ -52,11 +56,14 @@ describe("buildReceiptView: the golden example in naira", () => {
 });
 
 describe("buildReceiptView: formatted amounts equal the on-screen values", () => {
-  it.each(["NGN", "USD", "GBP"] as const)("the total is the sum of the displayed lines in %s", (currency) => {
-    const view = buildReceiptView({ ...GOLDEN, currency }, OPTIONS);
-    const sum = view.lines.reduce((total, line) => total + minorUnits(line.yourShare), 0);
-    expect(minorUnits(view.perPersonTotal)).toBe(sum);
-  });
+  it.each(["NGN", "USD", "GBP"] as const)(
+    "the total is the sum of the displayed lines in %s",
+    (currency) => {
+      const view = buildReceiptView({ ...GOLDEN, currency }, OPTIONS);
+      const sum = view.lines.reduce((total, line) => total + minorUnits(line.yourShare), 0);
+      expect(minorUnits(view.perPersonTotal)).toBe(sum);
+    },
+  );
 
   it("shows dollars and pounds in the amounts but keeps the formula in naira", () => {
     const usd = buildReceiptView({ ...GOLDEN, currency: "USD" }, OPTIONS);
@@ -67,11 +74,16 @@ describe("buildReceiptView: formatted amounts equal the on-screen values", () =>
       formula: "₦150,000 × 7 ÷ 4",
       yourShare: "$175.00",
     });
-    expect(buildReceiptView({ ...GOLDEN, currency: "GBP" }, OPTIONS).perPersonTotal).toBe("£673.75");
+    expect(buildReceiptView({ ...GOLDEN, currency: "GBP" }, OPTIONS).perPersonTotal).toBe(
+      "£673.75",
+    );
   });
 
   it("shows zero lines as zero, with the first tier", () => {
-    const view = buildReceiptView(mapBuckets(GOLDEN, (b) => ({ ...b, quantity: 0 })), OPTIONS);
+    const view = buildReceiptView(
+      mapBuckets(GOLDEN, (b) => ({ ...b, quantity: 0 })),
+      OPTIONS,
+    );
     expect(view.perPersonTotal).toBe("₦0");
     expect(view.groupTotal).toBe("₦0");
     expect(view.lines.every((line) => line.yourShare === "₦0")).toBe(true);

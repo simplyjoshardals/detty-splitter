@@ -57,7 +57,12 @@ export function makeSpeckles(
   height: number,
   count: number = SPECKLE_COUNT,
 ): Speckle[] {
-  if (!Number.isFinite(width) || !Number.isFinite(height) || !Number.isInteger(count) || count <= 0) {
+  if (
+    !Number.isFinite(width) ||
+    !Number.isFinite(height) ||
+    !Number.isInteger(count) ||
+    count <= 0
+  ) {
     return [];
   }
   const spanX = width - 2 * SPECKLE_MAX_R;

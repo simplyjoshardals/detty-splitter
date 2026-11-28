@@ -45,7 +45,11 @@ function Harness({
       />
       <div id="row-hint" role="status">
         {hints.active !== null && (
-          <HintMessage hint={hints.active.hint} field="Field" text={hintText(hints.active.hint, range, "")} />
+          <HintMessage
+            hint={hints.active.hint}
+            field="Field"
+            text={hintText(hints.active.hint, range, "")}
+          />
         )}
       </div>
       <h3 id="heading">Short-lets</h3>

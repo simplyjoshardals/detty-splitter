@@ -1,11 +1,5 @@
 import { ArrowSquareOutIcon } from "@phosphor-icons/react/ssr";
-import {
-  CTA_BUTTON_TEXT,
-  CTA_DISCLOSURE,
-  CTA_ENABLED,
-  CTA_TITLE,
-  CTA_URL,
-} from "@/config";
+import { CTA_BUTTON_TEXT, CTA_DISCLOSURE, CTA_ENABLED, CTA_TITLE, CTA_URL } from "@/config";
 import { parseHttpsUrl } from "@/lib/author";
 import { CtaLink } from "./CtaLink";
 
@@ -73,7 +67,10 @@ export function CtaCard({
           <ArrowSquareOutIcon size={20} weight="bold" aria-hidden="true" />
         </CtaLink>
         {note && (
-          <p id={DISCLOSURE_ID} className="mt-2 text-[length:var(--t-xs)] leading-4 text-balance text-muted">
+          <p
+            id={DISCLOSURE_ID}
+            className="mt-2 text-[length:var(--t-xs)] leading-4 text-balance text-muted"
+          >
             {note}
           </p>
         )}

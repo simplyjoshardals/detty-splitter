@@ -92,9 +92,8 @@ describe("CurrencyControl", () => {
       const { choose } = setup();
       await choose(code);
       const sum = lineAmounts().reduce((total, text) => total + minorUnits(text), 0);
-      const perPerson = screen
-        .getAllByText("PER PERSON")
-        .find((el) => el.tagName === "DT")?.nextElementSibling?.textContent;
+      const perPerson = screen.getAllByText("PER PERSON").find((el) => el.tagName === "DT")
+        ?.nextElementSibling?.textContent;
       expect(perPerson).toBeTruthy();
       expect(minorUnits(perPerson ?? "")).toBe(sum);
     },

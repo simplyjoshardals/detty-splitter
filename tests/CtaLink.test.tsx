@@ -40,7 +40,14 @@ describe("CtaLink", () => {
 
 describe("CtaCard analytics", () => {
   it("sends cta_click when the card's link is clicked", () => {
-    render(<CtaCard enabled url="https://example.com/offer" title="Still planning?" buttonText="Take me there" />);
+    render(
+      <CtaCard
+        enabled
+        url="https://example.com/offer"
+        title="Still planning?"
+        buttonText="Take me there"
+      />,
+    );
     expect(analytics.track).not.toHaveBeenCalled(); // showing the card is not a click
     fireEvent.click(screen.getByRole("link", { name: /Take me there/ }));
     expect(analytics.track).toHaveBeenCalledTimes(1);
@@ -48,7 +55,14 @@ describe("CtaCard analytics", () => {
   });
 
   it("sends nothing when the card is hidden", () => {
-    render(<CtaCard enabled={false} url="https://example.com/offer" title="Still planning?" buttonText="Go" />);
+    render(
+      <CtaCard
+        enabled={false}
+        url="https://example.com/offer"
+        title="Still planning?"
+        buttonText="Go"
+      />,
+    );
     expect(screen.queryByRole("link")).toBeNull();
     expect(analytics.track).not.toHaveBeenCalled();
   });

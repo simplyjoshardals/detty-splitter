@@ -293,6 +293,8 @@ detty-splitter/
 ├─ tests/                  # unit tests for calc, share, receipt helpers; one e2e
 ├─ next.config.ts          # output: 'export', unoptimized images
 ├─ tsconfig.json           # path alias "@/*" -> "./*"
+├─ .prettierrc.json        # print width 100, line endings left as they are (T11.4)
+├─ .prettierignore         # *.md, public/, app/fonts, lockfile (T11.4)
 ├─ .env.example            # NEXT_PUBLIC_CTA_URL, NEXT_PUBLIC_CTA_ENABLED
 └─ ARCHITECTURE.md, REQUIREMENTS.md, DATA_MODEL.md, (later) DESIGN.md, BUILD_PLAN.md
 ```
@@ -305,6 +307,7 @@ Rules of placement:
 - Components never contain pricing numbers; those live in `data/`.
 - Every environment variable is read in `config/` only.
 - Tier thresholds and taglines live in `data/` so you can tune them (O1) without touching logic.
+- Code is formatted by Prettier (`yarn format`, check with `yarn format:check`; T11.4). The config is two options: print width 100, which is where the code already wrapped, and `endOfLine: "auto"`, so each file keeps the line endings it has (the working tree mixes CRLF and LF). Markdown is excluded on purpose: the docs have hand-aligned tables and are edited by patch.
 
 ---
 

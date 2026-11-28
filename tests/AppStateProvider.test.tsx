@@ -107,7 +107,14 @@ describe("loading", () => {
   it("works from the link alone when localStorage is blocked", () => {
     vi.stubGlobal(
       "localStorage",
-      new Proxy({}, { get: () => { throw new Error("blocked"); } }),
+      new Proxy(
+        {},
+        {
+          get: () => {
+            throw new Error("blocked");
+          },
+        },
+      ),
     );
     setHash(NINE);
     mount();
@@ -237,7 +244,14 @@ describe("a link opened while the page is already showing (A, then B, in the sam
   it("works with localStorage blocked", () => {
     vi.stubGlobal(
       "localStorage",
-      new Proxy({}, { get: () => { throw new Error("blocked"); } }),
+      new Proxy(
+        {},
+        {
+          get: () => {
+            throw new Error("blocked");
+          },
+        },
+      ),
     );
     setHash(NINE);
     mount();

@@ -68,7 +68,9 @@ export function Receipt() {
                 key={line.label}
                 className="flex flex-wrap items-baseline gap-x-3 border-b border-dashed border-rule py-2"
               >
-                <span className="min-w-0 grow basis-40 text-[length:var(--t-sm)] leading-5">{line.label}</span>
+                <span className="min-w-0 grow basis-40 text-[length:var(--t-sm)] leading-5">
+                  {line.label}
+                </span>
                 <span className="ml-auto whitespace-nowrap text-right font-mono text-[length:var(--t-base)] font-bold leading-5">
                   {line.yourShare}
                 </span>
@@ -79,7 +81,10 @@ export function Receipt() {
             ))}
           </ul>
 
-          <dl id="receipt-totals" className="flex flex-col gap-3 border-t-4 border-double border-ink pt-4">
+          <dl
+            id="receipt-totals"
+            className="flex flex-col gap-3 border-t-4 border-double border-ink pt-4"
+          >
             <div>
               <dt className="font-display text-[length:var(--t-sm)]">PER PERSON</dt>
               {/* Size by length first; nowrap plus overflow-wrap is only the safety net. */}
@@ -99,14 +104,18 @@ export function Receipt() {
             </div>
           </dl>
 
-          <p className="pt-4 text-center text-[length:var(--t-sm)] font-bold">{RECEIPT_COPY.status}</p>
+          <p className="pt-4 text-center text-[length:var(--t-sm)] font-bold">
+            {RECEIPT_COPY.status}
+          </p>
 
           <TierStamp badge={view.badge} tagline={view.tagline} />
 
           <div className="flex flex-col gap-1 pb-4 text-center">
             <p className="text-[length:var(--t-sm)] font-bold">{view.balanceLine}</p>
             <p className="text-[length:var(--t-xs)] leading-4 text-muted">AUTH: {view.authCode}</p>
-            <p className="text-balance text-[length:var(--t-xs)] leading-4 text-muted">{RECEIPT_COPY.customerCopy}</p>
+            <p className="text-balance text-[length:var(--t-xs)] leading-4 text-muted">
+              {RECEIPT_COPY.customerCopy}
+            </p>
             <p className="text-[length:var(--t-xs)] leading-4 text-muted">{view.ratesNote}</p>
           </div>
         </div>

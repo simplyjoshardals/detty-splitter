@@ -27,13 +27,15 @@ export function ResultsPanel() {
         {state.buckets.map((bucket, i) => {
           const line = result.lines[i];
           if (!line) return null;
-          return <BucketLine
+          return (
+            <BucketLine
               key={bucket.id}
               bucket={bucket}
               line={line}
               currency={currency}
               rates={rates}
-            />;
+            />
+          );
         })}
       </ul>
 

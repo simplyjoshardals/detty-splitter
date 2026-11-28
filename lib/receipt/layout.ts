@@ -130,7 +130,12 @@ export function fitFontSize(
   return { size: MIN_TEXT_PX, fits: measure(text, floor) <= maxWidth };
 }
 
-function greedyWrap(words: readonly string[], maxWidth: number, font: FontSpec, measure: Measure): string[] {
+function greedyWrap(
+  words: readonly string[],
+  maxWidth: number,
+  font: FontSpec,
+  measure: Measure,
+): string[] {
   const lines: string[] = [];
   let current = "";
   for (const word of words) {
@@ -151,7 +156,12 @@ function greedyWrap(words: readonly string[], maxWidth: number, font: FontSpec, 
  * `text-balance`) so a wrapped line never ends with one word alone. A word wider than `maxWidth`
  * stays on its own line; the caller checks the widths.
  */
-export function wrapText(text: string, font: FontSpec, maxWidth: number, measure: Measure): string[] {
+export function wrapText(
+  text: string,
+  font: FontSpec,
+  maxWidth: number,
+  measure: Measure,
+): string[] {
   const words = text.split(/\s+/).filter((word) => word !== "");
   const lines = greedyWrap(words, maxWidth, font, measure);
   if (lines.length < 2) return lines;
@@ -234,7 +244,14 @@ function build(view: ReceiptView, measure: Measure, extra: number): LayoutResult
     return belowY;
   };
 
-  ops.push({ kind: "rect", x: 0, y: 0, width: CANVAS_WIDTH, height: CANVAS_HEIGHT, color: "paper" });
+  ops.push({
+    kind: "rect",
+    x: 0,
+    y: 0,
+    width: CANVAS_WIDTH,
+    height: CANVAS_HEIGHT,
+    color: "paper",
+  });
 
   // Top danfo band and stripe.
   let y = MARGIN_Y;
@@ -267,7 +284,14 @@ function build(view: ReceiptView, measure: Measure, extra: number): LayoutResult
   // lets every row fit), so the right-hand column does not look ragged.
   const labelFont = mono(400, 34);
   const fitted = view.lines.map((line) =>
-    fitFontSize(line.yourShare, "mono", 700, CONTENT_W - measure(line.label, labelFont) - AMOUNT_GAP, 40, measure),
+    fitFontSize(
+      line.yourShare,
+      "mono",
+      700,
+      CONTENT_W - measure(line.label, labelFont) - AMOUNT_GAP,
+      40,
+      measure,
+    ),
   );
   const lineSize = Math.min(40, ...fitted.filter((f) => f.fits).map((f) => f.size));
   for (const line of view.lines) {
@@ -288,7 +312,8 @@ function build(view: ReceiptView, measure: Measure, extra: number): LayoutResult
   y += GAP.perPerson;
   text("PER PERSON", PAD_X, y, mono(700, 34), "ink", "left");
   const perPerson = fitFontSize(view.perPersonTotal, "mono", 700, CONTENT_W, 92, measure);
-  if (!perPerson.fits) problems.push(`"${view.perPersonTotal}" is wider than ${CONTENT_W}px at ${MIN_TEXT_PX}px`);
+  if (!perPerson.fits)
+    problems.push(`"${view.perPersonTotal}" is wider than ${CONTENT_W}px at ${MIN_TEXT_PX}px`);
   // The step scales with the size, so a large amount never crowds its label.
   y += Math.max(GAP.perPersonAmount, Math.round(perPerson.size * 0.72) + 28);
   text(view.perPersonTotal, CANVAS_WIDTH - PAD_X, y, mono(700, perPerson.size), "ink", "right");
@@ -307,7 +332,9 @@ function build(view: ReceiptView, measure: Measure, extra: number): LayoutResult
   const boxWidth = textWidth + STAMP_PAD_X * 2;
   const boxHeight = badgeLines.length * STAMP_LINE_H + STAMP_PAD_Y * 2;
   // How far the rotated corners stick out above and below the unrotated box.
-  const tilt = Math.ceil((boxWidth / 2) * Math.sin(-STAMP_ANGLE) - (boxHeight / 2) * (1 - Math.cos(STAMP_ANGLE)));
+  const tilt = Math.ceil(
+    (boxWidth / 2) * Math.sin(-STAMP_ANGLE) - (boxHeight / 2) * (1 - Math.cos(STAMP_ANGLE)),
+  );
   const boxTop = y + GAP.beforeStamp + extra + tilt;
   ops.push({
     kind: "stamp",
@@ -344,14 +371,32 @@ function build(view: ReceiptView, measure: Measure, extra: number): LayoutResult
   centered(view.ratesNote, y, mono(400, MIN_TEXT_PX), "muted");
   const lastBaseline = y;
   if (lastBaseline + BAND_CLEARANCE > BOTTOM_BAND_TOP) {
-    problems.push(`content ends at ${lastBaseline}px, past the bottom band at ${BOTTOM_BAND_TOP}px`);
+    problems.push(
+      `content ends at ${lastBaseline}px, past the bottom band at ${BOTTOM_BAND_TOP}px`,
+    );
   }
 
   // Bottom danfo band: the site URL watermark, above the bottom safe margin.
-  ops.push({ kind: "rect", x: 0, y: BOTTOM_BAND_TOP, width: CANVAS_WIDTH, height: BOTTOM_BAND_H, color: "danfo" });
+  ops.push({
+    kind: "rect",
+    x: 0,
+    y: BOTTOM_BAND_TOP,
+    width: CANVAS_WIDTH,
+    height: BOTTOM_BAND_H,
+    color: "danfo",
+  });
   const urlFit = fitFontSize(view.siteUrl, "mono", 700, CONTENT_W, 34, measure);
-  if (!urlFit.fits) problems.push(`"${view.siteUrl}" is wider than ${CONTENT_W}px at ${MIN_TEXT_PX}px`);
-  text(view.siteUrl, CENTER_X, BOTTOM_BAND_TOP + BOTTOM_BAND_H / 2, mono(700, urlFit.size), "ink", "center", "middle");
+  if (!urlFit.fits)
+    problems.push(`"${view.siteUrl}" is wider than ${CONTENT_W}px at ${MIN_TEXT_PX}px`);
+  text(
+    view.siteUrl,
+    CENTER_X,
+    BOTTOM_BAND_TOP + BOTTOM_BAND_H / 2,
+    mono(700, urlFit.size),
+    "ink",
+    "center",
+    "middle",
+  );
 
   if (problems.length > 0) return { ok: false, message: problems.join("; ") };
   return { ok: true, ops, lastBaseline, bottomBandTop: BOTTOM_BAND_TOP };

@@ -171,7 +171,10 @@ test("the flow runs under the production CSP with no violations", async ({ page 
       return;
     }
     const response = await route.fetch();
-    await route.fulfill({ response, headers: { ...response.headers(), "content-security-policy": csp } });
+    await route.fulfill({
+      response,
+      headers: { ...response.headers(), "content-security-policy": csp },
+    });
   });
   // /m/lib is a Pages Function (the analytics relay), which `serve` does not run. An empty same-origin
   // script still shows that the policy lets it load.

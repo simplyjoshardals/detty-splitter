@@ -49,15 +49,8 @@ function toPayload(event: AnalyticsEvent): Payload | null {
       return { name: raw.name };
     case "receipt_export": {
       const { tier, currency, method } = raw;
-      if (
-        typeof tier !== "number" ||
-        !Number.isInteger(tier) ||
-        tier < 1 ||
-        tier > 5
-      )
-        return null;
-      if (typeof currency !== "string" || !CURRENCIES.includes(currency))
-        return null;
+      if (typeof tier !== "number" || !Number.isInteger(tier) || tier < 1 || tier > 5) return null;
+      if (typeof currency !== "string" || !CURRENCIES.includes(currency)) return null;
       if (typeof method !== "string" || !METHODS.includes(method)) return null;
       return { name: "receipt_export", data: { tier, currency, method } };
     }
@@ -91,8 +84,7 @@ export function track(
   }
 }
 
-const SITE_ID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const SITE_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Attributes for the Umami `<script>` tag. */
 export interface UmamiScriptProps {
@@ -127,11 +119,7 @@ export function umamiScriptProps(
   siteUrl: string,
 ): UmamiScriptProps | null {
   const id = siteId.trim();
-  if (
-    !SITE_ID_PATTERN.test(id) ||
-    !SAME_ORIGIN_PATH.test(scriptSrc) ||
-    scriptSrc.includes("..")
-  )
+  if (!SITE_ID_PATTERN.test(id) || !SAME_ORIGIN_PATH.test(scriptSrc) || scriptSrc.includes(".."))
     return null;
   let site: URL;
   try {

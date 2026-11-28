@@ -66,7 +66,11 @@ export function ShareBar() {
       </button>
       {/* Always in the page and two lines high even when empty, like the group row's status
           (DESIGN §5.9), so the message appearing never moves what is below it. */}
-      <div id={STATUS_ID} role="status" className="mt-1 min-h-8 text-[length:var(--t-xs)] leading-4">
+      <div
+        id={STATUS_ID}
+        role="status"
+        className="mt-1 min-h-8 text-[length:var(--t-xs)] leading-4"
+      >
         {kind === "copied" && (
           <p className="flex items-start gap-1.5">
             <CheckIcon size={16} weight="bold" aria-hidden="true" className="shrink-0" />

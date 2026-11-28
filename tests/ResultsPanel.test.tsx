@@ -232,7 +232,11 @@ describe("footer", () => {
 });
 
 describe("hints in a bucket line", () => {
-  async function typeInto(user: ReturnType<typeof userEvent.setup>, box: HTMLElement, text: string) {
+  async function typeInto(
+    user: ReturnType<typeof userEvent.setup>,
+    box: HTMLElement,
+    text: string,
+  ) {
     await user.click(box);
     await user.clear(box);
     await user.type(box, text);
@@ -256,7 +260,9 @@ describe("hints in a bucket line", () => {
     await typeInto(user, stayPrice, "99999999999");
     const hint = screen.getByText("Max is ₦50,000,000, so we adjusted it.");
     const mode = screen.getByRole("radiogroup", { name: `Cost split ${STAY}` });
-    expect(Boolean(mode.compareDocumentPosition(hint) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
+    expect(Boolean(mode.compareDocumentPosition(hint) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(
+      true,
+    );
   });
 
   it("shows one hint per line: a newer one from another field takes the slot", async () => {
@@ -298,6 +304,8 @@ describe("hints in a bucket line", () => {
 describe("results region while the link or snapshot loads", () => {
   it("is not marked busy once the provider has applied the starting state", () => {
     setup();
-    expect(screen.getByRole("region", { name: "Your damage" }).getAttribute("aria-busy")).toBe("false");
+    expect(screen.getByRole("region", { name: "Your damage" }).getAttribute("aria-busy")).toBe(
+      "false",
+    );
   });
 });

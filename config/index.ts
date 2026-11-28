@@ -57,12 +57,9 @@ export const X_HANDLE = "@joshardals";
 export const THEME_COLOR = "#FFC400";
 
 /** The CTA is on only if the variable is exactly the string "true". */
-export const CTA_ENABLED: boolean =
-  process.env.NEXT_PUBLIC_CTA_ENABLED === "true";
+export const CTA_ENABLED: boolean = process.env.NEXT_PUBLIC_CTA_ENABLED === "true";
 
-export const CTA_URL: string | null = parseHttpsUrl(
-  process.env.NEXT_PUBLIC_CTA_URL,
-);
+export const CTA_URL: string | null = parseHttpsUrl(process.env.NEXT_PUBLIC_CTA_URL);
 
 /**
  * CTA card copy (DATA_MODEL §3.3, DESIGN §5.12). Plain constants, public by design.

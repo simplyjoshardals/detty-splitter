@@ -250,7 +250,11 @@ export function ExportButton() {
     void pending.then((result) => {
       // A finished export counts even if the numbers changed meanwhile: the file that left was the
       // receipt of `tapState`. Cancelled, failed and not-ready taps send nothing (DATA_MODEL §7).
-      if (result.status === "shared" || result.status === "downloaded" || result.status === "inline") {
+      if (
+        result.status === "shared" ||
+        result.status === "downloaded" ||
+        result.status === "inline"
+      ) {
         track({
           name: "receipt_export",
           tier: calculate(tapState, TIERS).tier.id,
@@ -291,7 +295,11 @@ export function ExportButton() {
       {/* Always in the page and two lines high even when empty, like the share status
           (DESIGN §5.9), so a message appearing never moves what is below it. The tip, when it
           applies, adds a line: that happens once, right after a tap. */}
-      <div id={STATUS_ID} role="status" className="mt-2 min-h-8 text-[length:var(--t-xs)] leading-4">
+      <div
+        id={STATUS_ID}
+        role="status"
+        className="mt-2 min-h-8 text-[length:var(--t-xs)] leading-4"
+      >
         {line !== null && (
           <>
             <p className={`flex items-start gap-1.5 ${line.error ? "text-danger" : ""}`}>

@@ -250,7 +250,13 @@ describe("setBucketMode", () => {
     expect(next.currency).toBe("USD");
     expect(next.rates).toEqual(base.rates);
     expect(next.groupSize).toBe(base.groupSize);
-    expect(next.buckets.map((b) => b.id)).toEqual(["stay", "events", "tables", "transport", "food"]);
+    expect(next.buckets.map((b) => b.id)).toEqual([
+      "stay",
+      "events",
+      "tables",
+      "transport",
+      "food",
+    ]);
   });
 
   it("returns the same state object when the mode is already set", () => {
@@ -335,7 +341,13 @@ describe("setBucketNumber", () => {
     expect(next.currency).toBe("USD");
     expect(next.rates).toEqual(base.rates);
     expect(next.groupSize).toBe(base.groupSize);
-    expect(next.buckets.map((b) => b.id)).toEqual(["stay", "events", "tables", "transport", "food"]);
+    expect(next.buckets.map((b) => b.id)).toEqual([
+      "stay",
+      "events",
+      "tables",
+      "transport",
+      "food",
+    ]);
   });
 
   it("clamps to the DATA_MODEL §2.2 ranges", () => {
@@ -404,7 +416,10 @@ describe("setBucketNumber", () => {
 describe("setCurrency", () => {
   const setCurrency = (state: AppState, currency: unknown) =>
     // The cast stands in for hostile input (a decoded link, a bad caller) that types can't stop.
-    appReducer(state, { type: "setCurrency", currency } as { type: "setCurrency"; currency: "NGN" });
+    appReducer(state, { type: "setCurrency", currency } as {
+      type: "setCurrency";
+      currency: "NGN";
+    });
 
   it("changes only the currency", () => {
     const base = createInitialState();
@@ -446,7 +461,11 @@ describe("setCurrency", () => {
 describe("setRate", () => {
   const setRate = (state: AppState, rate: unknown, value: number) =>
     // The cast stands in for hostile input (a decoded link, a bad caller) that types can't stop.
-    appReducer(state, { type: "setRate", rate, value } as { type: "setRate"; rate: "ngnPerUsd"; value: number });
+    appReducer(state, { type: "setRate", rate, value } as {
+      type: "setRate";
+      rate: "ngnPerUsd";
+      value: number;
+    });
 
   it("changes only the one rate that was set", () => {
     const base = createInitialState();
@@ -548,7 +567,11 @@ describe("loadState", () => {
   });
 
   it("keeps the loaded currency and rates, unlike selectPreset", () => {
-    const loaded: AppState = { ...GOLDEN, currency: "USD", rates: { ngnPerUsd: 1234.56, ngnPerGbp: 99 } };
+    const loaded: AppState = {
+      ...GOLDEN,
+      currency: "USD",
+      rates: { ngnPerUsd: 1234.56, ngnPerGbp: 99 },
+    };
     const next = appReducer(createInitialState(), { type: "loadState", state: loaded });
     expect(next.currency).toBe("USD");
     expect(next.rates).toEqual({ ngnPerUsd: 1234.56, ngnPerGbp: 99 });
@@ -589,6 +612,9 @@ describe("loadState", () => {
   });
 
   it("does not mutate the previous state or the loaded one", () => {
-    appReducer(deepFreeze(createInitialState()), { type: "loadState", state: deepFreeze(structuredClone(GOLDEN)) });
+    appReducer(deepFreeze(createInitialState()), {
+      type: "loadState",
+      state: deepFreeze(structuredClone(GOLDEN)),
+    });
   });
 });

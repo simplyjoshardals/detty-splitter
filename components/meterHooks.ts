@@ -111,9 +111,7 @@ export function useTargetInView(
       frame = requestAnimationFrame(() => {
         const rect = target.getBoundingClientRect();
         const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
-        setInView(
-          rect.bottom > topClearancePx && rect.top < viewportHeight - recheckClearancePx,
-        );
+        setInView(rect.bottom > topClearancePx && rect.top < viewportHeight - recheckClearancePx);
       });
     };
     window.addEventListener("scroll", recheck, { passive: true });

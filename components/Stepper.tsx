@@ -149,10 +149,7 @@ export function Stepper({
           <PlusIcon size={20} weight="bold" aria-hidden="true" />
         </button>
         {suffix !== undefined && (
-          <span
-            aria-hidden="true"
-            className="ml-3 text-[length:var(--t-sm)] text-muted"
-          >
+          <span aria-hidden="true" className="ml-3 text-[length:var(--t-sm)] text-muted">
             {suffix}
           </span>
         )}

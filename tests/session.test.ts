@@ -25,7 +25,12 @@ describe("createSession", () => {
 describe("hydrated", () => {
   it("applies a loaded state and marks the session hydrated, with no notice", () => {
     const next = sessionReducer(createSession(), { type: "hydrated", load: fromHash });
-    expect(next).toEqual({ app: MAX_VALUES, hydrated: true, baseline: MAX_VALUES, linkNotice: false });
+    expect(next).toEqual({
+      app: MAX_VALUES,
+      hydrated: true,
+      baseline: MAX_VALUES,
+      linkNotice: false,
+    });
   });
 
   it("a rejected link keeps the default on screen and raises the notice, in one step", () => {
@@ -84,7 +89,10 @@ describe("linkOpened (a link arrives while the page is already showing)", () => 
   });
 
   it("a rejected link shows the default and the notice, and the default is the baseline", () => {
-    const next = opened(sessionReducer(createSession(), { type: "hydrated", load: goodB }), rejected);
+    const next = opened(
+      sessionReducer(createSession(), { type: "hydrated", load: goodB }),
+      rejected,
+    );
     expect(next.app).toEqual(createInitialState());
     expect(next.linkNotice).toBe(true);
     expect(next.baseline).toBe(next.app);
@@ -108,7 +116,10 @@ describe("linkOpened (a link arrives while the page is already showing)", () => 
 describe("dismissNotice", () => {
   it("clears the notice and nothing else", () => {
     const shown = sessionReducer(createSession(), { type: "hydrated", load: rejected });
-    expect(sessionReducer(shown, { type: "dismissNotice" })).toEqual({ ...shown, linkNotice: false });
+    expect(sessionReducer(shown, { type: "dismissNotice" })).toEqual({
+      ...shown,
+      linkNotice: false,
+    });
   });
 
   it("returns the same session when there is no notice", () => {
@@ -128,7 +139,9 @@ describe("app actions pass through", () => {
 
   it("an action that changes nothing returns the same session, so nothing re-renders", () => {
     const session = createSession();
-    expect(sessionReducer(session, { type: "setGroupSize", value: session.app.groupSize })).toBe(session);
+    expect(sessionReducer(session, { type: "setGroupSize", value: session.app.groupSize })).toBe(
+      session,
+    );
   });
 
   it("editing after a load keeps working on the loaded state", () => {

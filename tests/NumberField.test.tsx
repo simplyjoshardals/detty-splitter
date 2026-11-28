@@ -47,7 +47,11 @@ function Harness({
       />
       <div id="row-hint" role="status">
         {hints.active !== null && (
-          <HintMessage hint={hints.active.hint} field="Field" text={hintText(hints.active.hint, range, prefix)} />
+          <HintMessage
+            hint={hints.active.hint}
+            field="Field"
+            text={hintText(hints.active.hint, range, prefix)}
+          />
         )}
       </div>
       <button type="button" onClick={() => setValue(777)}>
@@ -67,7 +71,11 @@ function setup(props: HarnessProps = {}) {
 }
 
 /** Focuses the field and replaces its text, the way a person selects all and types. */
-async function replaceText(user: ReturnType<typeof userEvent.setup>, input: HTMLElement, text: string) {
+async function replaceText(
+  user: ReturnType<typeof userEvent.setup>,
+  input: HTMLElement,
+  text: string,
+) {
   await user.click(input);
   await user.clear(input);
   if (text !== "") await user.type(input, text);
@@ -261,7 +269,9 @@ describe("NumberField: clamping", () => {
     await user.tab();
     expect(onCommit).toHaveBeenCalledWith(50000000);
     expect(input.value).toBe("50,000,000");
-    expect(screen.getByRole("status").textContent).toBe("Field: Max is ₦50,000,000, so we adjusted it.");
+    expect(screen.getByRole("status").textContent).toBe(
+      "Field: Max is ₦50,000,000, so we adjusted it.",
+    );
   });
 
   it("clamps an absurdly long number without losing the max", async () => {
@@ -319,7 +329,9 @@ describe("NumberField: a range with decimals (the rates)", () => {
     await user.tab();
     expect(onCommit).not.toHaveBeenCalled();
     expect(input.value).toBe("1,500");
-    expect(screen.getByRole("status").textContent).toContain("Use 50 to 100,000. We kept your old number.");
+    expect(screen.getByRole("status").textContent).toContain(
+      "Use 50 to 100,000. We kept your old number.",
+    );
   });
 
   it("reports a third decimal instead of rounding it", async () => {
@@ -327,7 +339,9 @@ describe("NumberField: a range with decimals (the rates)", () => {
     await replaceText(user, input, "1500.555");
     await user.tab();
     expect(onCommit).not.toHaveBeenCalled();
-    expect(screen.getByRole("status").textContent).toContain("Max 2 decimals. We kept your old number.");
+    expect(screen.getByRole("status").textContent).toContain(
+      "Max 2 decimals. We kept your old number.",
+    );
   });
 
   it("leaves whole-number fields on the numeric keypad", () => {

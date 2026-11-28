@@ -79,7 +79,9 @@ describe("exportReceipt: share path", () => {
     // Nothing has been awaited yet: both calls already happened inside the "tap".
     expect(canShare).toHaveBeenCalledTimes(1);
     expect(share).toHaveBeenCalledTimes(1);
-    expect(canShare.mock.invocationCallOrder[0]).toBeLessThan(share.mock.invocationCallOrder[0] ?? 0);
+    expect(canShare.mock.invocationCallOrder[0]).toBeLessThan(
+      share.mock.invocationCallOrder[0] ?? 0,
+    );
     return pending;
   });
 
@@ -113,7 +115,10 @@ describe("exportReceipt: fallbacks", () => {
     const { env, share, canShare, download } = makeEnv();
     canShare.mockReturnValue(false);
 
-    expect(await exportReceipt({ source, env })).toEqual({ status: "downloaded", method: "download" });
+    expect(await exportReceipt({ source, env })).toEqual({
+      status: "downloaded",
+      method: "download",
+    });
     expect(share).not.toHaveBeenCalled();
     expect(download).toHaveBeenCalledWith(BLOB, EXPORT_FILE_NAME);
   });
@@ -127,7 +132,10 @@ describe("exportReceipt: fallbacks", () => {
     const base = makeEnv();
     const env: ExportEnv = { ...base.env, ...missing };
 
-    expect(await exportReceipt({ source, env })).toEqual({ status: "downloaded", method: "download" });
+    expect(await exportReceipt({ source, env })).toEqual({
+      status: "downloaded",
+      method: "download",
+    });
     expect(base.download).toHaveBeenCalledTimes(1);
   });
 
@@ -138,7 +146,10 @@ describe("exportReceipt: fallbacks", () => {
       throw new TypeError("canShare is not a function");
     });
 
-    expect(await exportReceipt({ source, env })).toEqual({ status: "downloaded", method: "download" });
+    expect(await exportReceipt({ source, env })).toEqual({
+      status: "downloaded",
+      method: "download",
+    });
     expect(share).not.toHaveBeenCalled();
     expect(download).toHaveBeenCalledTimes(1);
   });
@@ -150,7 +161,10 @@ describe("exportReceipt: fallbacks", () => {
       throw new TypeError("Illegal invocation");
     });
 
-    expect(await exportReceipt({ source, env })).toEqual({ status: "downloaded", method: "download" });
+    expect(await exportReceipt({ source, env })).toEqual({
+      status: "downloaded",
+      method: "download",
+    });
     expect(download).toHaveBeenCalledTimes(1);
   });
 
@@ -161,7 +175,10 @@ describe("exportReceipt: fallbacks", () => {
       const { env, share, download } = makeEnv();
       share.mockRejectedValueOnce(new DOMException("nope", name));
 
-      expect(await exportReceipt({ source, env })).toEqual({ status: "downloaded", method: "download" });
+      expect(await exportReceipt({ source, env })).toEqual({
+        status: "downloaded",
+        method: "download",
+      });
       expect(download).toHaveBeenCalledTimes(1);
     },
   );
@@ -171,7 +188,10 @@ describe("exportReceipt: fallbacks", () => {
     const { env, share, download } = makeEnv();
     share.mockRejectedValueOnce("boom");
 
-    expect(await exportReceipt({ source, env })).toEqual({ status: "downloaded", method: "download" });
+    expect(await exportReceipt({ source, env })).toEqual({
+      status: "downloaded",
+      method: "download",
+    });
     expect(download).toHaveBeenCalledTimes(1);
   });
 
@@ -180,7 +200,10 @@ describe("exportReceipt: fallbacks", () => {
     const { source } = sourceOf(readySnapshot());
     const { env, share, canShare, download } = makeEnv();
 
-    expect(await exportReceipt({ source, env })).toEqual({ status: "downloaded", method: "download" });
+    expect(await exportReceipt({ source, env })).toEqual({
+      status: "downloaded",
+      method: "download",
+    });
     expect(canShare).not.toHaveBeenCalled();
     expect(share).not.toHaveBeenCalled();
     expect(download).toHaveBeenCalledTimes(1);
@@ -274,41 +297,53 @@ describe("exportReceipt: blob not ready, and the browser cannot share files", ()
 
   /** The ways a browser can be unable to share a PNG; none of them needs the tap afterwards. */
   const cannotShare: ReadonlyArray<readonly [string, () => ExportEnv]> = [
-    ["has no share or canShare", () => ({ ...makeEnv().env, share: undefined, canShare: undefined })],
+    [
+      "has no share or canShare",
+      () => ({ ...makeEnv().env, share: undefined, canShare: undefined }),
+    ],
     ["has no canShare", () => ({ ...makeEnv().env, canShare: undefined })],
-    ["says canShare is false", () => {
-      const base = makeEnv();
-      base.canShare.mockReturnValue(false);
-      return base.env;
-    }],
-    ["throws from canShare", () => {
-      const base = makeEnv();
-      base.canShare.mockImplementation(() => {
-        throw new TypeError("nope");
-      });
-      return base.env;
-    }],
+    [
+      "says canShare is false",
+      () => {
+        const base = makeEnv();
+        base.canShare.mockReturnValue(false);
+        return base.env;
+      },
+    ],
+    [
+      "throws from canShare",
+      () => {
+        const base = makeEnv();
+        base.canShare.mockImplementation(() => {
+          throw new TypeError("nope");
+        });
+        return base.env;
+      },
+    ],
   ];
 
-  it.each(cannotShare)("when the browser %s: waits for the blob, then downloads on the first tap", async (_label, makeBrowser) => {
-    const { source, start, settle } = sourceOf({ status: "rendering" });
-    const env = makeBrowser();
-    const download = vi.spyOn(env, "download");
+  it.each(cannotShare)(
+    "when the browser %s: waits for the blob, then downloads on the first tap",
+    async (_label, makeBrowser) => {
+      const { source, start, settle } = sourceOf({ status: "rendering" });
+      const env = makeBrowser();
+      const download = vi.spyOn(env, "download");
 
-    let result: unknown = "pending";
-    const pending = exportReceipt({ source, env }).then((value) => {
-      result = value;
-    });
-    await Promise.resolve();
-    expect(result).toBe("pending");
-    expect(start).toHaveBeenCalledTimes(1);
-    expect(download).not.toHaveBeenCalled();
+      let result: unknown = "pending";
+      const pending = exportReceipt({ source, env }).then((value) => {
+        result = value;
+      });
+      await Promise.resolve();
+      expect(result).toBe("pending");
+      expect(start).toHaveBeenCalledTimes(1);
+      expect(download).not.toHaveBeenCalled();
 
-    settle(readySnapshot());
-    await pending;
-    expect(result).toEqual({ status: "downloaded", method: "download" });
-    expect(download).toHaveBeenCalledWith(BLOB, EXPORT_FILE_NAME);
-  });
+      settle(readySnapshot());
+      await pending;
+      expect(result).toEqual({ status: "downloaded", method: "download" });
+      expect(download).toHaveBeenCalledWith(BLOB, EXPORT_FILE_NAME);
+    },
+  );
 
   it("keeps waiting through updates that are not ready yet", async () => {
     const { source, settle } = sourceOf({ status: "idle" });

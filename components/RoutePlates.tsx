@@ -1,12 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import {
-  BusIcon,
-  CheckIcon,
-  ConfettiIcon,
-  CrownSimpleIcon,
-} from "@phosphor-icons/react";
+import { BusIcon, CheckIcon, ConfettiIcon, CrownSimpleIcon } from "@phosphor-icons/react";
 import { PRESETS, PRESET_ORDER } from "@/data/presets";
 import type { PresetId } from "@/lib/types";
 
@@ -36,9 +31,7 @@ export function RoutePlates({ value, onChange }: RoutePlatesProps) {
 
   return (
     <fieldset>
-      <legend className="mb-3 font-display text-[length:var(--t-sm)]">
-        Pick your route
-      </legend>
+      <legend className="mb-3 font-display text-[length:var(--t-sm)]">Pick your route</legend>
       <div className="grid gap-3 min-[480px]:grid-cols-3">
         {PRESET_ORDER.map((id) => {
           const preset = PRESETS[id];

@@ -151,9 +151,9 @@ describe("umamiScriptProps", () => {
   });
 
   it("limits tracking to the host of the site URL, not its path", () => {
-    expect(umamiScriptProps(SITE_ID, SCRIPT, "https://example.com/some/path?x=1")?.["data-domains"]).toBe(
-      "example.com",
-    );
+    expect(
+      umamiScriptProps(SITE_ID, SCRIPT, "https://example.com/some/path?x=1")?.["data-domains"],
+    ).toBe("example.com");
   });
 
   it("sets data-host-url to the origin of the site URL, without path or query", () => {

@@ -23,15 +23,23 @@ function Controls() {
       <button type="button" onClick={() => dispatch({ type: "setCurrency", currency: "USD" })}>
         Dollars
       </button>
-      <button type="button" onClick={() => dispatch({ type: "setRate", rate: "ngnPerUsd", value: 1600 })}>
+      <button
+        type="button"
+        onClick={() => dispatch({ type: "setRate", rate: "ngnPerUsd", value: 1600 })}
+      >
         Custom rate
       </button>
-      <button type="button" onClick={() => dispatch({ type: "setBucketMode", bucketId: "stay", mode: "perPerson" })}>
+      <button
+        type="button"
+        onClick={() => dispatch({ type: "setBucketMode", bucketId: "stay", mode: "perPerson" })}
+      >
         Stay per person
       </button>
       <button
         type="button"
-        onClick={() => dispatch({ type: "setBucketNumber", bucketId: "events", field: "quantity", value: 4 })}
+        onClick={() =>
+          dispatch({ type: "setBucketNumber", bucketId: "events", field: "quantity", value: 4 })
+        }
       >
         One more event
       </button>
@@ -120,7 +128,9 @@ describe("the receipt", () => {
   it("shows the totals, the status, the balance line and a stable AUTH code", () => {
     renderReceipt();
     expect(perPerson()).toBe("₦1,347,500");
-    expect(within(receipt()).getByText("GROUP (4)").nextElementSibling?.textContent).toBe("₦5,390,000");
+    expect(within(receipt()).getByText("GROUP (4)").nextElementSibling?.textContent).toBe(
+      "₦5,390,000",
+    );
     expect(within(receipt()).getByText("STATUS: APPROVED")).toBeTruthy();
     expect(within(receipt()).getByText(SOFT?.balanceLine ?? "")).toBeTruthy();
     expect(within(receipt()).getByText("AUTH: D1E6E16D")).toBeTruthy();

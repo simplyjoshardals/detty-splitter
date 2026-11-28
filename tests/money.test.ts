@@ -95,10 +95,21 @@ describe("isCurrencyCode", () => {
     for (const code of CURRENCY_CODES) expect(isCurrencyCode(code)).toBe(true);
   });
 
-  it.each(["usd", "Usd", "EUR", "X", "", " USD", "USD ", "NGN,USD", null, undefined, 0, {}, ["USD"]])(
-    "rejects %j",
-    (value) => {
-      expect(isCurrencyCode(value)).toBe(false);
-    },
-  );
+  it.each([
+    "usd",
+    "Usd",
+    "EUR",
+    "X",
+    "",
+    " USD",
+    "USD ",
+    "NGN,USD",
+    null,
+    undefined,
+    0,
+    {},
+    ["USD"],
+  ])("rejects %j", (value) => {
+    expect(isCurrencyCode(value)).toBe(false);
+  });
 });

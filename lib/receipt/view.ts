@@ -96,7 +96,10 @@ const DEFAULT_OPTIONS: ReceiptOptions = {
   siteUrl: SITE_URL,
 };
 
-export function buildReceiptView(state: AppState, options: Partial<ReceiptOptions> = {}): ReceiptView {
+export function buildReceiptView(
+  state: AppState,
+  options: Partial<ReceiptOptions> = {},
+): ReceiptView {
   const { tiers, defaultRates, ratesAsOf, siteUrl } = { ...DEFAULT_OPTIONS, ...options };
   const { currency, groupSize, rates } = state;
   const result = calculate(state, tiers);

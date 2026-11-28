@@ -16,7 +16,10 @@ function sheetOf(families: string[], options: { insertThrows?: boolean } = {}) {
   );
   const insertRule = vi.fn((text: string, index: number) => {
     if (options.insertThrows) throw new Error("SyntaxError");
-    rules.splice(index, 0, { cssText: text, style: { getPropertyValue: () => text.match(/font-family: "([^"]+)"/)?.[1] ?? "" } });
+    rules.splice(index, 0, {
+      cssText: text,
+      style: { getPropertyValue: () => text.match(/font-family: "([^"]+)"/)?.[1] ?? "" },
+    });
     return index;
   });
   const deleteRule = vi.fn((index: number) => void rules.splice(index, 1));
@@ -29,7 +32,10 @@ const face = (family: string, status: string) => ({ family, status });
 describe("reviveFailedFonts", () => {
   it("re-creates the font rule of a family whose face failed", () => {
     const { sheet, rules, insertRule, deleteRule } = sheetOf(["Bungee", "plain"]);
-    const revived = reviveFailedFonts(["Bungee"], { faces: [face("Bungee", "error")], sheets: [sheet] });
+    const revived = reviveFailedFonts(["Bungee"], {
+      faces: [face("Bungee", "error")],
+      sheets: [sheet],
+    });
     expect(revived).toBe(1);
     expect(insertRule).toHaveBeenCalledTimes(1);
     expect(insertRule).toHaveBeenCalledWith(expect.stringContaining('font-family: "Bungee"'), 0);
@@ -60,14 +66,19 @@ describe("reviveFailedFonts", () => {
 
   it("re-creates every rule of a family (one per unicode-range subset)", () => {
     const { sheet, rules } = sheetOf(["Bungee", "Bungee", "plain"]);
-    const revived = reviveFailedFonts(["Bungee"], { faces: [face("Bungee", "error")], sheets: [sheet] });
+    const revived = reviveFailedFonts(["Bungee"], {
+      faces: [face("Bungee", "error")],
+      sheets: [sheet],
+    });
     expect(revived).toBe(2);
     expect(rules).toHaveLength(3);
   });
 
   it("matches a family written with or without quotes", () => {
     const { sheet } = sheetOf(["Bungee"]);
-    expect(reviveFailedFonts(["'Bungee'"], { faces: [face('"Bungee"', "error")], sheets: [sheet] })).toBe(1);
+    expect(
+      reviveFailedFonts(["'Bungee'"], { faces: [face('"Bungee"', "error")], sheets: [sheet] }),
+    ).toBe(1);
   });
 
   it("skips a stylesheet it cannot read and still handles the others", () => {
@@ -79,13 +90,19 @@ describe("reviveFailedFonts", () => {
       deleteRule: vi.fn(),
     };
     const { sheet } = sheetOf(["Bungee"]);
-    const revived = reviveFailedFonts(["Bungee"], { faces: [face("Bungee", "error")], sheets: [unreadable, sheet] });
+    const revived = reviveFailedFonts(["Bungee"], {
+      faces: [face("Bungee", "error")],
+      sheets: [unreadable, sheet],
+    });
     expect(revived).toBe(1);
   });
 
   it("keeps the original rule when the copy cannot be inserted, and never throws", () => {
     const { sheet, rules, deleteRule } = sheetOf(["Bungee"], { insertThrows: true });
-    const revived = reviveFailedFonts(["Bungee"], { faces: [face("Bungee", "error")], sheets: [sheet] });
+    const revived = reviveFailedFonts(["Bungee"], {
+      faces: [face("Bungee", "error")],
+      sheets: [sheet],
+    });
     expect(revived).toBe(0);
     expect(deleteRule).not.toHaveBeenCalled();
     expect(rules).toHaveLength(1);

@@ -46,8 +46,14 @@ describe("route plates", () => {
     const group = screen.getByRole("group", { name: "Pick your route" });
     const radios = within(group).getAllByRole("radio");
     expect(radios).toHaveLength(3);
-    expect(screen.getByRole("radio", { name: /Soft Life Standard/ })).toHaveProperty("checked", true);
-    expect(screen.getByRole("radio", { name: /Outside on a Budget/ })).toHaveProperty("checked", false);
+    expect(screen.getByRole("radio", { name: /Soft Life Standard/ })).toHaveProperty(
+      "checked",
+      true,
+    );
+    expect(screen.getByRole("radio", { name: /Outside on a Budget/ })).toHaveProperty(
+      "checked",
+      false,
+    );
   });
 
   it("fills all five buckets and updates the totals at once", async () => {
@@ -55,7 +61,10 @@ describe("route plates", () => {
     await user.click(screen.getByText("Outside on a Budget"));
     expect(priceValues()).toEqual(["40,000", "25,000", "150,000", "30,000", "10,000"]);
     expect(screen.getByText("₦280,000")).toBeTruthy();
-    expect(screen.getByRole("radio", { name: /Outside on a Budget/ })).toHaveProperty("checked", true);
+    expect(screen.getByRole("radio", { name: /Outside on a Budget/ })).toHaveProperty(
+      "checked",
+      true,
+    );
     expect(screen.getByText("Route set to Outside on a Budget.")).toBeTruthy();
   });
 

@@ -48,7 +48,7 @@ describe("precedence: hash, then snapshot, then default", () => {
   });
 
   it("a corrupt snapshot is ignored silently: the default, no notice", () => {
-    for (const junk of ["", "#", "garbage", "#v9-x", "{\"a\":1}", "#v1-s-N-4"]) {
+    for (const junk of ["", "#", "garbage", "#v9-x", '{"a":1}', "#v1-s-N-4"]) {
       const result = resolveInitialState("", junk, FALLBACK);
       expect(result.source).toBe("default");
       expect(result.state).toBe(FALLBACK);
@@ -72,13 +72,16 @@ describe("a rejected link", () => {
     ["a wrong-case enum", withField(2, "n"), "bad_chars"],
   ];
 
-  it.each(cases)("%s: default plus the notice code, even with a good snapshot", (_name, link, code) => {
-    const result = resolveInitialState(link, SNAPSHOT, FALLBACK);
-    expect(result.source).toBe("default");
-    expect(result.state).toBe(FALLBACK);
-    expect(result.clamped).toEqual([]);
-    expect(result.rejected).toBe(code);
-  });
+  it.each(cases)(
+    "%s: default plus the notice code, even with a good snapshot",
+    (_name, link, code) => {
+      const result = resolveInitialState(link, SNAPSHOT, FALLBACK);
+      expect(result.source).toBe("default");
+      expect(result.state).toBe(FALLBACK);
+      expect(result.clamped).toEqual([]);
+      expect(result.rejected).toBe(code);
+    },
+  );
 
   it("is the same with no snapshot", () => {
     expect(resolveInitialState("#v1", null, FALLBACK).rejected).toBe("bad_structure");

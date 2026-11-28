@@ -1,11 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
-import {
-  ArrowCounterClockwiseIcon,
-  CaretDownIcon,
-  CheckIcon,
-} from "@phosphor-icons/react";
+import { ArrowCounterClockwiseIcon, CaretDownIcon, CheckIcon } from "@phosphor-icons/react";
 import { DEFAULT_RATES, RATES_AS_OF } from "@/config";
 import { RANGES } from "@/lib/input";
 import { formatAsOfDate, ratesAreCustom } from "@/lib/rates";
@@ -85,10 +81,7 @@ export function RatesPanel() {
   }
 
   return (
-    <section
-      aria-labelledby={headingId}
-      className="mb-4 border-t-2 border-dashed border-rule"
-    >
+    <section aria-labelledby={headingId} className="mb-4 border-t-2 border-dashed border-rule">
       <h3 id={headingId}>
         <button
           type="button"
@@ -104,9 +97,7 @@ export function RatesPanel() {
                 Custom rates
               </span>
             ) : (
-              <span className="text-muted">
-                as of {formatAsOfDate(RATES_AS_OF)}
-              </span>
+              <span className="text-muted">as of {formatAsOfDate(RATES_AS_OF)}</span>
             )}
             <CaretDownIcon
               size={20}
@@ -126,9 +117,7 @@ export function RatesPanel() {
               label={field.label}
               range={RANGES.rate}
               value={rates[field.key]}
-              onCommit={(value) =>
-                dispatch({ type: "setRate", rate: field.key, value })
-              }
+              onCommit={(value) => dispatch({ type: "setRate", rate: field.key, value })}
               hintId={statusId}
               {...hints.forField(field.key)}
             />
@@ -136,11 +125,7 @@ export function RatesPanel() {
         </div>
         <div className="mt-2">
           <button type="button" onClick={resetRates} className={TEXT_BUTTON}>
-            <ArrowCounterClockwiseIcon
-              size={20}
-              weight="bold"
-              aria-hidden="true"
-            />
+            <ArrowCounterClockwiseIcon size={20} weight="bold" aria-hidden="true" />
             Reset rates
           </button>
         </div>
@@ -154,21 +139,13 @@ export function RatesPanel() {
           {hints.active !== null ? (
             <HintMessage
               hint={hints.active.hint}
-              field={
-                RATE_FIELDS.find((f) => f.key === hints.active?.field)?.label ??
-                "Rate"
-              }
+              field={RATE_FIELDS.find((f) => f.key === hints.active?.field)?.label ?? "Rate"}
               text={hintText(hints.active.hint, RANGES.rate, "")}
             />
           ) : (
             status !== null && (
               <p className="flex items-start gap-1.5">
-                <CheckIcon
-                  size={16}
-                  weight="bold"
-                  aria-hidden="true"
-                  className="shrink-0"
-                />
+                <CheckIcon size={16} weight="bold" aria-hidden="true" className="shrink-0" />
                 <span>{status}</span>
               </p>
             )

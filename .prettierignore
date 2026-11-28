@@ -1,0 +1,7 @@
+# Markdown docs: tables are hand-aligned and edited by patch, so reflowing them is only churn.
+*.md
+# Static assets and the lockfile are not source. Everything in .gitignore is skipped already.
+public
+app/fonts
+yarn.lock
+.yarn

@@ -173,7 +173,9 @@ describe("createPrerender", () => {
     const calls: string[] = [];
     const { controller, renderReceipt } = setup((view) => {
       calls.push(view.perPersonTotal);
-      return view.perPersonTotal === "a" ? slow.promise : Promise.resolve(okResult(view.perPersonTotal));
+      return view.perPersonTotal === "a"
+        ? slow.promise
+        : Promise.resolve(okResult(view.perPersonTotal));
     });
     controller.update(viewWith("a"));
     controller.start();
@@ -228,7 +230,9 @@ describe("createPrerender", () => {
   });
 
   it("reports a failed import as load and retries on the next edit (not memoised)", async () => {
-    const renderReceipt = vi.fn(async (view: ReceiptView): Promise<RenderResult> => okResult(view.perPersonTotal));
+    const renderReceipt = vi.fn(async (view: ReceiptView): Promise<RenderResult> =>
+      okResult(view.perPersonTotal),
+    );
     let attempts = 0;
     const load = vi.fn(async (): Promise<RenderModule> => {
       attempts += 1;
@@ -270,7 +274,9 @@ describe("createPrerender", () => {
 
   it("renders the latest view once a slow import finishes", async () => {
     const gate = deferred<RenderModule>();
-    const renderReceipt = vi.fn(async (view: ReceiptView): Promise<RenderResult> => okResult(view.perPersonTotal));
+    const renderReceipt = vi.fn(async (view: ReceiptView): Promise<RenderResult> =>
+      okResult(view.perPersonTotal),
+    );
     const load = vi.fn(() => gate.promise);
     const controller = createPrerender({ load });
     controller.update(viewWith("a"));
@@ -330,7 +336,9 @@ describe("createPrerender", () => {
     });
 
     it("imports the renderer again after a failed import, then draws the view", async () => {
-      const renderReceipt = vi.fn(async (view: ReceiptView): Promise<RenderResult> => okResult(view.perPersonTotal));
+      const renderReceipt = vi.fn(async (view: ReceiptView): Promise<RenderResult> =>
+        okResult(view.perPersonTotal),
+      );
       let attempts = 0;
       const load = vi.fn(async (): Promise<RenderModule> => {
         attempts += 1;
@@ -378,7 +386,9 @@ describe("createPrerender", () => {
     it("does nothing unless the snapshot is failed", async () => {
       const slow = deferred<RenderResult>();
       const { controller, load, renderReceipt } = setup((view) =>
-        view.perPersonTotal === "slow" ? slow.promise : Promise.resolve(okResult(view.perPersonTotal)),
+        view.perPersonTotal === "slow"
+          ? slow.promise
+          : Promise.resolve(okResult(view.perPersonTotal)),
       );
 
       controller.retry(); // idle, before anything started
@@ -450,7 +460,9 @@ describe("createPrerender", () => {
     it("two retry() calls in a row start one render", async () => {
       const slow = deferred<RenderResult>();
       let call = 0;
-      const { controller, renderReceipt } = setup(() => (++call === 1 ? Promise.resolve(failResult("font")) : slow.promise));
+      const { controller, renderReceipt } = setup(() =>
+        ++call === 1 ? Promise.resolve(failResult("font")) : slow.promise,
+      );
       controller.update(viewWith("a"));
       controller.start();
       await flush();

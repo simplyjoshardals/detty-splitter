@@ -46,7 +46,8 @@ function colour(name: string, theme: "light" | "dark", scope?: string): string {
   let value = find(name);
   const reference = /^var\((--[\w-]+)\)$/.exec(value);
   if (reference?.[1] !== undefined) value = find(reference[1]);
-  if (!/^#[0-9a-f]{6}$/i.test(value)) throw new Error(`${name} is "${value}", not a #rrggbb colour`);
+  if (!/^#[0-9a-f]{6}$/i.test(value))
+    throw new Error(`${name} is "${value}", not a #rrggbb colour`);
   return value;
 }
 
@@ -73,7 +74,9 @@ describe.each(["light", "dark"] as const)("receipt colours, %s mode", (theme) =>
   });
 
   it("black text on the danfo bands passes 4.5:1", () => {
-    expect(contrast(colour("--danfo-ink", theme), colour("--danfo", theme))).toBeGreaterThanOrEqual(4.5);
+    expect(contrast(colour("--danfo-ink", theme), colour("--danfo", theme))).toBeGreaterThanOrEqual(
+      4.5,
+    );
   });
 
   it("gives the same colours in both themes: the paper is a physical object", () => {

@@ -5,7 +5,8 @@ import { calculate } from "@/lib/calc";
 import type { PresetId } from "@/lib/types";
 
 // The real presets: tests/setup.ts mocks them for the other tests.
-const { PRESETS, PRESET_ORDER } = await vi.importActual<typeof import("@/data/presets")>("@/data/presets");
+const { PRESETS, PRESET_ORDER } =
+  await vi.importActual<typeof import("@/data/presets")>("@/data/presets");
 
 describe("presets land in the intended tiers (R1)", () => {
   it.each<[PresetId, number]>([

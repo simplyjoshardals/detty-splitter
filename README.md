@@ -28,6 +28,8 @@ yarn dev                     # http://localhost:3000
 | `yarn dev` | Start the dev server |
 | `yarn build` | Static export to `out/` |
 | `yarn lint` | Run ESLint |
+| `yarn format` | Format the code with Prettier (config in `.prettierrc.json`; `*.md` is left alone, see `.prettierignore`) |
+| `yarn format:check` | Fail if any file is not formatted, without changing it |
 | `yarn test` | Unit and component tests (Vitest) |
 | `yarn test:e2e` | One end-to-end flow plus axe checks, and a check of `robots.txt` and `sitemap.xml` (Playwright, Chromium); builds the site and serves `out/` itself |
 

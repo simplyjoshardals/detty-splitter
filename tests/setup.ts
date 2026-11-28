@@ -53,7 +53,11 @@ vi.mock("@/data/presets", async (importOriginal) => {
 
 vi.mock("@/config", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/config")>();
-  return { ...actual, DEFAULT_RATES: { ngnPerUsd: 1500, ngnPerGbp: 2000 }, RATES_AS_OF: "2026-11-23" };
+  return {
+    ...actual,
+    DEFAULT_RATES: { ngnPerUsd: 1500, ngnPerGbp: 2000 },
+    RATES_AS_OF: "2026-11-23",
+  };
 });
 
 /**

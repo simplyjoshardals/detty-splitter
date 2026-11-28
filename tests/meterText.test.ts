@@ -24,16 +24,14 @@ describe("totalsAnnouncement", () => {
     expect(gbpText).toBe("Per person £673.75. Group total £2,695.00 for 4 people.");
   });
 
-  it("says \"1 person\" for a group of one", () => {
+  it('says "1 person" for a group of one', () => {
     expect(totalsAnnouncement(500000, 500000, 1, "NGN")).toBe(
       "Per person ₦500,000. Group total ₦500,000 for 1 person.",
     );
   });
 
   it("still reads a zero total", () => {
-    expect(totalsAnnouncement(0, 0, 4, "NGN")).toBe(
-      "Per person ₦0. Group total ₦0 for 4 people.",
-    );
+    expect(totalsAnnouncement(0, 0, 4, "NGN")).toBe("Per person ₦0. Group total ₦0 for 4 people.");
     expect(totalsAnnouncement(0, 0, 2, "USD")).toBe(
       "Per person $0.00. Group total $0.00 for 2 people.",
     );

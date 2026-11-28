@@ -54,7 +54,9 @@ const out = (line) => process.stdout.write(`${line}\n`);
 
 const loaded = await loadPackage();
 if (!loaded) {
-  out("Could not import @phosphor-icons/react. Run `yarn add --exact @phosphor-icons/react` first.");
+  out(
+    "Could not import @phosphor-icons/react. Run `yarn add --exact @phosphor-icons/react` first.",
+  );
   process.exit(1);
 }
 
@@ -75,9 +77,7 @@ if (missing.length === 0) {
 out(`MISSING ${missing.length} of ${REQUIRED.length}:`);
 for (const name of missing) {
   const base = name.replace(/Icon$/, "").toLowerCase();
-  const hints = exportNames
-    .filter((e) => e.toLowerCase().includes(base))
-    .slice(0, 5);
+  const hints = exportNames.filter((e) => e.toLowerCase().includes(base)).slice(0, 5);
   out(`  - ${name}${hints.length ? `  (similar: ${hints.join(", ")})` : ""}`);
 }
 process.exit(1);
