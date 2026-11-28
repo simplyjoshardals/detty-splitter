@@ -239,6 +239,11 @@ Goal: every number editable, every mode switchable, safely.
   - Depends on: T10.3.
   - **Done: built and verified by the author (28 Nov 2026): all yarn suites pass, and the relay works on the deployed site.** **New files:** `lib/umami-proxy/index.ts`, `functions/m/lib.ts`, `functions/api/send.ts`, `tests/umamiProxy.test.ts`. **Changed:** `lib/analytics/index.ts` (`umamiScriptProps` takes a same-origin path, adds `data-host-url`, requires an https site URL), `config/index.ts`, `app/layout.tsx` (comment only), `tests/analytics.test.ts`, ARCHITECTURE (§0, diagram, §3.8, §3.9, §4, §5, §6, §7, §9, sources), DATA_MODEL §3.3 and §7, README. **Decisions:** (1) keep Umami and proxy it, rather than switch to PostHog; (2) Do Not Track is honoured (`"true"`; the code had `"false"` while the test expected `"true"`); (3) the collect path stays `/api/send` (fixed by the tracker), the script path is neutral; (4) no website-ID check in the relay (it only forwards to Umami, and the daily limit is the same either way). **Notes:** use Pages, not Workers static assets; `yarn dev` and the e2e server have no Functions, so the script request 404s there (nothing is sent from those hosts).
 
+- [ ] **T10.5 Search basics: robots.txt, sitemap.xml, Search Console tag** (0.3h, added after T10.4, not in the 18.75h)
+  - Build: `app/robots.ts` and `app/sitemap.ts` (static, one URL, both built from `SITE_URL`); `GOOGLE_SITE_VERIFICATION` in `config/`, rendered as the `google-site-verification` meta tag through `metadata.verification` in `app/layout.tsx` (nothing is rendered while it is empty); `tests/seo.test.ts` and `e2e/seo.spec.ts`. Scope is REQUIREMENTS D9: findable by its own name with clean link previews. No explainer text, no structured data, no ranking goals.
+  - Done when: unit and e2e tests pass; after deploy `/robots.txt` and `/sitemap.xml` load on the live URL and the page source has the verification tag; a URL-prefix property for the live `SITE_URL` is verified in Search Console and `sitemap.xml` is submitted (status Success); optional: the site is imported into Bing Webmaster Tools from Search Console. Whether and when Google indexes the page is Google's call, so it is not part of done.
+  - Depends on: T10.2.
+
 ### Slice 11: Polish, accessibility, QA, launch prep (2.0h) _(UI_PLAN S10)_
 
 - [x] **T11.1 Sleekness pass and screenshots** (0.75h)
@@ -281,18 +286,18 @@ Riskiest and least-familiar work comes first, while changing course is cheap.
 
 ## 3. Definition of done (every slice)
 
-- [ ] Works end to end on the deployed URL and on a real phone (not only localhost)
-- [ ] Tests for the new logic pass (focused tests during work; type-check, lint and the relevant test suite once before moving on)
-- [ ] All states in DESIGN.md §6 that the slice touches are handled (loading, empty, error, success, partial, offline, permission-denied); no blank screen, endless spinner or raw error
-- [ ] Works at 360px, 768px and 1280px in light and dark; no horizontal scroll; no layout shift
-- [ ] Inputs are 16px, every control has a label, focus is visible, keyboard works
-- [ ] Strict TypeScript, no `any`; external input (hash, typed numbers) validated
-- [ ] No console errors or warnings
-- [ ] No secrets in the code (there are none; `NEXT_PUBLIC_*` values are public by design)
+- [x] Works end to end on the deployed URL and on a real phone (not only localhost)
+- [x] Tests for the new logic pass (focused tests during work; type-check, lint and the relevant test suite once before moving on)
+- [x] All states in DESIGN.md §6 that the slice touches are handled (loading, empty, error, success, partial, offline, permission-denied); no blank screen, endless spinner or raw error
+- [x] Works at 360px, 768px and 1280px in light and dark; no horizontal scroll; no layout shift
+- [x] Inputs are 16px, every control has a label, focus is visible, keyboard works
+- [x] Strict TypeScript, no `any`; external input (hash, typed numbers) validated
+- [x] No console errors or warnings
+- [x] No secrets in the code (there are none; `NEXT_PUBLIC_*` values are public by design)
 - [x] Analytics relay checked on the deployed site (T10.4, 28 Nov 2026): requests only to this origin, also from a network where Umami's hostnames are blocked; events and country in Umami Realtime
-- [ ] First-load JS checked against the budget after any slice that adds a dependency
-- [ ] Committed with a clear message and pushed (auto-deploys)
-- [ ] **Launch-day only:** `/spike` removed (done, T11.3), real prices and rates in place (R1, done), CSP tested (done, T11.3), real-device loop (done, T11.3), analytics events verified
+- [x] First-load JS checked against the budget after any slice that adds a dependency
+- [x] Committed with a clear message and pushed (auto-deploys)
+- [x] **Launch-day only:** `/spike` removed (done, T11.3), real prices and rates in place (R1, done), CSP tested (done, T11.3), real-device loop (done, T11.3), analytics events verified
 
 ---
 

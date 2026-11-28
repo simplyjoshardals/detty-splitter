@@ -9,6 +9,7 @@ A zero-signup, mobile-first web page that takes a group from "vibe" to "cost per
 - **No backend, no database.** Everything runs in the browser; Cloudflare only serves static files.
 - **Share links** keep the state in the URL hash (`#v1-…`), so it is never sent to a server and every link previews with the same static OG image.
 - **Receipt export** draws directly on a Canvas 2D and shares the PNG with the Web Share API, falling back to a download, then to an inline image.
+- **Search:** `robots.txt` and `sitemap.xml` are written at build time from `SITE_URL`. The aim is to be found by name, not to rank for generic searches (REQUIREMENTS D9).
 
 ## Stack
 
@@ -28,7 +29,7 @@ yarn dev                     # http://localhost:3000
 | `yarn build` | Static export to `out/` |
 | `yarn lint` | Run ESLint |
 | `yarn test` | Unit and component tests (Vitest) |
-| `yarn test:e2e` | One end-to-end flow plus axe checks (Playwright, Chromium); builds the site and serves `out/` itself |
+| `yarn test:e2e` | One end-to-end flow plus axe checks, and a check of `robots.txt` and `sitemap.xml` (Playwright, Chromium); builds the site and serves `out/` itself |
 
 `yarn start` is not used: the site is a static export, so serve `out/` with any static file server.
 
@@ -48,6 +49,10 @@ These are public values inlined at build time. Never put secrets in them. Changi
 ### Analytics
 
 Umami Cloud, off until you paste the website ID (a UUID, public by design) into `ANALYTICS_SITE_ID` in `config/index.ts`; it is a plain constant, not an env var. With it empty no script is added and nothing is sent. It sends only `receipt_export` (tier, currency, method), `link_copy` and `cta_click`, never amounts, headcounts, rates or the share link, and only from the host of `SITE_URL`, so local runs and previews do not count. The tracker script and its events go through this site's own origin (Cloudflare Pages Functions in `functions/`, relaying to Umami), so a DNS block or ad blocker on Umami's hostnames does not stop them. Visitors whose browser sends Do Not Track are not counted. The relay only exists on the deployed Pages site: `yarn dev` and `yarn serve out` have no `functions/`, so the script request 404s there, which is harmless (nothing is sent from other hosts). Check it on the deployed site in Umami's Realtime view.
+
+### Search Console
+
+Off until you paste the ownership token into `GOOGLE_SITE_VERIFICATION` in `config/index.ts` (a plain constant, public by design). In Search Console add a **URL prefix** property for the exact `SITE_URL`, pick the **HTML tag** method, and copy only the `content` value of the tag it shows. Deploy, click Verify, then submit `sitemap.xml` under Sitemaps. Bing Webmaster Tools can import the verified site from Search Console. If `SITE_URL` ever changes, add and verify the new URL.
 
 ## Project structure
 

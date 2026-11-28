@@ -10,8 +10,19 @@
 import { parseHttpsUrl } from "@/lib/author";
 import type { Rates } from "@/lib/types";
 
-/** Placeholder until Cloudflare assigns the real URL (T1.3) or a custom domain is set. */
+/**
+ * The live site URL (T1.3), a bare origin. Also the base of `robots.txt` and `sitemap.xml` (T10.5).
+ * If a custom domain is ever set, change it here and add the new URL in Search Console.
+ */
 export const SITE_URL = "https://detty-splitter.pages.dev";
+
+/**
+ * Google Search Console ownership token (T10.5): the `content` value of the HTML-tag method,
+ * rendered as the `google-site-verification` meta tag. Public by design (it sits in the page
+ * source), so a plain constant, not an env var. Empty means no tag is added. Paste only the
+ * value, not the whole tag (tests/seo.test.ts rejects quotes, spaces and markup).
+ */
+export const GOOGLE_SITE_VERIFICATION = "";
 
 /**
  * Page metadata and link preview (T10.2, REQUIREMENTS D4/M10): one static, site-wide preview, no

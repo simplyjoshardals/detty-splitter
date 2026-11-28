@@ -195,6 +195,15 @@ Format: **recommendation**, alternatives, why, what would change my mind.
 - Unit tests (Vitest) for the calculation core, number-input parsing, the share-link codec including malformed input, and tier lookup.
 - Component tests (Vitest, jsdom, Testing Library) for stateful UI such as `NumberField`, queried by role and label; no snapshots.
 - One end-to-end flow (Playwright, `e2e/main.spec.ts`, Chromium only; `yarn test:e2e`). It runs against the production static export: Playwright builds the site and serves `out/` with `serve` on port 3100, because the dev server's overlay would add elements to the page axe checks. axe runs inside it, and a keyboard-only test and a dark-mode axe run sit beside it (T11.2). Manual device checks stay for the receipt (these can't be automated reliably).
+- A second spec, `e2e/seo.spec.ts` (T10.5), runs on the same built `out/`: `robots.txt` and `sitemap.xml` exist, the robots file names a sitemap on the page's origin, the sitemap lists exactly the page's canonical URL, and the page has no `robots` meta tag asking crawlers to stay away.
+
+### 3.11 Search visibility (T10.5, REQUIREMENTS D9)
+- **Goal:** findable by its own name, with clean link previews. Not ranking for generic queries: with no custom domain (O2) the site lives on a shared `.pages.dev` subdomain with no history, and the traffic is expected from shared links (WhatsApp, X, TikTok).
+- **Already true before T10.5:** title and description within length limits, `canonical: "/"`, Open Graph and X cards, one `h1`, `lang="en"`, a viewport tag, HTTPS. Share links keep the calculation in the `#hash`, which crawlers never fetch, so every link is the same page to Google.
+- **Built:** `app/robots.ts` (allow all, names the sitemap) and `app/sitemap.ts` (the one URL, `SITE_URL` as it is, the same address as the rendered canonical link, which Next writes without a trailing slash; no `lastModified` because a build date would claim a change on every deploy). Both are marked `export const dynamic = "force-static"`, which `output: "export"` needs to write them to `out/`, and both are built from `SITE_URL`, so a custom domain stays a one-line swap.
+- **No `Disallow` rules.** The analytics relay paths (`/m/lib`, `/api/send`) do no harm if crawled, and listing them would add a place that has to stay in step with `ANALYTICS_SCRIPT_SRC`.
+- **Search Console:** `GOOGLE_SITE_VERIFICATION` (config) renders the `google-site-verification` meta tag through `metadata.verification`, and nothing is rendered while it is empty. Property type is URL prefix, for `SITE_URL`; then submit `sitemap.xml`. Bing Webmaster Tools can import the verified site from Search Console, so there is no second tag. The README has the steps.
+- **Left out on purpose:** structured data (little value for one page) and added explainer text (only needed to rank for queries; see §8).
 
 ---
 
@@ -256,8 +265,10 @@ detty-splitter/
 │  ├─ favicon.ico          # 16/32/48px frames, ₦ on danfo yellow (T10.2)
 │  ├─ globals.css          # Tailwind layers + design tokens
 │  ├─ icon.svg             # the same ₦ icon as SVG (T10.2)
-│  ├─ layout.tsx           # fonts, metadata, OG tags, analytics script
-│  └─ page.tsx             # the single page, composes components
+│  ├─ layout.tsx           # fonts, metadata, OG tags, Search Console tag, analytics script
+│  ├─ page.tsx             # the single page, composes components
+│  ├─ robots.ts            # robots.txt written at build time from SITE_URL (T10.5)
+│  └─ sitemap.ts           # sitemap.xml written at build time, the one URL (T10.5)
 ├─ components/             # presentational UI: PresetPicker, BucketEditor,
 │                          # ResultsPanel, DamageMeter, CurrencyToggle, Receipt (HTML), TierStamp,
 │                          # CtaCard, ShareBar, LinkNotice
@@ -277,7 +288,7 @@ detty-splitter/
 ├─ functions/              # Cloudflare Pages Functions: m/lib.ts (tracker script), api/send.ts (events)
 ├─ state/                  # reducer, actions, session (app state + load info), local save, context provider
 ├─ data/                   # presets, tiers and taglines, bucket definitions
-├─ config/                 # site URL, title/description/OG image, CTA flag and URL, default rates + as-of date
+├─ config/                 # site URL, title/description/OG image, CTA flag and URL, default rates + as-of date, Search Console token
 ├─ public/                 # og-image.png (1200×630, T10.2), _headers
 ├─ tests/                  # unit tests for calc, share, receipt helpers; one e2e
 ├─ next.config.ts          # output: 'export', unoptimized images
@@ -286,7 +297,7 @@ detty-splitter/
 └─ ARCHITECTURE.md, REQUIREMENTS.md, DATA_MODEL.md, (later) DESIGN.md, BUILD_PLAN.md
 ```
 
-No `src/` folder. `app/` is the stock `create-next-app` folder (`favicon.ico`, `globals.css`, `layout.tsx`, `page.tsx`, plus the icon files from T10.2), and the other folders are siblings of it at the project root. Per the Next.js docs, `components/` and `lib/` have no special meaning and live outside `app/` here, which the docs list as a valid strategy ("store project files outside of `app`"). When you run `create-next-app`, answer **No** to "Use `src/` directory?". Make sure Tailwind picks up classes in `components/` too (Tailwind v4 detects sources automatically; on v3 list the folders in the config).
+No `src/` folder. `app/` is the stock `create-next-app` folder (`favicon.ico`, `globals.css`, `layout.tsx`, `page.tsx`, plus the icon files from T10.2 and `robots.ts` and `sitemap.ts` from T10.5), and the other folders are siblings of it at the project root. Per the Next.js docs, `components/` and `lib/` have no special meaning and live outside `app/` here, which the docs list as a valid strategy ("store project files outside of `app`"). When you run `create-next-app`, answer **No** to "Use `src/` directory?". Make sure Tailwind picks up classes in `components/` too (Tailwind v4 detects sources automatically; on v3 list the folders in the config).
 
 Rules of placement:
 - `lib/calc`, `lib/money`, `lib/input`, `lib/rates`, `lib/author`, `lib/share`, `lib/storage`, `lib/umami-proxy` must not import React. `lib/umami-proxy` also uses no Node APIs, because it runs in a Pages Function.
@@ -300,11 +311,12 @@ Rules of placement:
 ## 8. Decisions I can postpone
 
 - Dynamic OG images (C1), extra receipt formats (C2), live exchange rates (C4), more presets or cities (C7).
+- Structured data and a short "How the estimate works" section for search: only if the search goal moves beyond findable-by-name (D9), which depends on O2.
 - In-app theme toggle (DESIGN.md follows the system theme; a toggle is a COULD).
 - A nonce- or hash-based CSP without `'unsafe-inline'` (T11.3 shipped the policy in §6 with it).
 - Compression of share links (only if Risk 3's test fails).
 - PWA/offline (C9).
-- A custom domain and its purchase (O2 decided 28 Nov 2026: launch on `detty-splitter.pages.dev`; a later switch only changes `SITE_URL`).
+- A custom domain and its purchase (O2 decided 28 Nov 2026: launch on `detty-splitter.pages.dev`; a later switch changes `SITE_URL` and needs the new URL added in Search Console, whose properties are per URL).
 - Final tier thresholds (O1) until price research is done.
 - Settle-up, named participants (C3).
 

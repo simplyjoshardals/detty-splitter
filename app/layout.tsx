@@ -5,6 +5,7 @@ import Script from "next/script";
 import {
   ANALYTICS_SCRIPT_SRC,
   ANALYTICS_SITE_ID,
+  GOOGLE_SITE_VERIFICATION,
   OG_IMAGE_ALT,
   OG_IMAGE_PATH,
   OG_IMAGE_SIZE,
@@ -64,6 +65,10 @@ export const metadata: Metadata = {
   description: SITE_DESCRIPTION,
   // Share links and test URLs (`?v=1`) all point at the one page, so say which URL is the real one.
   alternates: { canonical: "/" },
+  // Search Console ownership tag (T10.5). Nothing is rendered until a token is set in config.
+  ...(GOOGLE_SITE_VERIFICATION === ""
+    ? {}
+    : { verification: { google: GOOGLE_SITE_VERIFICATION } }),
   openGraph: {
     type: "website",
     url: "/",

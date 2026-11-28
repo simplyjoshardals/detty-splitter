@@ -65,6 +65,7 @@ describe("page metadata", () => {
       "OG_LOCALE",
       "X_HANDLE",
       "THEME_COLOR",
+      "GOOGLE_SITE_VERIFICATION",
     ]) {
       expect(layout, `layout.tsx should mention ${needle}`).toContain(needle);
     }

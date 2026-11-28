@@ -185,12 +185,13 @@ Rules:
 
 | Key | Source | Rules |
 |---|---|---|
-| `SITE_URL` | constant | Used for the receipt watermark and metadata. One-line swap for a custom domain |
+| `SITE_URL` | constant | Used for the receipt watermark, metadata, `robots.txt` and `sitemap.xml` (T10.5). One-line swap for a custom domain |
 | `SITE_NAME`, `SITE_TITLE`, `SITE_DESCRIPTION` | constants | Page title, description and Open Graph site name (T10.2). Draft copy in the app's voice (DESIGN §9). The description stays at or under 160 characters (`tests/metadata.test.ts`) |
 | `OG_IMAGE_PATH`, `OG_IMAGE_SIZE`, `OG_IMAGE_ALT` | constants | The one static link-preview image, `public/og-image.png`, 1200 × 630 (DESIGN §7.3). The test reads the real file and compares its size with `OG_IMAGE_SIZE`. The alt text quotes the sample receipt's total, so update it if the sample changes |
 | `OG_LOCALE` | constant | `og:locale`, format `ll_CC`. `en_GB`, because Facebook has no `en_NG` (its English locales are `en_GB` and `en_US`) |
 | `X_HANDLE` | constant | The author's X handle (`@joshardals`), used as `twitter:site`. Public by design |
 | `THEME_COLOR` | constant | Mobile toolbar colour (`theme-color`). Must equal `--danfo` in `globals.css`; `tests/metadata.test.ts` compares them |
+| `GOOGLE_SITE_VERIFICATION` | constant | Search Console ownership token (T10.5): the `content` value of the HTML-tag method, rendered as the `google-site-verification` meta tag through `metadata.verification` in `app/layout.tsx`. Public by design (it sits in the page source). Empty by default: no tag is rendered. Paste only the value, not the whole tag; `tests/seo.test.ts` rejects quotes, spaces and markup. Search Console properties are per URL, so verify again if `SITE_URL` changes |
 | `CTA_ENABLED` | `NEXT_PUBLIC_CTA_ENABLED` | On only if the value is exactly the string `true`. Anything else is off |
 | `CTA_URL` | `NEXT_PUBLIC_CTA_URL` | Must parse as a URL with protocol `https:` (`parseHttpsUrl`, shared from `lib/author`). Otherwise treated as unset |
 | `CTA_TITLE`, `CTA_BUTTON_TEXT`, `CTA_DISCLOSURE` | constants | Wording kept after C1 (the CTA is off at launch). A non-empty `CTA_DISCLOSURE` (the link is an affiliate or paid promo) shows the disclosure line under the button and adds `sponsored` to the link's `rel`. Empty means neither |

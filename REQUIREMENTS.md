@@ -60,6 +60,7 @@
 | D6 | Hosted on Cloudflare Pages, static export, free `.pages.dev` subdomain at launch. Watermark/site URL lives in a **single config constant** so a custom domain is a one-line swap. |
 | D7 | Cloudflare Web Analytics, cookieless, no consent banner, plus lightweight tracking of receipt exports, link copies and CTA clicks. **See Risk/Open item O3: custom events need verification.** |
 | D8 | Standard English with light Nigerian Pidgin flavor. 5 draft tiers and taglines are in ยง7. You refine the copy. |
+| D9 | Search goal (28 Nov 2026): be findable by its own name ("Detty Dec 2026") and have clean link previews. Not ranking for generic queries such as "Detty December budget calculator": with O2 decided (no custom domain) the site sits on a shared `.pages.dev` subdomain with no history, and the traffic is expected from shared links. So: `robots.txt`, `sitemap.xml` and a Search Console tag (T10.5). No added explainer text and no structured data. Revisit together with O2 if the goal changes. |
 
 **Assumptions (confirmed)**
 - A1. Exchange rates are hardcoded defaults with an "as of" date and are user-editable. No live-rate API.
@@ -238,7 +239,7 @@ Rules: one badge per receipt, one tagline per tier in MVP (a rotating pool of 2โ
 
 **Open items to resolve (not top-5, but real)**
 - **O1.** Final tier thresholds and the tuned preset numbers (depends on Risk 1). **Done in R1, 28 Nov 2026.**
-- **O2.** Custom domain: yes or no, and if yes, bought before launch? (Watermark URL should be short and memorable.) **Decided 28 Nov 2026: no custom domain for launch; stay on `detty-splitter.pages.dev`.**
+- **O2.** Custom domain: yes or no, and if yes, bought before launch? (Watermark URL should be short and memorable.) **Decided 28 Nov 2026: no custom domain for launch; stay on `detty-splitter.pages.dev`.** The search goal follows from it (D9).
 - **O4.** `NEXT_PUBLIC_*` variables are inlined into the JavaScript at build time. With a static export, changing `NEXT_PUBLIC_CTA_URL` or the flag means **updating the variable in Cloudflare Pages and triggering a new deploy**, not a live toggle. That's fine for this project. Just plan for a quick rebuild when you're ready to turn the CTA on. If you ever want a live toggle without redeploying, that needs a runtime-fetched config file, which is out of MVP scope.
 - **O3.** **Analytics claim needs verification.** Cloudflare Web Analytics, as far as I know, tracks page views and web-vitals but not custom events. My earlier suggestion of "plus custom events" may not work. Verify in Cloudflare's docs. If it doesn't, the options are a different free cookieless tool with event support (check its free-tier limits and cookie behavior), or measure only CTA clicks through the destination's own dashboard and UTM tags and give up on measuring exports and link copies. Decide this in the architecture step.
 
