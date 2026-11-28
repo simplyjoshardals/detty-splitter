@@ -1,6 +1,10 @@
 # Cloudflare Pages response headers for static assets (ARCHITECTURE §6).
 # Format: a URL pattern line, then indented "Name: value" lines.
-# Content-Security-Policy is added last, in T11.3.
+# The CSP must stay on ONE line (no continuation). 'unsafe-inline' is the one loosening: a static
+# export has no nonces, so Next's inline <script> tags and React's style="" attributes need it.
+# Every other source is 'self' (analytics is same-origin, T10.4) or blob: for the export image.
+# tests/headers.test.ts pins these rules; the third e2e test runs the app under this exact line.
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'

@@ -8,7 +8,7 @@ import { GOLDEN, MAX_VALUES } from "./fixtures";
  * jsdom has no canvas, so these tests stub the few browser APIs the renderer touches. They check
  * the order of events (fonts first, colours once), which families are used, and that every
  * failure comes back as a typed result. They cannot show what the pixels look like: that needs a
- * real browser (the /spike page).
+ * real browser (the exported PNG, checked on a phone).
  */
 
 const VIEW = buildReceiptView(GOLDEN);

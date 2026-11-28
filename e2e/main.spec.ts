@@ -148,6 +148,56 @@ test("the whole flow works by keyboard only", async ({ page }) => {
   await expect(page.getByText("Link copied. Drop it in the group chat.")).toBeVisible();
 });
 
+/** The CSP line from public/_headers, so the test runs under the policy that ships. */
+async function readCsp(): Promise<string> {
+  const headers = await readFile("public/_headers", "utf8");
+  const csp = /^\s+Content-Security-Policy:\s*(.+?)\s*$/m.exec(headers)?.[1];
+  if (csp === undefined) throw new Error("No Content-Security-Policy line in public/_headers");
+  return csp;
+}
+
+test("the flow runs under the production CSP with no violations", async ({ page }) => {
+  const csp = await readCsp();
+  const problems: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") problems.push(`console: ${message.text()}`);
+  });
+  page.on("pageerror", (error) => problems.push(`page error: ${error.message}`));
+
+  // `serve` ignores public/_headers, so give every page response the same policy here.
+  await page.route("**/*", async (route) => {
+    if (route.request().resourceType() !== "document") {
+      await route.continue();
+      return;
+    }
+    const response = await route.fetch();
+    await route.fulfill({ response, headers: { ...response.headers(), "content-security-policy": csp } });
+  });
+  // /m/lib is a Pages Function (the analytics relay), which `serve` does not run. An empty same-origin
+  // script still shows that the policy lets it load.
+  await page.route("**/m/lib", (route) =>
+    route.fulfill({ status: 200, contentType: "application/javascript", body: "" }),
+  );
+
+  await openApp(page);
+  const price = page.getByRole("textbox", { name: /Price per night/ });
+  await price.fill("123456");
+  await price.press("Enter");
+  await page.getByRole("button", { name: "Copy link", exact: true }).click();
+  await expect(page.getByText("Link copied. Drop it in the group chat.")).toBeVisible();
+  const download = page.waitForEvent("download");
+  await exportButtonOf(page).click();
+  await expectPngDownload(await download);
+
+  // A font the policy blocked would show here and in the console.
+  const failedFonts = await page.evaluate(async () => {
+    await document.fonts.ready;
+    return [...document.fonts].filter((face) => face.status === "error").map((face) => face.family);
+  });
+  expect(failedFonts, "fonts that failed to load").toEqual([]);
+  expect(problems, "console and page errors").toEqual([]);
+});
+
 test.describe("dark mode at 360px", () => {
   test.use({ colorScheme: "dark", viewport: { width: 360, height: 800 } });
 
