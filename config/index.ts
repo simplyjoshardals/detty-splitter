@@ -22,7 +22,7 @@ export const SITE_URL = "https://detty-splitter.pages.dev";
  * source), so a plain constant, not an env var. Empty means no tag is added. Paste only the
  * value, not the whole tag (tests/seo.test.ts rejects quotes, spaces and markup).
  */
-export const GOOGLE_SITE_VERIFICATION = "ALZDGDk04I4lwp05i-vyzoPomGvw_gNkJlKahVrXFPs";
+export const GOOGLE_SITE_VERIFICATION: string = "ALZDGDk04I4lwp05i-vyzoPomGvw_gNkJlKahVrXFPs";
 
 /**
  * Page metadata and link preview (T10.2, REQUIREMENTS D4/M10): one static, site-wide preview, no
